@@ -277,7 +277,6 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
                 ? `<i data-lucide="file-code" style="width:12px;height:12px;display:inline-block;vertical-align:middle;margin-right:4px;"></i>${filename.trim()}`
                 : langLabel;
 
-            // Syntax highlighting uygula
             const highlighted = SyntaxHighlighter.highlight(code.trim(), langLabel);
 
             return `<div class="code-block-header">
@@ -290,11 +289,42 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
         });
 
         html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
         html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+        // Headings
+        html = html.replace(/^######\s+(.+)$/gm, '<h6 class="md-heading md-h6">$1</h6>');
+        html = html.replace(/^#####\s+(.+)$/gm, '<h5 class="md-heading md-h5">$1</h5>');
+        html = html.replace(/^####\s+(.+)$/gm, '<h4 class="md-heading md-h4">$1</h4>');
+        html = html.replace(/^###\s+(.+)$/gm, '<h3 class="md-heading md-h3">$1</h3>');
+        html = html.replace(/^##\s+(.+)$/gm, '<h2 class="md-heading md-h2">$1</h2>');
+        html = html.replace(/^#\s+(.+)$/gm, '<h1 class="md-heading md-h1">$1</h1>');
+
+        // Horizontal rule
+        html = html.replace(/^---$/gm, '<hr class="md-hr">');
+
+        // Lists
+        html = html.replace(/^[\-\*]\s+(.+)$/gm, '<li class="md-li">$1</li>');
+        html = html.replace(/^\d+\.\s+(.+)$/gm, '<li class="md-li md-li-ordered">$1</li>');
+
+        // Blockquote
+        html = html.replace(/^&gt;\s+(.+)$/gm, '<blockquote class="md-blockquote">$1</blockquote>');
+
+        // Details/Summary
         html = html.replace(/&lt;details&gt;&lt;summary&gt;(.*?)&lt;\/summary&gt;/g, '<details><summary>$1</summary>');
         html = html.replace(/&lt;\/details&gt;/g, '</details>');
+
+        // Line breaks
         html = html.replace(/\n/g, '<br>');
+
+        // Clean trailing <br> after block elements
+        html = html.replace(/(<\/h[1-6]>)<br>/g, '$1');
+        html = html.replace(/(<hr class="md-hr">)<br>/g, '$1');
+        html = html.replace(/(<\/li>)<br>/g, '$1');
+        html = html.replace(/(<\/blockquote>)<br>/g, '$1');
+        html = html.replace(/(<\/pre>)<br>/g, '$1');
+        html = html.replace(/(<\/details>)<br>/g, '$1');
 
         return html;
     },
@@ -378,11 +408,43 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
         });
 
         html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
         html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+        // Headings
+        html = html.replace(/^######\s+(.+)$/gm, '<h6 class="md-heading md-h6">$1</h6>');
+        html = html.replace(/^#####\s+(.+)$/gm, '<h5 class="md-heading md-h5">$1</h5>');
+        html = html.replace(/^####\s+(.+)$/gm, '<h4 class="md-heading md-h4">$1</h4>');
+        html = html.replace(/^###\s+(.+)$/gm, '<h3 class="md-heading md-h3">$1</h3>');
+        html = html.replace(/^##\s+(.+)$/gm, '<h2 class="md-heading md-h2">$1</h2>');
+        html = html.replace(/^#\s+(.+)$/gm, '<h1 class="md-heading md-h1">$1</h1>');
+
+        // Horizontal rule
+        html = html.replace(/^---$/gm, '<hr class="md-hr">');
+
+        // Lists
+        html = html.replace(/^[\-\*]\s+(.+)$/gm, '<li class="md-li">$1</li>');
+        html = html.replace(/^\d+\.\s+(.+)$/gm, '<li class="md-li md-li-ordered">$1</li>');
+
+        // Blockquote
+        html = html.replace(/^&gt;\s+(.+)$/gm, '<blockquote class="md-blockquote">$1</blockquote>');
+
+        // Details/Summary
         html = html.replace(/&lt;details&gt;&lt;summary&gt;(.*?)&lt;\/summary&gt;/g, '<details><summary>$1</summary>');
         html = html.replace(/&lt;\/details&gt;/g, '</details>');
+
+        // Line breaks
         html = html.replace(/\n/g, '<br>');
+
+        // Clean trailing <br> after block elements
+        html = html.replace(/(<\/h[1-6]>)<br>/g, '$1');
+        html = html.replace(/(<hr class="md-hr">)<br>/g, '$1');
+        html = html.replace(/(<\/li>)<br>/g, '$1');
+        html = html.replace(/(<\/blockquote>)<br>/g, '$1');
+        html = html.replace(/(<\/pre>)<br>/g, '$1');
+        html = html.replace(/(<\/details>)<br>/g, '$1');
+        html = html.replace(/(<\/div>)<br>/g, '$1');
 
         return html;
     },
