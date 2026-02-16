@@ -233,8 +233,27 @@ const API = {
             this.updateConnectionStatus('online');
 
             if (body.stream && response.body) {
-                try { return this.handleStream(response); }
-                catch (e) { console.warn('Stream failed:', e); }
+                try {
+                    return this.handleStream(response);
+                } catch (streamError) {
+                    console.warn('Stream failed, retrying without stream:', streamError);
+                    // Stream başarısızsa non-stream olarak tekrar dene
+                    body.stream = false;
+                    const retryResponse = await fetch(`${config.baseUrl}${config.chatEndpoint}`, {
+                        method: 'POST',
+                        headers: config.headers(apiKey),
+                        body: JSON.stringify(body),
+                        signal: this.abortController.signal,
+                    });
+                    if (retryResponse.ok) {
+                        const retryData = await retryResponse.json();
+                        return {
+                            content: retryData.choices?.[0]?.message?.content || '',
+                            model: retryData.model,
+                            stream: false,
+                        };
+                    }
+                }
             }
 
             const data = await response.json();
@@ -296,52 +315,153 @@ const API = {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
+
         try {
             while (true) {
-                const { done, value } = await reader.read();
+                let readResult;
+                try {
+                    readResult = await reader.read();
+                } catch (readError) {
+                    console.warn('Gemini stream read error:', readError.message);
+                    break;
+                }
+
+                const { done, value } = readResult;
                 if (done) break;
+
                 buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split('\n');
                 buffer = lines.pop() || '';
+
                 for (const line of lines) {
                     const trimmed = line.trim();
-                    if (!trimmed || !trimmed.startsWith('data: ')) continue;
-                    const data = trimmed.slice(6);
-                    if (data === '[DONE]') return;
+                    if (!trimmed) continue;
+
+                    // SSE formatı
+                    if (trimmed.startsWith('data: ') || trimmed.startsWith('data:')) {
+                        const data = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed.slice(5);
+                        if (data === '[DONE]' || data === '') continue;
+
+                        try {
+                            const parsed = JSON.parse(data);
+                            const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                            if (text) yield text;
+
+                            // Finish reason kontrolü
+                            const finishReason = parsed.candidates?.[0]?.finishReason;
+                            if (finishReason === 'STOP') return;
+                        } catch (e) {
+                            // Parçalı JSON — buffer'a geri koy
+                            buffer = trimmed + '\n' + buffer;
+                        }
+                    }
+                }
+            }
+
+            // Kalan buffer
+            if (buffer.trim()) {
+                const remaining = buffer.trim();
+                if (remaining.startsWith('data: ')) {
                     try {
-                        const parsed = JSON.parse(data);
+                        const parsed = JSON.parse(remaining.slice(6));
                         const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
                         if (text) yield text;
                     } catch (e) { /* skip */ }
                 }
             }
-        } finally { reader.releaseLock(); }
+        } finally {
+            try { reader.releaseLock(); } catch (e) { /* already released */ }
+        }
     },
 
     async *handleStream(response) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
+        let retryCount = 0;
+        const MAX_RETRIES = 3;
+
         try {
             while (true) {
-                const { done, value } = await reader.read();
+                let readResult;
+                try {
+                    readResult = await reader.read();
+                } catch (readError) {
+                    retryCount++;
+                    if (retryCount > MAX_RETRIES) throw readError;
+                    console.warn(`Stream read error (retry ${retryCount}):`, readError.message);
+                    continue;
+                }
+
+                const { done, value } = readResult;
                 if (done) break;
+
+                retryCount = 0; // başarılı okumada retry sıfırla
                 buffer += decoder.decode(value, { stream: true });
+
+                // Satır satır işle
                 const lines = buffer.split('\n');
                 buffer = lines.pop() || '';
+
                 for (const line of lines) {
                     const trimmed = line.trim();
-                    if (!trimmed || !trimmed.startsWith('data: ')) continue;
-                    const data = trimmed.slice(6);
-                    if (data === '[DONE]') return;
+
+                    // Boş satır veya yorum
+                    if (!trimmed || trimmed.startsWith(':')) continue;
+
+                    // SSE data satırı
+                    if (!trimmed.startsWith('data: ') && !trimmed.startsWith('data:')) continue;
+
+                    const data = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed.slice(5);
+
+                    if (data === '[DONE]' || data === '') continue;
+
                     try {
                         const parsed = JSON.parse(data);
+
+                        // OpenAI / OpenRouter format
                         const content = parsed.choices?.[0]?.delta?.content;
-                        if (content) yield content;
-                    } catch (e) { /* skip */ }
+                        if (content) {
+                            yield content;
+                            continue;
+                        }
+
+                        // Bazı modeller finish_reason ile bitirir
+                        const finishReason = parsed.choices?.[0]?.finish_reason;
+                        if (finishReason === 'stop' || finishReason === 'end_turn') {
+                            return;
+                        }
+
+                        // Tam mesaj formatı (non-streaming fallback)
+                        const fullContent = parsed.choices?.[0]?.message?.content;
+                        if (fullContent) {
+                            yield fullContent;
+                            return;
+                        }
+                    } catch (parseError) {
+                        // JSON parse hatası — muhtemelen parçalı veri, buffer'da beklesin
+                        buffer = trimmed + '\n' + buffer;
+                    }
                 }
             }
-        } finally { reader.releaseLock(); }
+
+            // Buffer'da kalan veriyi işle
+            if (buffer.trim()) {
+                const remaining = buffer.trim();
+                if (remaining.startsWith('data: ')) {
+                    const data = remaining.slice(6);
+                    if (data !== '[DONE]') {
+                        try {
+                            const parsed = JSON.parse(data);
+                            const content = parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.message?.content;
+                            if (content) yield content;
+                        } catch (e) { /* skip */ }
+                    }
+                }
+            }
+        } finally {
+            try { reader.releaseLock(); } catch (e) { /* already released */ }
+        }
     },
 
     abort() {
