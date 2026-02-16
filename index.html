@@ -641,13 +641,48 @@
                     </button>
                 </div>
                 <div class="modal-body">
+                    <!-- API Provider -->
+                    <div class="settings-group">
+                        <label class="settings-label">
+                            <i data-lucide="cloud" class="settings-label-icon"></i>
+                            API Provider
+                        </label>
+                        <p class="settings-desc">Choose your API provider. Each provider needs its own API key.</p>
+                        <div class="provider-options" id="provider-options">
+                            <button class="provider-option active" data-provider="openrouter">
+                                <i data-lucide="cloud"></i>
+                                <div class="provider-info">
+                                    <span class="provider-name">OpenRouter</span>
+                                    <span class="provider-desc">200+ models, one key</span>
+                                </div>
+                            </button>
+                            <button class="provider-option" data-provider="gemini">
+                                <i data-lucide="sparkles"></i>
+                                <div class="provider-info">
+                                    <span class="provider-name">Google Gemini</span>
+                                    <span class="provider-desc">Direct Gemini access</span>
+                                </div>
+                            </button>
+                            <button class="provider-option" data-provider="openai">
+                                <i data-lucide="brain"></i>
+                                <div class="provider-info">
+                                    <span class="provider-name">OpenAI</span>
+                                    <span class="provider-desc">GPT models direct</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- API Key -->
                     <div class="settings-group">
                         <label class="settings-label">
                             <i data-lucide="key" class="settings-label-icon"></i>
-                            OpenRouter API Key
+                            <span id="api-key-label">OpenRouter API Key</span>
                         </label>
-                        <p class="settings-desc">Stored locally. Never sent to our servers.</p>
+                        <p class="settings-desc">
+                            Stored locally. Never sent to our servers.
+                            <a id="api-key-docs-link" href="https://openrouter.ai/keys" target="_blank" rel="noopener" style="color:var(--accent-primary);margin-left:4px;">Get key →</a>
+                        </p>
                         <div class="settings-input-group">
                             <input type="password" id="api-key-input" class="settings-input" placeholder="sk-or-v1-...">
                             <button class="settings-input-btn" id="toggle-key-visibility">
