@@ -13,26 +13,46 @@ const DirectMode = {
             content: m.content,
         }));
 
+        // Stream timeout — takılmayı önle
+        let streamTimeout = null;
+        const STREAM_TIMEOUT_MS = 30000; // 30 saniye sessizlik = timeout
+
+        const resetStreamTimeout = () => {
+            if (streamTimeout) clearTimeout(streamTimeout);
+            streamTimeout = setTimeout(() => {
+                console.warn('Stream timeout — aborting');
+                API.abort();
+            }, STREAM_TIMEOUT_MS);
+        };
+
         try {
             const result = await API.sendMessage(messages, model);
 
             // Stream response
             if (result && typeof result[Symbol.asyncIterator] === 'function') {
                 let fullContent = '';
+                let lastCodeUpdate = 0;
+
+                resetStreamTimeout();
 
                 for await (const chunk of result) {
                     fullContent += chunk;
+                    resetStreamTimeout();
+
                     Chat.updateStreamMessage(fullContent);
 
-                    // Sadece kod bloğu varsa editörü güncelle
-                    if (fullContent.includes('```')) {
+                    // Editörü throttled güncelle (her 500ms'de bir)
+                    const now = Date.now();
+                    if (fullContent.includes('```') && now - lastCodeUpdate > 500) {
                         Editor.updateCode(fullContent);
+                        lastCodeUpdate = now;
                     }
                 }
 
+                if (streamTimeout) clearTimeout(streamTimeout);
+
                 if (fullContent) {
                     Chat.addAssistantMessage(fullContent);
-                    // Son halinde kod varsa editörü güncelle
                     if (fullContent.includes('```')) {
                         Editor.updateCode(fullContent);
                     }
@@ -51,9 +71,16 @@ const DirectMode = {
             }
 
         } catch (error) {
-            Chat.addAssistantMessage(`**Error:** ${error.message}`);
-            Utils.toast(error.message, 'error');
+            if (streamTimeout) clearTimeout(streamTimeout);
+
+            if (error.name === 'AbortError') {
+                Utils.toast('Generation stopped', 'info');
+            } else {
+                Chat.addAssistantMessage(`**Error:** ${error.message}`);
+                Utils.toast(error.message, 'error');
+            }
         } finally {
+            if (streamTimeout) clearTimeout(streamTimeout);
             Chat.setGenerating(false);
         }
     },
