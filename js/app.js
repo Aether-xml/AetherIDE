@@ -23,6 +23,7 @@ const App = {
         Settings.init();
         Editor.init();
         Chat.init();
+        Sandbox.init();
 
         this.bindEvents();
         this.loadState();
@@ -132,6 +133,14 @@ const App = {
         if (this.currentMode === 'planner' && PlannerMode.phase === 'coding' && mode !== 'planner') {
             Utils.toast('Cannot switch modes while Planner is coding.', 'warning', 3000);
             return;
+        }
+
+        // Aktif sohbet varsa ve mesaj varsa, mod değişimini engelle
+        if (Chat.currentChat && Chat.currentChat.messages.length > 0 && Chat.currentChat.mode) {
+            if (Chat.currentChat.mode !== mode) {
+                Utils.toast(`This chat was started in ${Chat.currentChat.mode.charAt(0).toUpperCase() + Chat.currentChat.mode.slice(1)} mode. Start a new chat to use ${mode.charAt(0).toUpperCase() + mode.slice(1)} mode.`, 'warning', 4000);
+                return;
+            }
         }
 
         this.currentMode = mode;
