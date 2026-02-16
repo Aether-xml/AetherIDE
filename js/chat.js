@@ -59,6 +59,7 @@ const Chat = {
     },
 
     newChat() {
+        // Zaten boş sohbet varsa sadece odaklan
         if (this.currentChat && this.currentChat.messages.length === 0) {
             const input = document.getElementById('message-input');
             if (input) input.focus();
@@ -79,8 +80,11 @@ const Chat = {
         if (App.currentMode === 'planner') {
             PlannerMode.phase = 'planning';
             PlannerMode.currentPlan = null;
+            PlannerMode.thinkingContent = '';
             const actions = document.getElementById('planner-actions');
             if (actions) actions.style.display = 'none';
+            const thinkingDisplay = document.getElementById('planner-thinking-display');
+            if (thinkingDisplay) thinkingDisplay.style.display = 'none';
         }
 
         const chat = {
@@ -94,7 +98,10 @@ const Chat = {
 
         this.currentChat = chat;
         Storage.setActiveChatId(chat.id);
-        this.renderMessages();
+
+        // Welcome sayfasını göster
+        this.showWelcome();
+
         this.renderHistory();
 
         // Console temizle
@@ -108,7 +115,72 @@ const Chat = {
 
         document.getElementById('send-btn').disabled = true;
 
+        // Mobilde sidebar kapat
+        document.getElementById('sidebar')?.classList.remove('open');
+        document.getElementById('sidebar-overlay')?.classList.remove('visible');
+
         return chat;
+    },
+
+    // Welcome sayfasını göster
+    showWelcome() {
+        const container = document.getElementById('messages-container');
+        const welcome = document.getElementById('welcome-message');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        if (welcome) {
+            // Welcome element'i klonla (DOM'dan kaldırılmış olabilir)
+            welcome.style.display = 'flex';
+            container.appendChild(welcome);
+            if (window.lucide) lucide.createIcons({ nodes: [welcome] });
+        } else {
+            // Welcome element yoksa yeniden oluştur
+            container.innerHTML = `
+                <div class="welcome-message" id="welcome-message" style="display:flex;">
+                    <div class="welcome-logo-wrap">
+                        <div class="welcome-glow"></div>
+                        <img src="assets/icons/icon-192.png" alt="AetherIDE" class="welcome-logo-img">
+                    </div>
+                    <h2 class="welcome-title">AetherIDE</h2>
+                    <p class="welcome-subtitle">Code at the speed of thought</p>
+                    <div class="welcome-cards">
+                        <button class="welcome-card" data-prompt="Build me a responsive landing page with modern design">
+                            <i data-lucide="globe" class="card-lucide-icon"></i>
+                            <span class="card-text">Landing page</span>
+                        </button>
+                        <button class="welcome-card" data-prompt="Create a todo app with local storage">
+                            <i data-lucide="check-square" class="card-lucide-icon"></i>
+                            <span class="card-text">Todo app</span>
+                        </button>
+                        <button class="welcome-card" data-prompt="Write a Python script that scrapes website data">
+                            <i data-lucide="terminal" class="card-lucide-icon"></i>
+                            <span class="card-text">Python script</span>
+                        </button>
+                        <button class="welcome-card" data-prompt="Design a REST API with Express.js">
+                            <i data-lucide="server" class="card-lucide-icon"></i>
+                            <span class="card-text">REST API</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+            if (window.lucide) lucide.createIcons({ nodes: [container] });
+
+            // Welcome kartlarına event ekle
+            container.querySelectorAll('.welcome-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const prompt = card.dataset.prompt;
+                    const input = document.getElementById('message-input');
+                    if (prompt && input) {
+                        input.value = prompt;
+                        Utils.autoResize(input);
+                        document.getElementById('send-btn').disabled = false;
+                        input.focus();
+                    }
+                });
+            });
+        }
     },
 
     loadLastChat() {
@@ -239,11 +311,7 @@ const Chat = {
         if (!container) return;
 
         if (!this.currentChat || this.currentChat.messages.length === 0) {
-            container.innerHTML = '';
-            if (welcome) {
-                container.appendChild(welcome);
-                welcome.style.display = 'flex';
-            }
+            this.showWelcome();
             return;
         }
 
