@@ -1,11 +1,66 @@
 /* ══════════════════════════════════════════════════════════
-   AetherIDE — Planner Mode v2
+   AetherIDE — Planner Mode v3
+   Flash (hızlı) & Pro (derin düşünme) modları
    ══════════════════════════════════════════════════════════ */
 
 const PlannerMode = {
 
     currentPlan: null,
-    phase: 'planning',
+    phase: 'planning', // planning | reviewing | coding
+    speed: 'flash',    // flash | pro
+    thinkingContent: '',
+    thinkingCollapsed: false,
+
+    // ── Flash vs Pro ayarları ──
+    SPEED_CONFIG: {
+        flash: {
+            planPrompt: `You are an expert programmer and planner. Analyze the user's request and create a clear plan.
+
+RULES:
+- Create a concise step-by-step plan
+- Use numbered steps
+- Be efficient and direct
+- Do NOT write any code yet
+- End by asking the user to approve, modify, or reject
+
+Start with "📋 **Plan:**"`,
+            codePrompt: `The user approved the plan. Implement it completely. Write ALL the code needed.`,
+            temperature: 0.7,
+            maxTokens: 4096,
+        },
+        pro: {
+            planPrompt: `You are a senior software architect and expert programmer. The user wants a deeply thought-out plan.
+
+RULES:
+- Think through the problem step by step in a <thinking> block first
+- Consider multiple approaches and pick the best one
+- Analyze edge cases, potential issues, and scalability
+- Create a comprehensive, detailed plan with clear reasoning
+- Include architecture decisions and why you chose them
+- Suggest file structure with explanations
+- Estimate complexity and potential challenges
+- Do NOT write any code yet
+- End by asking the user to approve, modify, or reject
+
+FORMAT:
+1. First, wrap your reasoning in <thinking>...</thinking> tags
+2. Then present the clean plan starting with "📋 **Plan:**"
+
+Think deeply. Quality over speed.`,
+            codePrompt: `The user approved a carefully thought-out plan. Now implement it with the highest quality.
+- Write clean, well-documented, production-ready code
+- Handle edge cases
+- Add proper error handling
+- Follow best practices
+- Include comments explaining complex logic`,
+            temperature: 0.3,
+            maxTokens: 8192,
+        },
+    },
+
+    getConfig() {
+        return this.SPEED_CONFIG[this.speed] || this.SPEED_CONFIG.flash;
+    },
 
     async send(chat, model) {
         if (this.phase === 'coding') {
@@ -14,17 +69,9 @@ const PlannerMode = {
         }
 
         Chat.setGenerating(true);
+        this.thinkingContent = '';
 
-        const systemPrompt = `You are an expert programmer and planner. The user wants you to plan before coding.
-
-PHASE: PLANNING
-- Analyze the user's request carefully
-- Create a detailed step-by-step plan
-- Format your plan clearly with numbered steps
-- Do NOT write any code yet
-- Ask the user to approve, modify, or reject the plan
-
-Start your response with "📋 **Plan:**" and end with asking for approval.`;
+        const config = this.getConfig();
 
         const messages = chat.messages.map(m => ({
             role: m.role,
@@ -32,22 +79,45 @@ Start your response with "📋 **Plan:**" and end with asking for approval.`;
         }));
 
         try {
-            const result = await API.sendMessage(messages, model, { systemPrompt });
+            const result = await API.sendMessage(messages, model, {
+                systemPrompt: config.planPrompt,
+                temperature: config.temperature,
+                maxTokens: config.maxTokens,
+            });
+
             let fullContent = '';
 
             if (result && typeof result[Symbol.asyncIterator] === 'function') {
                 for await (const chunk of result) {
                     fullContent += chunk;
-                    Chat.updateStreamMessage(fullContent);
+
+                    // Pro modda thinking bloğunu ayır
+                    if (this.speed === 'pro') {
+                        this.processThinking(fullContent);
+                    }
+
+                    Chat.updateStreamMessage(this.getDisplayContent(fullContent));
                 }
             } else if (result && result.content) {
                 fullContent = result.content;
+                if (this.speed === 'pro') {
+                    this.processThinking(fullContent);
+                }
             }
 
             if (fullContent) {
                 this.currentPlan = fullContent;
                 this.phase = 'reviewing';
-                Chat.addAssistantMessage(fullContent);
+
+                // Thinking bloğunu mesajdan çıkar, sadece planı göster
+                const displayContent = this.getDisplayContent(fullContent);
+                Chat.addAssistantMessage(displayContent);
+
+                // Pro modda thinking panel'i göster
+                if (this.speed === 'pro' && this.thinkingContent) {
+                    this.showThinkingDisplay(true);
+                }
+
                 this.showPlanActions(true);
             }
         } catch (error) {
@@ -61,9 +131,13 @@ Start your response with "📋 **Plan:**" and end with asking for approval.`;
     async executePlan(chat, model) {
         Chat.setGenerating(true);
         this.showPlanActions(false);
+        this.showThinkingDisplay(false);
+        this.thinkingContent = '';
 
-        const systemPrompt = Storage.getSettings().systemPrompt +
-            '\n\nThe user approved a plan. Now implement it completely. Write ALL the code needed.';
+        const config = this.getConfig();
+        const basePrompt = Storage.getSettings().systemPrompt;
+
+        const systemPrompt = basePrompt + '\n\n' + config.codePrompt;
 
         const messages = chat.messages.map(m => ({
             role: m.role,
@@ -71,13 +145,24 @@ Start your response with "📋 **Plan:**" and end with asking for approval.`;
         }));
 
         try {
-            const result = await API.sendMessage(messages, model, { systemPrompt });
+            const result = await API.sendMessage(messages, model, {
+                systemPrompt,
+                temperature: config.temperature,
+                maxTokens: config.maxTokens,
+            });
+
             let fullContent = '';
 
             if (result && typeof result[Symbol.asyncIterator] === 'function') {
                 for await (const chunk of result) {
                     fullContent += chunk;
-                    Chat.updateStreamMessage(fullContent);
+
+                    if (this.speed === 'pro') {
+                        this.processThinking(fullContent);
+                    }
+
+                    Chat.updateStreamMessage(this.getDisplayContent(fullContent));
+
                     if (fullContent.includes('```')) {
                         Editor.updateCode(fullContent);
                     }
@@ -87,9 +172,15 @@ Start your response with "📋 **Plan:**" and end with asking for approval.`;
             }
 
             if (fullContent) {
-                Chat.addAssistantMessage(fullContent);
+                const displayContent = this.getDisplayContent(fullContent);
+                Chat.addAssistantMessage(displayContent);
+
                 if (fullContent.includes('```')) {
                     Editor.updateCode(fullContent);
+                }
+
+                if (this.speed === 'pro' && this.thinkingContent) {
+                    this.showThinkingDisplay(true);
                 }
             }
 
@@ -103,6 +194,62 @@ Start your response with "📋 **Plan:**" and end with asking for approval.`;
         }
     },
 
+    // ── Thinking bloğunu işle ──
+    processThinking(content) {
+        const thinkingMatch = content.match(/<thinking>([\s\S]*?)(<\/thinking>|$)/);
+        if (thinkingMatch) {
+            this.thinkingContent = thinkingMatch[1].trim();
+            this.updateThinkingUI();
+        }
+    },
+
+    // ── Thinking bloğunu mesajdan çıkar ──
+    getDisplayContent(content) {
+        // <thinking>...</thinking> bloğunu kaldır
+        let display = content.replace(/<thinking>[\s\S]*?<\/thinking>/g, '').trim();
+        // Kapanmamış thinking bloğunu da kaldır (stream sırasında)
+        display = display.replace(/<thinking>[\s\S]*$/g, '').trim();
+        return display;
+    },
+
+    // ── Thinking UI ──
+    updateThinkingUI() {
+        const textEl = document.getElementById('thinking-text');
+        if (textEl && this.thinkingContent) {
+            textEl.innerHTML = Utils.parseMarkdown(this.thinkingContent);
+            if (window.lucide) lucide.createIcons({ nodes: [textEl] });
+        }
+    },
+
+    showThinkingDisplay(show) {
+        const el = document.getElementById('planner-thinking-display');
+        if (!el) return;
+
+        el.style.display = show ? 'block' : 'none';
+
+        if (show) {
+            this.updateThinkingUI();
+
+            // Collapse toggle
+            const collapseBtn = document.getElementById('thinking-collapse-btn');
+            if (collapseBtn) {
+                collapseBtn.onclick = () => {
+                    this.thinkingCollapsed = !this.thinkingCollapsed;
+                    const content = document.getElementById('thinking-content');
+                    if (content) {
+                        content.style.display = this.thinkingCollapsed ? 'none' : 'block';
+                    }
+                    const icon = collapseBtn.querySelector('[data-lucide]');
+                    if (icon) {
+                        icon.setAttribute('data-lucide', this.thinkingCollapsed ? 'chevron-right' : 'chevron-down');
+                        if (window.lucide) lucide.createIcons({ nodes: [collapseBtn] });
+                    }
+                };
+            }
+        }
+    },
+
+    // ── Plan Actions ──
     showPlanActions(show) {
         const actions = document.getElementById('planner-actions');
         if (!actions) return;
@@ -113,6 +260,7 @@ Start your response with "📋 **Plan:**" and end with asking for approval.`;
             document.getElementById('plan-approve-btn').onclick = () => {
                 this.phase = 'coding';
                 this.showPlanActions(false);
+                this.showThinkingDisplay(false);
                 if (Chat.currentChat) {
                     Chat.currentChat.messages.push({
                         role: 'user',
@@ -137,8 +285,10 @@ Start your response with "📋 **Plan:**" and end with asking for approval.`;
 
             document.getElementById('plan-reject-btn').onclick = () => {
                 this.showPlanActions(false);
+                this.showThinkingDisplay(false);
                 this.phase = 'planning';
                 this.currentPlan = null;
+                this.thinkingContent = '';
                 Chat.addAssistantMessage('Plan rejected. Please describe what you want differently.');
                 Utils.toast('Plan rejected', 'info');
             };
