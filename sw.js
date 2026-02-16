@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aetheride-v2';
+const CACHE_NAME = 'aetheride-v3';
 const ASSETS = [
     '/',
     '/index.html',
