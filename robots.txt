@@ -1,2 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /sw.js
+
+Sitemap: https://aetheride.com/sitemap.xml
