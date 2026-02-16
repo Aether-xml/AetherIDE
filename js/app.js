@@ -73,8 +73,142 @@ const App = {
             if (window.lucide && statusEl) lucide.createIcons({ nodes: [statusEl] });
         });
 
+        // Planner speed toggle
+        document.querySelectorAll('.planner-speed-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.planner-speed-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                PlannerMode.speed = btn.dataset.speed;
+
+                const speedNames = { flash: 'Flash ⚡', pro: 'Pro 🧠' };
+                Utils.toast(`Planner: ${speedNames[btn.dataset.speed]}`, 'info', 1500);
+            });
+        });
+
         // Prompt Enhancer
         document.getElementById('enhance-btn')?.addEventListener('click', () => this.enhanceCurrentPrompt());
+
+        // Klavye kısayolları
+        document.addEventListener('keydown', (e) => {
+            // Sandbox veya Settings modal açıksa kısayolları çalıştırma
+            const sandboxModal = document.getElementById('sandbox-modal');
+            const settingsModal = document.getElementById('settings-modal');
+            const isSandboxOpen = sandboxModal && sandboxModal.style.display !== 'none';
+            const isSettingsOpen = settingsModal && settingsModal.style.display !== 'none';
+
+            // Ctrl+Enter — Mesaj gönder (input odaklıyken)
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                if (isSandboxOpen) {
+                    if (Sandbox.currentTab === 'direct') Sandbox.sendDirect();
+                    else if (Sandbox.currentTab === 'sidebyside') Sandbox.sendSideBySide();
+                } else if (!isSettingsOpen) {
+                    Chat.sendMessage();
+                }
+                return;
+            }
+
+            // Ctrl+N — Yeni chat
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                if (!isSandboxOpen && !isSettingsOpen) {
+                    Chat.newChat();
+                }
+                return;
+            }
+
+            // Ctrl+, — Ayarlar
+            if (e.ctrlKey && e.key === ',') {
+                e.preventDefault();
+                if (isSettingsOpen) {
+                    Settings.close();
+                } else {
+                    Settings.open();
+                }
+                return;
+            }
+
+            // Ctrl+B — Sidebar toggle
+            if (e.ctrlKey && e.key === 'b') {
+                e.preventDefault();
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                if (window.innerWidth <= 768) {
+                    sidebar?.classList.toggle('open');
+                    overlay?.classList.toggle('visible');
+                }
+                return;
+            }
+
+            // Ctrl+Shift+S — Sandbox toggle
+            if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+                e.preventDefault();
+                if (isSandboxOpen) {
+                    Sandbox.close();
+                } else {
+                    Sandbox.open();
+                }
+                return;
+            }
+
+            // Ctrl+Shift+P — Preview toggle
+            if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+                e.preventDefault();
+                if (!isSandboxOpen && !isSettingsOpen) {
+                    Editor.togglePreview();
+                }
+                return;
+            }
+
+            // Ctrl+Shift+C — Copy code
+            if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+                e.preventDefault();
+                if (!isSandboxOpen && !isSettingsOpen && Editor.currentCode) {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(Editor.currentCode).then(() => {
+                            Utils.toast('Code copied!', 'success');
+                        }).catch(() => Editor.fallbackCopy(Editor.currentCode));
+                    } else {
+                        Editor.fallbackCopy(Editor.currentCode);
+                    }
+                }
+                return;
+            }
+
+            // Ctrl+L — Chat input'a odaklan
+            if (e.ctrlKey && e.key === 'l') {
+                e.preventDefault();
+                if (!isSandboxOpen && !isSettingsOpen) {
+                    const input = document.getElementById('message-input');
+                    if (input) input.focus();
+                }
+                return;
+            }
+
+            // Ctrl+/ — Kısayol listesini göster
+            if (e.ctrlKey && e.key === '/') {
+                e.preventDefault();
+                this.showShortcutsHelp();
+                return;
+            }
+        });
+    },
+
+    // Kısayol yardım mesajı
+    showShortcutsHelp() {
+        const shortcuts = [
+            'Ctrl+Enter — Send message',
+            'Ctrl+N — New chat',
+            'Ctrl+, — Settings',
+            'Ctrl+L — Focus input',
+            'Ctrl+B — Toggle sidebar (mobile)',
+            'Ctrl+Shift+S — Toggle Sandbox',
+            'Ctrl+Shift+P — Toggle Preview',
+            'Ctrl+Shift+C — Copy code',
+            'Ctrl+/ — Show shortcuts',
+        ].join('\n');
+
+        Utils.toast('Keyboard Shortcuts:\n' + shortcuts, 'info', 6000);
     },
 
     // ── Prompt Enhancer ──
@@ -106,7 +240,17 @@ const App = {
                 input.value = enhanced;
                 Utils.autoResize(input);
                 document.getElementById('send-btn').disabled = false;
-                Utils.toast('Prompt enhanced!', 'success', 1500);
+
+                // Başarı animasyonu
+                if (enhanceBtn) {
+                    enhanceBtn.classList.remove('enhancing');
+                    enhanceBtn.classList.add('enhanced');
+                    setTimeout(() => enhanceBtn.classList.remove('enhanced'), 1000);
+                }
+
+                Utils.toast('✨ Prompt enhanced!', 'success', 1500);
+            } else {
+                Utils.toast('Prompt is already good!', 'info', 1500);
             }
         } catch (e) {
             Utils.toast('Enhancement failed', 'error');
@@ -174,8 +318,14 @@ const App = {
         // Planner/Team UI
         const plannerEl = document.getElementById('planner-actions');
         const teamEl = document.getElementById('team-agents');
+        const plannerSpeedEl = document.getElementById('planner-speed-section');
         if (plannerEl) plannerEl.style.display = 'none';
         if (teamEl) teamEl.style.display = mode === 'team' ? 'flex' : 'none';
+        if (plannerSpeedEl) plannerSpeedEl.style.display = mode === 'planner' ? 'block' : 'none';
+
+        // Thinking display gizle
+        const thinkingDisplay = document.getElementById('planner-thinking-display');
+        if (thinkingDisplay) thinkingDisplay.style.display = 'none';
 
         // State reset
         if (mode !== 'planner' && PlannerMode) {
@@ -386,11 +536,60 @@ const App = {
         const resizer = document.getElementById('panel-resizer');
         const chatPanel = document.getElementById('chat-panel');
         const codePanel = document.getElementById('code-panel');
+        const container = document.getElementById('split-container');
 
-        if (!resizer || !chatPanel || !codePanel) return;
+        if (!resizer || !chatPanel || !codePanel || !container) return;
 
         let isResizing = false;
+        let savedChatFlex = null;
+        let savedCodeFlex = null;
 
+        const doResize = (e) => {
+            if (!isResizing) return;
+
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const rect = container.getBoundingClientRect();
+            const percent = ((clientX - rect.left) / rect.width) * 100;
+
+            // Layout'a göre sınırları ayarla
+            const isReversed = document.body.classList.contains('layout-vscode') ||
+                               document.body.classList.contains('layout-cursor');
+
+            let clamped;
+            if (isReversed) {
+                // Code sol, Chat sağ — code paneli boyutlandır
+                clamped = Math.max(20, Math.min(80, percent));
+                codePanel.style.flex = `0 0 ${clamped}%`;
+                chatPanel.style.flex = `0 0 ${100 - clamped}%`;
+            } else {
+                // Chat sol, Code sağ — chat paneli boyutlandır
+                clamped = Math.max(20, Math.min(80, percent));
+                chatPanel.style.flex = `0 0 ${clamped}%`;
+                codePanel.style.flex = `0 0 ${100 - clamped}%`;
+            }
+
+            // Iframe seçim sorununu önle
+            const iframe = document.getElementById('preview-iframe');
+            if (iframe) iframe.style.pointerEvents = 'none';
+        };
+
+        const stopResize = () => {
+            if (!isResizing) return;
+            isResizing = false;
+            resizer.classList.remove('active');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+
+            // Iframe etkileşimini geri aç
+            const iframe = document.getElementById('preview-iframe');
+            if (iframe) iframe.style.pointerEvents = '';
+
+            // Kaydet
+            savedChatFlex = chatPanel.style.flex;
+            savedCodeFlex = codePanel.style.flex;
+        };
+
+        // Mouse events
         resizer.addEventListener('mousedown', (e) => {
             isResizing = true;
             resizer.classList.add('active');
@@ -399,23 +598,37 @@ const App = {
             e.preventDefault();
         });
 
-        document.addEventListener('mousemove', (e) => {
-            if (!isResizing) return;
-            const container = document.getElementById('split-container');
-            const rect = container.getBoundingClientRect();
-            const percent = ((e.clientX - rect.left) / rect.width) * 100;
-            const clamped = Math.max(25, Math.min(75, percent));
-            chatPanel.style.flex = `0 0 ${clamped}%`;
-            codePanel.style.flex = `0 0 ${100 - clamped}%`;
-        });
+        document.addEventListener('mousemove', doResize);
+        document.addEventListener('mouseup', stopResize);
 
-        document.addEventListener('mouseup', () => {
-            if (isResizing) {
-                isResizing = false;
-                resizer.classList.remove('active');
-                document.body.style.cursor = '';
-                document.body.style.userSelect = '';
+        // Touch events (tablet desteği)
+        resizer.addEventListener('touchstart', (e) => {
+            isResizing = true;
+            resizer.classList.add('active');
+            e.preventDefault();
+        }, { passive: false });
+
+        document.addEventListener('touchmove', doResize, { passive: false });
+        document.addEventListener('touchend', stopResize);
+
+        // Pencere boyutu değiştiğinde panelleri sıfırla
+        window.addEventListener('resize', Utils.debounce(() => {
+            if (window.innerWidth <= 768) {
+                chatPanel.style.flex = '';
+                codePanel.style.flex = '';
+            } else if (savedChatFlex && savedCodeFlex) {
+                chatPanel.style.flex = savedChatFlex;
+                codePanel.style.flex = savedCodeFlex;
             }
+        }, 200));
+
+        // Çift tıkla sıfırla
+        resizer.addEventListener('dblclick', () => {
+            chatPanel.style.flex = '';
+            codePanel.style.flex = '';
+            savedChatFlex = null;
+            savedCodeFlex = null;
+            Utils.toast('Panels reset to default', 'info', 1500);
         });
     },
 
