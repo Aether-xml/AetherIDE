@@ -39,7 +39,7 @@
         <aside id="sidebar" class="sidebar">
             <div class="sidebar-logo">
                 <div class="logo-icon">
-                    <i data-lucide="zap" class="icon-glow"></i>
+                    <img src="assets/icons/icon-192.png" alt="AetherIDE" class="logo-img">
                 </div>
                 <span class="logo-text">AetherIDE</span>
                 <button class="sidebar-close-btn" id="sidebar-close-btn">
@@ -121,6 +121,11 @@
 
             <!-- Bottom Actions -->
             <div class="sidebar-bottom">
+                <button class="sidebar-action-btn" id="sandbox-btn" title="Sandbox">
+                    <i data-lucide="message-circle"></i>
+                    <span class="action-text">Sandbox</span>
+                    <span class="beta-badge">BETA</span>
+                </button>
                 <button class="sidebar-action-btn" id="settings-btn" title="Settings">
                     <i data-lucide="settings"></i>
                     <span class="action-text">Settings</span>
@@ -183,7 +188,7 @@
                         <div class="welcome-message" id="welcome-message">
                             <div class="welcome-logo-wrap">
                                 <div class="welcome-glow"></div>
-                                <i data-lucide="zap" class="welcome-icon"></i>
+                                <img src="assets/icons/icon-512.png" alt="AetherIDE" class="welcome-logo-img">
                             </div>
                             <h2 class="welcome-title">AetherIDE</h2>
                             <p class="welcome-subtitle">Code at the speed of thought</p>
@@ -354,10 +359,237 @@
                 </div>
                 <div class="statusbar-right">
                     <span class="statusbar-item" id="statusbar-lines">0 lines</span>
-                    <span class="statusbar-item" id="statusbar-version">v1.2.0</span>
+                    <span class="statusbar-item" id="statusbar-version">v1.3.0</span>
                 </div>
             </div>
         </main>
+        
+        <!-- ═══════════════════════════════════════ -->
+        <!-- SANDBOX MODAL -->
+        <!-- ═══════════════════════════════════════ -->
+        <div class="modal-overlay" id="sandbox-modal" style="display: none;">
+            <div class="modal sandbox-modal-size">
+                <div class="sandbox-header">
+                    <div class="sandbox-header-left">
+                        <h2 class="sandbox-title">
+                            <i data-lucide="message-circle" class="sandbox-title-icon"></i>
+                            Sandbox
+                            <span class="beta-badge">BETA</span>
+                        </h2>
+                    </div>
+                    <div class="sandbox-header-center">
+                        <div class="sandbox-tab-bar">
+                            <button class="sandbox-tab-btn active" data-stab="direct">
+                                <i data-lucide="message-square"></i>
+                                <span>Direct</span>
+                            </button>
+                            <button class="sandbox-tab-btn" data-stab="sidebyside">
+                                <i data-lucide="columns"></i>
+                                <span>Side by Side</span>
+                            </button>
+                            <button class="sandbox-tab-btn" data-stab="settings">
+                                <i data-lucide="settings"></i>
+                                <span>Settings</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="sandbox-header-right">
+                        <button class="modal-close" id="sandbox-close">
+                            <i data-lucide="x"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="sandbox-content">
+
+                    <!-- ═══ Direct Mode ═══ -->
+                    <div class="sandbox-view active" id="sandbox-direct-view">
+                        <div class="sandbox-model-bar">
+                            <div class="sandbox-model-select">
+                                <i data-lucide="cpu" class="sandbox-select-icon"></i>
+                                <select id="sandbox-direct-model" class="sandbox-select">
+                                    <option value="">Select model...</option>
+                                </select>
+                            </div>
+                            <button class="sandbox-clear-btn" id="sandbox-direct-clear" title="Clear chat">
+                                <i data-lucide="trash-2"></i>
+                            </button>
+                        </div>
+
+                        <div class="sandbox-messages" id="sandbox-direct-messages">
+                            <div class="sandbox-empty">
+                                <i data-lucide="message-circle" class="sandbox-empty-icon"></i>
+                                <p>Start a conversation</p>
+                                <span class="sandbox-empty-hint">Chat freely — no code generation rules here</span>
+                            </div>
+                        </div>
+
+                        <div class="sandbox-input-area">
+                            <div class="sandbox-input-wrapper">
+                                <textarea id="sandbox-direct-input" class="sandbox-input" placeholder="Type anything..." rows="1"></textarea>
+                                <button class="sandbox-send-btn" id="sandbox-direct-send" disabled>
+                                    <i data-lucide="arrow-up"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ Side by Side Mode ═══ -->
+                    <div class="sandbox-view" id="sandbox-sbs-view">
+                        <div class="sandbox-sbs-models">
+                            <div class="sandbox-model-bar sbs-bar">
+                                <div class="sbs-label">
+                                    <span class="sbs-header-dot dot-a"></span>
+                                    Model A
+                                </div>
+                                <div class="sandbox-model-select">
+                                    <select id="sandbox-sbs-model-a" class="sandbox-select">
+                                        <option value="">Select model A...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="sandbox-model-bar sbs-bar">
+                                <div class="sbs-label">
+                                    <span class="sbs-header-dot dot-b"></span>
+                                    Model B
+                                </div>
+                                <div class="sandbox-model-select">
+                                    <select id="sandbox-sbs-model-b" class="sandbox-select">
+                                        <option value="">Select model B...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="sandbox-clear-btn" id="sandbox-sbs-clear" title="Clear">
+                                <i data-lucide="trash-2"></i>
+                            </button>
+                        </div>
+
+                        <div class="sandbox-sbs-container">
+                            <div class="sandbox-sbs-panel">
+                                <div class="sandbox-sbs-header">
+                                    <span class="sbs-header-dot dot-a"></span>
+                                    <span id="sandbox-sbs-name-a">Model A</span>
+                                </div>
+                                <div class="sandbox-messages" id="sandbox-sbs-messages-a">
+                                    <div class="sandbox-empty">
+                                        <i data-lucide="bot" class="sandbox-empty-icon"></i>
+                                        <p>Model A</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sandbox-sbs-divider"></div>
+                            <div class="sandbox-sbs-panel">
+                                <div class="sandbox-sbs-header">
+                                    <span class="sbs-header-dot dot-b"></span>
+                                    <span id="sandbox-sbs-name-b">Model B</span>
+                                </div>
+                                <div class="sandbox-messages" id="sandbox-sbs-messages-b">
+                                    <div class="sandbox-empty">
+                                        <i data-lucide="bot" class="sandbox-empty-icon"></i>
+                                        <p>Model B</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sandbox-input-area">
+                            <div class="sandbox-input-wrapper">
+                                <textarea id="sandbox-sbs-input" class="sandbox-input" placeholder="Send to both models..." rows="1"></textarea>
+                                <button class="sandbox-send-btn" id="sandbox-sbs-send" disabled>
+                                    <i data-lucide="arrow-up"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ Settings Tab ═══ -->
+                    <div class="sandbox-view" id="sandbox-settings-view">
+                        <div class="sandbox-settings-scroll">
+                            <div class="sandbox-settings-inner">
+
+                                <div class="settings-group">
+                                    <label class="settings-label">
+                                        <i data-lucide="file-text" class="settings-label-icon"></i>
+                                        Sandbox System Prompt
+                                    </label>
+                                    <p class="settings-desc">Custom system prompt for Sandbox conversations. Leave empty for default.</p>
+                                    <textarea id="sandbox-system-prompt" class="settings-textarea" rows="4" placeholder="You are a helpful AI assistant..."></textarea>
+                                </div>
+
+                                <div class="settings-group">
+                                    <label class="settings-label">
+                                        <i data-lucide="thermometer" class="settings-label-icon"></i>
+                                        Temperature
+                                    </label>
+                                    <p class="settings-desc">Higher = more creative, Lower = more focused</p>
+                                    <div class="settings-range-group">
+                                        <input type="range" id="sandbox-temperature" class="settings-range" min="0" max="2" step="0.1" value="0.7">
+                                        <span class="range-value" id="sandbox-temp-value">0.7</span>
+                                    </div>
+                                </div>
+
+                                <div class="settings-group">
+                                    <label class="settings-label">
+                                        <i data-lucide="hash" class="settings-label-icon"></i>
+                                        Max Tokens
+                                    </label>
+                                    <p class="settings-desc">Maximum response length</p>
+                                    <div class="settings-range-group">
+                                        <input type="range" id="sandbox-max-tokens" class="settings-range" min="256" max="8192" step="256" value="4096">
+                                        <span class="range-value" id="sandbox-tokens-value">4096</span>
+                                    </div>
+                                </div>
+
+                                <div class="settings-group">
+                                    <div class="settings-toggle-row">
+                                        <div class="settings-toggle-info">
+                                            <i data-lucide="radio" class="settings-label-icon"></i>
+                                            <div>
+                                                <label class="settings-label">Stream Responses</label>
+                                                <p class="settings-desc">Show response word by word</p>
+                                            </div>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="sandbox-stream-toggle" checked>
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="settings-group">
+                                    <div class="settings-toggle-row">
+                                        <div class="settings-toggle-info">
+                                            <i data-lucide="save" class="settings-label-icon"></i>
+                                            <div>
+                                                <label class="settings-label">Save History</label>
+                                                <p class="settings-desc">Keep Sandbox conversations in memory</p>
+                                            </div>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="sandbox-save-toggle">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="sandbox-settings-actions">
+                                    <button class="modal-btn secondary" id="sandbox-settings-reset">
+                                        <i data-lucide="rotate-ccw"></i>
+                                        Reset Defaults
+                                    </button>
+                                    <button class="modal-btn primary" id="sandbox-settings-save">
+                                        <i data-lucide="save"></i>
+                                        Save
+                                    </button>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>        
 
         <!-- ═══════════════════════════════════════ -->
         <!-- SETTINGS MODAL -->
@@ -578,9 +810,9 @@
 
                     <!-- About -->
                     <div class="settings-about">
-                        <i data-lucide="zap" class="about-icon"></i>
+                        <img src="assets/icons/icon-192.png" alt="AetherIDE" class="about-logo-img">
                         <div class="about-name">AetherIDE</div>
-                        <div class="about-version">v1.2.0</div>
+                        <div class="about-version">v1.3.0</div>
                         <div class="about-tagline">Code at the speed of thought</div>
                         <div class="about-links">
                             <a href="https://discord.gg/7YKCvPzKEQ" target="_blank" rel="noopener" class="about-link discord-link">
@@ -634,6 +866,7 @@
     <script src="js/modes/direct.js"></script>
     <script src="js/modes/planner.js"></script>
     <script src="js/modes/team.js"></script>
+    <script src="js/sandbox.js"></script>
     <script src="js/settings.js"></script>
     <script src="js/app.js"></script>
 </body>
