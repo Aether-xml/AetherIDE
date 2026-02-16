@@ -34,6 +34,8 @@ const Storage = {
     getSettings() {
         return this.get('settings', {
             apiKey: '',
+            apiKeys: {},
+            apiProvider: 'openrouter',
             defaultModel: '',
             systemPrompt: `You are an expert programmer powering AetherIDE, an AI-powered code editor.
 
