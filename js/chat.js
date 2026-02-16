@@ -238,6 +238,54 @@ const Chat = {
             App.setMode(chat.mode);
         }
 
+        // Sohbetteki dosyaları editöre geri yükle
+        Editor.files = [];
+        Editor.activeFileIndex = 0;
+
+        // Tüm assistant mesajlarından kod bloklarını çıkar
+        if (chat.messages && chat.messages.length > 0) {
+            for (const msg of chat.messages) {
+                if (msg.role === 'assistant' && msg.content) {
+                    const blocks = Utils.extractCodeBlocks(msg.content);
+                    for (const block of blocks) {
+                        const existingIndex = Editor.files.findIndex(f => f.filename === block.filename);
+                        if (existingIndex >= 0) {
+                            Editor.files[existingIndex] = block;
+                        } else {
+                            Editor.files.push(block);
+                        }
+                    }
+                }
+            }
+        }
+
+        Editor.renderTabs();
+        Editor.renderCode();
+        Editor.updateStatusBar();
+
+        // Preview kapat
+        const previewContainer = document.getElementById('preview-container');
+        const editorWrapper = document.getElementById('code-editor-wrapper');
+        if (previewContainer) previewContainer.style.display = 'none';
+        if (editorWrapper) editorWrapper.style.display = 'block';
+        Editor.previewVisible = false;
+
+        // Mobil file badge güncelle
+        const tabCode = document.getElementById('tab-code');
+        if (tabCode) {
+            let badge = tabCode.querySelector('.file-count-badge');
+            if (Editor.files.length > 0) {
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'file-count-badge';
+                    tabCode.appendChild(badge);
+                }
+                badge.textContent = Editor.files.length;
+            } else if (badge) {
+                badge.remove();
+            }
+        }
+
         document.getElementById('sidebar')?.classList.remove('open');
         document.getElementById('sidebar-overlay')?.classList.remove('visible');
     },
