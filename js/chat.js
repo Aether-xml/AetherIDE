@@ -107,6 +107,33 @@ const Chat = {
         // Console temizle
         Editor.clearConsole();
 
+        // Editor dosyalarını ve preview'i temizle
+        Editor.files = [];
+        Editor.activeFileIndex = 0;
+        Editor.renderTabs();
+        Editor.renderCode();
+
+        // Preview kapat ve iframe temizle
+        const previewContainer = document.getElementById('preview-container');
+        const editorWrapper = document.getElementById('code-editor-wrapper');
+        if (previewContainer) previewContainer.style.display = 'none';
+        if (editorWrapper) editorWrapper.style.display = 'block';
+        Editor.previewVisible = false;
+
+        const iframe = document.getElementById('preview-iframe');
+        if (iframe) iframe.srcdoc = '';
+
+        // Mobil file count badge temizle
+        const tabCode = document.getElementById('tab-code');
+        if (tabCode) {
+            const badge = tabCode.querySelector('.file-count-badge');
+            if (badge) badge.remove();
+        }
+
+        // Status bar sıfırla
+        const linesEl = document.getElementById('statusbar-lines');
+        if (linesEl) linesEl.textContent = '0 lines';
+
         const input = document.getElementById('message-input');
         if (input) {
             input.value = '';
