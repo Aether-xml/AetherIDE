@@ -1,0 +1,640 @@
+/* ══════════════════════════════════════════════════════════
+   AetherIDE — Modal Styles
+   ══════════════════════════════════════════════════════════ */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5000;
+    animation: modalOverlayIn 0.2s ease;
+}
+
+@keyframes modalOverlayIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal {
+    width: 90%;
+    max-width: 520px;
+    max-height: 85vh;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalIn 0.3s ease;
+}
+
+@keyframes modalIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-primary);
+    flex-shrink: 0;
+}
+
+.modal-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-title-icon,
+.modal-title svg.lucide {
+    width: 20px;
+    height: 20px;
+    color: var(--accent-primary);
+    flex-shrink: 0;
+}
+
+.settings-label-icon,
+.settings-label svg.lucide,
+.settings-toggle-info > svg.lucide {
+    width: 16px;
+    height: 16px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+.settings-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    line-height: 1;
+}
+
+.settings-toggle-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.settings-toggle-info .settings-label-icon {
+    margin-top: 2px;
+}
+
+.settings-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.about-icon,
+.settings-about svg.lucide {
+    width: 40px;
+    height: 40px;
+    color: var(--accent-primary);
+    margin: 0 auto 8px;
+    display: block;
+    filter: drop-shadow(0 0 8px var(--accent-primary));
+}
+
+.theme-option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.theme-option svg.lucide {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.modal-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.modal-btn svg.lucide {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+}
+
+.modal-close {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    color: var(--text-tertiary);
+    padding: 0;
+}
+
+.modal-close svg.lucide {
+    width: 18px;
+    height: 18px;
+}
+
+.modal-close:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-primary);
+    flex-shrink: 0;
+}
+
+
+/* ── Settings Groups ── */
+.settings-group {
+    margin-bottom: 24px;
+}
+
+.settings-group:last-child {
+    margin-bottom: 0;
+}
+
+.settings-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.settings-desc {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+.settings-input-group {
+    display: flex;
+    gap: 6px;
+}
+
+.settings-input {
+    flex: 1;
+    padding: 10px 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-family: var(--font-code);
+    transition: border-color var(--transition-fast);
+}
+
+.settings-input:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--accent-primary-glow);
+}
+
+.settings-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+.settings-input-btn {
+    width: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-tertiary);
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.settings-input-btn svg.lucide {
+    width: 16px;
+    height: 16px;
+}
+
+.settings-input-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.api-key-status {
+    margin-top: 6px;
+    font-size: 0.75rem;
+}
+
+.api-key-status.valid {
+    color: var(--accent-success);
+}
+
+.api-key-status.invalid {
+    color: var(--accent-error);
+}
+
+.settings-select {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.settings-select option {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.settings-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.5;
+    transition: border-color var(--transition-fast);
+}
+
+.settings-textarea:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--accent-primary-glow);
+}
+
+.settings-textarea::placeholder {
+    color: var(--text-tertiary);
+}
+
+.settings-range-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.settings-range {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--bg-active);
+    border-radius: var(--radius-full);
+    outline: none;
+}
+
+.settings-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    cursor: pointer;
+    border: 2px solid var(--bg-primary);
+}
+
+.range-value {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-family: var(--font-code);
+    min-width: 35px;
+    text-align: right;
+}
+
+.settings-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+
+/* ── Theme Options ── */
+.theme-options {
+    display: flex;
+    gap: 8px;
+}
+
+.theme-option {
+    flex: 1;
+    padding: 10px;
+    border-radius: var(--radius-md);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-align: center;
+    font-weight: 500;
+}
+
+.theme-option:hover {
+    border-color: var(--border-secondary);
+    background: var(--bg-hover);
+}
+
+.theme-option.active {
+    border-color: var(--accent-primary);
+    background: var(--accent-primary-glow);
+    color: var(--accent-primary);
+}
+
+
+/* ── Modal Buttons ── */
+.modal-btn {
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.modal-btn.primary {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.modal-btn.primary:hover {
+    background: var(--accent-primary-hover);
+}
+
+.modal-btn.secondary {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    color: var(--text-secondary);
+}
+
+.modal-btn.secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+
+/* ── About Section ── */
+.settings-about {
+    text-align: center;
+    padding: 24px 16px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-primary);
+}
+
+.about-logo {
+    font-size: 2.5rem;
+    margin-bottom: 8px;
+}
+
+.about-name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.about-version {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    font-family: var(--font-code);
+    margin-top: 4px;
+}
+
+.about-tagline {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.about-links {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 0.8rem;
+}
+
+.about-links span {
+    color: var(--text-tertiary);
+}
+
+.about-link {
+    color: var(--accent-primary);
+    font-weight: 500;
+}
+
+.about-link:hover {
+    text-decoration: underline;
+}
+
+/* ══════════════════════════════════════════════════════════
+   Modal — Desktop Optimization
+   ══════════════════════════════════════════════════════════ */
+
+@media (min-width: 769px) {
+    .modal {
+        max-width: 580px;
+        max-height: 80vh;
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-lg), 0 0 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+        padding: 22px 28px;
+    }
+
+    .modal-title {
+        font-size: 1.1rem;
+        gap: 10px;
+    }
+
+    .modal-title-icon,
+    .modal-title svg.lucide {
+        width: 22px;
+        height: 22px;
+    }
+
+    .modal-body {
+        padding: 28px;
+    }
+
+    .modal-footer {
+        padding: 18px 28px;
+    }
+
+    .settings-group {
+        margin-bottom: 28px;
+    }
+
+    .settings-label {
+        font-size: 0.88rem;
+        margin-bottom: 6px;
+    }
+
+    .settings-desc {
+        font-size: 0.78rem;
+        margin-bottom: 12px;
+    }
+
+    .settings-input {
+        padding: 11px 16px;
+        font-size: 0.88rem;
+    }
+
+    .settings-textarea {
+        padding: 11px 16px;
+        font-size: 0.88rem;
+    }
+
+    .settings-select {
+        padding: 11px 16px;
+        font-size: 0.88rem;
+    }
+
+    .modal-btn {
+        padding: 11px 24px;
+        font-size: 0.88rem;
+    }
+
+    .theme-options {
+        gap: 10px;
+    }
+
+    .theme-option {
+        padding: 12px 16px;
+        font-size: 0.82rem;
+        gap: 8px;
+    }
+
+    .settings-about {
+        padding: 28px 20px;
+        border-radius: var(--radius-xl);
+    }
+
+    .about-name {
+        font-size: 1.3rem;
+    }
+
+    .about-version {
+        font-size: 0.78rem;
+    }
+
+    .about-tagline {
+        font-size: 0.85rem;
+    }
+
+    /* Team model rows */
+    .team-model-row {
+        gap: 14px;
+        margin-top: 10px;
+    }
+
+    .team-role-label {
+        font-size: 0.78rem;
+        min-width: 100px;
+    }
+
+    /* Prompt enhancer settings */
+    .settings-sub-group {
+        margin-top: 12px;
+    }
+
+    .settings-sublabel {
+        font-size: 0.75rem;
+    }
+
+    /* Range group */
+    .settings-range-group {
+        gap: 16px;
+    }
+
+    .range-value {
+        font-size: 0.82rem;
+        min-width: 40px;
+    }
+
+    /* Toggle rows */
+    .settings-toggle-row {
+        gap: 16px;
+    }
+}
+
+@media (min-width: 1440px) {
+    .modal {
+        max-width: 640px;
+    }
+
+    .modal-body {
+        padding: 32px;
+    }
+}
+
+/* ── Discord Link ── */
+.about-links {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 14px;
+}
+
+.discord-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #5865F2;
+    color: white;
+    border-radius: var(--radius-md);
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.discord-link:hover {
+    background: #4752C4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(88, 101, 242, 0.35);
+}
+
+.discord-icon {
+    flex-shrink: 0;
+}

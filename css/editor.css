@@ -1,0 +1,140 @@
+/* ══════════════════════════════════════════════════════════
+   AetherIDE — Editor Styles
+   ══════════════════════════════════════════════════════════ */
+
+/* CodeMirror Override */
+.cm-editor {
+    height: 100%;
+    font-family: var(--font-code) !important;
+    font-size: 14px !important;
+    background: var(--bg-secondary) !important;
+}
+
+.cm-editor .cm-content {
+    padding: 12px 0;
+}
+
+.cm-editor .cm-gutters {
+    background: var(--bg-tertiary) !important;
+    border-right: 1px solid var(--border-primary) !important;
+    color: var(--text-tertiary) !important;
+}
+
+.cm-editor .cm-activeLineGutter {
+    background: var(--bg-hover) !important;
+    color: var(--text-secondary) !important;
+}
+
+.cm-editor .cm-activeLine {
+    background: rgba(108, 99, 255, 0.05) !important;
+}
+
+.cm-editor .cm-selectionBackground {
+    background: rgba(108, 99, 255, 0.2) !important;
+}
+
+.cm-editor .cm-cursor {
+    border-left-color: var(--accent-primary) !important;
+}
+
+/* Fallback plain code display */
+.code-display {
+    width: 100%;
+    height: 100%;
+    padding: 16px;
+    font-family: var(--font-code);
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    overflow: auto;
+    white-space: pre;
+    tab-size: 4;
+}
+
+.code-display .line {
+    display: flex;
+}
+
+.code-display .line-number {
+    width: 50px;
+    text-align: right;
+    padding-right: 16px;
+    color: var(--text-tertiary);
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.code-display .line-content {
+    flex: 1;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+/* Syntax Highlighting Colors (basic) */
+.syntax-keyword { color: #C678DD; }
+.syntax-string { color: #98C379; }
+.syntax-number { color: #D19A66; }
+.syntax-comment { color: #5C6370; font-style: italic; }
+.syntax-function { color: #61AFEF; }
+.syntax-variable { color: #E06C75; }
+.syntax-operator { color: #56B6C2; }
+.syntax-tag { color: #E06C75; }
+.syntax-attribute { color: #D19A66; }
+.syntax-property { color: #E06C75; }
+
+/* ══════════════════════════════════════════════════════════
+   Editor — Desktop Optimization
+   ══════════════════════════════════════════════════════════ */
+
+@media (min-width: 769px) {
+    /* Code display — better spacing */
+    .code-display {
+        line-height: 1.7;
+    }
+
+    .code-display .line {
+        min-height: 24px;
+    }
+
+    .code-display .line-content {
+        padding-right: 20px;
+    }
+
+    /* Syntax colors — slightly brighter on desktop */
+    .syntax-keyword { color: #C882E7; }
+    .syntax-string { color: #A5D68E; }
+    .syntax-comment { color: #6A7383; }
+    .syntax-function { color: #6DB8F2; }
+
+    /* Preview container */
+    .preview-container {
+        border-top: 2px solid var(--accent-primary);
+    }
+
+    /* Empty editor — more prominent */
+    .empty-editor {
+        gap: 14px;
+    }
+
+    .empty-editor-icon {
+        width: 56px;
+        height: 56px;
+        opacity: 0.15;
+    }
+
+    .empty-editor-text {
+        font-size: 0.9rem;
+    }
+}
+
+/* ── Code Editor Focus State ── */
+@media (min-width: 769px) {
+    .code-editor-wrapper {
+        transition: box-shadow var(--transition-normal);
+    }
+
+    .code-panel:focus-within .code-editor-wrapper {
+        box-shadow: inset 0 0 0 1px rgba(108, 99, 255, 0.1);
+    }
+}
