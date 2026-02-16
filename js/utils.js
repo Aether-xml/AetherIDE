@@ -208,6 +208,17 @@ const Utils = {
         textarea.style.height = Math.min(textarea.scrollHeight, 140) + 'px';
     },
 
+    // Token tahmini (~4 karakter = 1 token)
+    estimateTokens(text) {
+        if (!text) return 0;
+        const charCount = text.length;
+        const wordCount = text.split(/\s+/).filter(w => w).length;
+        // Ortalama: karakterlerin 1/4'ü + kelime sayısının 1.3 katı arası
+        const estimate = Math.ceil((charCount / 4 + wordCount * 1.3) / 2);
+        if (estimate > 1000) return (estimate / 1000).toFixed(1) + 'k';
+        return estimate;
+    },
+
     // ── Prompt Enhancer ──
     async enhancePrompt(text) {
         if (!text.trim()) return text;
@@ -304,11 +315,14 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
             if (filename?.trim()) {
                 const fname = filename.trim();
                 const iconName = Utils.getFileIcon(langLabel);
-                return `<div class="file-card" onclick="Utils.openFileInEditor('${Utils.escapeHtml(fname)}')">
+                const exists = Editor.files.some(f => f.filename === fname);
+                const statusLabel = exists ? 'Updated' : 'Created';
+                const statusClass = exists ? 'file-card-updated' : 'file-card-created';
+                return `<div class="file-card ${statusClass}" onclick="Utils.openFileInEditor('${Utils.escapeHtml(fname)}')">
                             <div class="file-card-icon"><i data-lucide="${iconName}"></i></div>
                             <div class="file-card-info">
+                                <span class="file-card-status">${statusLabel}</span>
                                 <span class="file-card-name">${Utils.escapeHtml(fname)}</span>
-                                <span class="file-card-meta">${langLabel} • ${lines} lines • ${Utils.formatFileSize(chars)}</span>
                             </div>
                             <div class="file-card-action"><i data-lucide="arrow-right"></i></div>
                         </div>`;
@@ -325,11 +339,14 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
                 } else {
                     const autoName = `output.${Utils.getExtension(langLabel)}`;
                     const iconName = Utils.getFileIcon(langLabel);
-                    return `<div class="file-card" onclick="Utils.openFileInEditor('${autoName}')">
+                    const exists = Editor.files.some(f => f.filename === autoName);
+                    const statusLabel = exists ? 'Updated' : 'Created';
+                    const statusClass = exists ? 'file-card-updated' : 'file-card-created';
+                    return `<div class="file-card ${statusClass}" onclick="Utils.openFileInEditor('${autoName}')">
                                 <div class="file-card-icon"><i data-lucide="${iconName}"></i></div>
                                 <div class="file-card-info">
+                                    <span class="file-card-status">${statusLabel}</span>
                                     <span class="file-card-name">${autoName}</span>
-                                    <span class="file-card-meta">${langLabel} • ${lines} lines • ${Utils.formatFileSize(chars)}</span>
                                 </div>
                                 <div class="file-card-action"><i data-lucide="arrow-right"></i></div>
                             </div>`;
@@ -345,11 +362,14 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
             const displayName = fname || `output.${Utils.getExtension(langLabel)}`;
             const iconName = Utils.getFileIcon(langLabel);
 
-            return `<div class="file-card writing">
+            const exists = Editor.files.some(f => f.filename === displayName);
+            const writingLabel = exists ? 'Updating...' : 'Creating...';
+            const writingClass = exists ? 'file-card-updating' : 'file-card-creating';
+            return `<div class="file-card writing ${writingClass}">
                         <div class="file-card-icon"><i data-lucide="${iconName}"></i></div>
                         <div class="file-card-info">
+                            <span class="file-card-status">${writingLabel}</span>
                             <span class="file-card-name">${Utils.escapeHtml(displayName)}</span>
-                            <span class="file-card-meta">${langLabel} • ${lineCount} lines • writing...</span>
                         </div>
                         <div class="file-card-writing-dots">
                             <span></span><span></span><span></span>
