@@ -69,6 +69,27 @@
                 </div>
             </div>
 
+            <!-- Planner Speed (sadece planner modunda görünür) -->
+            <div class="sidebar-section planner-speed-section" id="planner-speed-section" style="display: none;">
+                <div class="section-label">PLANNER SPEED</div>
+                <div class="planner-speed-toggle">
+                    <button class="planner-speed-btn active" data-speed="flash" title="Fast planning">
+                        <i data-lucide="zap"></i>
+                        <div class="speed-info">
+                            <span class="speed-name">Flash</span>
+                            <span class="speed-desc">Fast & efficient</span>
+                        </div>
+                    </button>
+                    <button class="planner-speed-btn" data-speed="pro" title="Deep thinking">
+                        <i data-lucide="brain"></i>
+                        <div class="speed-info">
+                            <span class="speed-name">Pro</span>
+                            <span class="speed-desc">Deep thinking</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
             <!-- AI Options -->
             <div class="sidebar-section">
                 <div class="section-label">AI OPTIONS</div>
@@ -213,6 +234,20 @@
                             </div>
                         </div>
                     </div>
+
+                        <!-- Planner Thinking Display -->
+                        <div class="planner-thinking-display" id="planner-thinking-display" style="display: none;">
+                            <div class="thinking-header">
+                                <i data-lucide="brain" class="thinking-brain-icon"></i>
+                                <span class="thinking-title">Thinking...</span>
+                                <button class="thinking-collapse-btn" id="thinking-collapse-btn">
+                                    <i data-lucide="chevron-down"></i>
+                                </button>
+                            </div>
+                            <div class="thinking-content" id="thinking-content">
+                                <div class="thinking-text" id="thinking-text"></div>
+                            </div>
+                        </div>
 
                     <!-- Input Area -->
                     <div class="input-area" id="input-area">
