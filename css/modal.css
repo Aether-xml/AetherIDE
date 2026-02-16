@@ -638,3 +638,77 @@
 .discord-icon {
     flex-shrink: 0;
 }
+
+/* ══════════════════════════════════════════════════════════
+   API Provider Selector
+   ══════════════════════════════════════════════════════════ */
+
+.provider-options {
+    display: flex;
+    gap: 8px;
+}
+
+.provider-option {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.provider-option svg.lucide {
+    width: 20px;
+    height: 20px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+.provider-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.provider-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    line-height: 1;
+}
+
+.provider-desc {
+    font-size: 0.62rem;
+    color: var(--text-tertiary);
+    line-height: 1;
+}
+
+.provider-option:hover {
+    border-color: var(--border-secondary);
+    background: var(--bg-hover);
+}
+
+.provider-option.active {
+    border-color: var(--accent-primary);
+    background: var(--accent-primary-glow);
+}
+
+.provider-option.active svg.lucide { color: var(--accent-primary); }
+.provider-option.active .provider-name { color: var(--accent-primary); }
+
+@media (max-width: 768px) {
+    .provider-options { flex-direction: column; gap: 6px; }
+    .provider-option { padding: 10px 12px; }
+}
+
+@media (min-width: 769px) {
+    .provider-option { padding: 14px 16px; }
+    .provider-name { font-size: 0.85rem; }
+    .provider-desc { font-size: 0.65rem; }
+}
