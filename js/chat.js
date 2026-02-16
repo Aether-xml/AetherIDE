@@ -134,6 +134,11 @@ const Chat = {
         this.renderMessages();
         this.renderHistory();
 
+        // Sohbetin modunu yükle
+        if (chat.mode && Modes[chat.mode]) {
+            App.setMode(chat.mode);
+        }
+
         document.getElementById('sidebar')?.classList.remove('open');
         document.getElementById('sidebar-overlay')?.classList.remove('visible');
     },
@@ -364,6 +369,9 @@ const Chat = {
             }
             if (input) input.disabled = true;
             if (indicator) indicator.style.display = 'flex';
+
+            // Typing indicator'ı hemen ekle
+            this.showTypingIndicator();
         } else {
             if (sendBtn) {
                 sendBtn.innerHTML = '<i data-lucide="arrow-up"></i>';
@@ -376,11 +384,41 @@ const Chat = {
             }
             if (indicator) indicator.style.display = 'none';
 
+            // Typing ve stream mesajlarını temizle
+            const typing = document.getElementById('typing-message');
+            if (typing) typing.remove();
             const streamMsg = document.getElementById('stream-message');
             if (streamMsg) streamMsg.remove();
         }
 
         if (window.lucide && sendBtn) lucide.createIcons({ nodes: [sendBtn] });
+    },
+
+    showTypingIndicator() {
+        const container = document.getElementById('messages-container');
+        if (!container) return;
+
+        // Zaten varsa ekleme
+        if (document.getElementById('typing-message')) return;
+
+        const div = document.createElement('div');
+        div.className = 'message';
+        div.id = 'typing-message';
+        div.innerHTML = `
+            <div class="message-avatar assistant">
+                <i data-lucide="bot"></i>
+            </div>
+            <div class="message-content">
+                <div class="typing-indicator">
+                    <div class="typing-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+        if (window.lucide) lucide.createIcons({ nodes: [div] });
+        this.scrollToBottom(false);
     },
 
     userScrolledUp: false,
