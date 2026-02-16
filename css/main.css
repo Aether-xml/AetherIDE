@@ -828,6 +828,7 @@ svg.lucide {
 }
 
 /* ── Prompt Enhancer Button ── */
+/* ── Prompt Enhancer Button ── */
 .enhance-btn {
     width: 34px;
     height: 34px;
@@ -838,27 +839,100 @@ svg.lucide {
     color: var(--text-tertiary);
     padding: 0;
     flex-shrink: 0;
-    transition: all var(--transition-fast);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
 }
 
 .enhance-btn svg.lucide {
     width: 16px;
     height: 16px;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.enhance-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at center, rgba(0, 217, 255, 0.15), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .enhance-btn:hover {
     color: var(--accent-secondary);
-    background: rgba(0, 217, 255, 0.08);
+    transform: scale(1.1);
 }
 
+.enhance-btn:hover::before {
+    opacity: 1;
+}
+
+.enhance-btn:hover svg.lucide {
+    filter: drop-shadow(0 0 4px var(--accent-secondary));
+}
+
+/* Enhancing animasyonu */
 .enhance-btn.enhancing {
-    animation: enhanceSpin 1s linear infinite;
     color: var(--accent-secondary);
+    pointer-events: none;
 }
 
-@keyframes enhanceSpin {
+.enhance-btn.enhancing::before {
+    opacity: 1;
+    animation: enhanceGlow 1.5s ease-in-out infinite;
+}
+
+.enhance-btn.enhancing svg.lucide {
+    animation: enhanceSparkle 2s ease-in-out infinite;
+    filter: drop-shadow(0 0 6px var(--accent-secondary));
+}
+
+.enhance-btn.enhancing::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    border: 2px solid transparent;
+    border-top-color: var(--accent-secondary);
+    animation: enhanceRing 0.8s linear infinite;
+}
+
+@keyframes enhanceSparkle {
+    0% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(1.2) rotate(10deg); }
+    50% { transform: scale(0.9) rotate(-5deg); }
+    75% { transform: scale(1.15) rotate(5deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes enhanceGlow {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes enhanceRing {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+}
+
+/* Tamamlandı animasyonu */
+.enhance-btn.enhanced {
+    color: var(--accent-success);
+    animation: enhanceDone 0.5s ease;
+}
+
+.enhance-btn.enhanced svg.lucide {
+    filter: drop-shadow(0 0 6px var(--accent-success));
+}
+
+@keyframes enhanceDone {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
 }
 
 /* ── Panel Transition Animations ── */
@@ -2473,5 +2547,281 @@ svg.lucide {
     .welcome-logo-img {
         width: 56px;
         height: 56px;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════
+   Token Badge + Shortcuts
+   ══════════════════════════════════════════════════════════ */
+
+.sandbox-token-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-full);
+    font-size: 0.55rem;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    font-family: var(--font-code);
+    margin-left: 6px;
+    letter-spacing: 0.3px;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.sandbox-msg-user .sandbox-token-badge {
+    background: rgba(108, 99, 255, 0.06);
+    border-color: rgba(108, 99, 255, 0.12);
+    color: var(--accent-primary);
+}
+
+.sandbox-msg-ai .sandbox-token-badge {
+    background: rgba(0, 217, 255, 0.06);
+    border-color: rgba(0, 217, 255, 0.12);
+    color: var(--accent-secondary);
+}
+
+.sandbox-msg-name {
+    display: flex;
+    align-items: center;
+}
+
+/* Toast çok satırlı destek */
+.toast span {
+    white-space: pre-line;
+    line-height: 1.6;
+}
+
+/* ══════════════════════════════════════════════════════════
+   Planner Speed Toggle + Thinking Display
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Speed Section ── */
+.planner-speed-section {
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.planner-speed-toggle {
+    display: flex;
+    gap: 4px;
+}
+
+.planner-speed-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-normal);
+    position: relative;
+}
+
+.planner-speed-btn svg.lucide {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.speed-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.speed-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    line-height: 1;
+}
+
+.speed-desc {
+    font-size: 0.6rem;
+    color: var(--text-tertiary);
+    line-height: 1;
+}
+
+.planner-speed-btn:hover {
+    background: var(--bg-hover);
+}
+
+.planner-speed-btn.active {
+    background: var(--accent-primary-glow);
+}
+
+/* Flash active */
+.planner-speed-btn[data-speed="flash"].active {
+    border: 1px solid rgba(255, 179, 0, 0.2);
+    background: rgba(255, 179, 0, 0.06);
+}
+
+.planner-speed-btn[data-speed="flash"].active svg.lucide {
+    color: var(--accent-warning);
+}
+
+.planner-speed-btn[data-speed="flash"].active .speed-name {
+    color: var(--accent-warning);
+}
+
+/* Pro active */
+.planner-speed-btn[data-speed="pro"].active {
+    border: 1px solid rgba(108, 99, 255, 0.2);
+    background: rgba(108, 99, 255, 0.06);
+}
+
+.planner-speed-btn[data-speed="pro"].active svg.lucide {
+    color: var(--accent-primary);
+}
+
+.planner-speed-btn[data-speed="pro"].active .speed-name {
+    color: var(--accent-primary);
+}
+
+/* ── Thinking Display ── */
+.planner-thinking-display {
+    margin: 0 12px 8px;
+    border: 1px solid rgba(108, 99, 255, 0.15);
+    border-radius: var(--radius-lg);
+    background: rgba(108, 99, 255, 0.04);
+    overflow: hidden;
+    animation: thinkingFadeIn 0.3s ease;
+}
+
+@keyframes thinkingFadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.thinking-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(108, 99, 255, 0.06);
+    border-bottom: 1px solid rgba(108, 99, 255, 0.1);
+    cursor: pointer;
+}
+
+.thinking-brain-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--accent-primary);
+    animation: thinkingPulse 2s ease-in-out infinite;
+}
+
+@keyframes thinkingPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; filter: drop-shadow(0 0 6px var(--accent-primary)); }
+}
+
+.thinking-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    flex: 1;
+    letter-spacing: 0.3px;
+}
+
+.thinking-collapse-btn {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    color: var(--text-tertiary);
+    padding: 0;
+    transition: all var(--transition-fast);
+}
+
+.thinking-collapse-btn svg.lucide {
+    width: 14px;
+    height: 14px;
+}
+
+.thinking-collapse-btn:hover {
+    background: rgba(108, 99, 255, 0.1);
+    color: var(--accent-primary);
+}
+
+.thinking-content {
+    padding: 12px 14px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.thinking-text {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    font-style: italic;
+    opacity: 0.85;
+}
+
+.thinking-text code {
+    background: rgba(108, 99, 255, 0.08);
+    padding: 1px 5px;
+    border-radius: var(--radius-xs);
+    font-family: var(--font-code);
+    font-size: 0.76em;
+    color: var(--accent-primary);
+    font-style: normal;
+}
+
+.thinking-text strong {
+    color: var(--text-primary);
+    font-style: normal;
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+    .planner-speed-btn {
+        padding: 8px 10px;
+        gap: 8px;
+    }
+
+    .planner-speed-btn svg.lucide {
+        width: 16px;
+        height: 16px;
+    }
+
+    .speed-name {
+        font-size: 0.78rem;
+    }
+
+    .speed-desc {
+        display: none;
+    }
+
+    .planner-thinking-display {
+        margin: 0 8px 6px;
+    }
+
+    .thinking-content {
+        max-height: 150px;
+        padding: 10px 12px;
+    }
+
+    .thinking-text {
+        font-size: 0.74rem;
+    }
+}
+
+/* ── Desktop hover ── */
+@media (hover: hover) {
+    .planner-speed-btn {
+        transition: all 0.2s ease;
+    }
+
+    .planner-speed-btn:hover {
+        transform: translateX(2px);
+    }
+
+    .planner-speed-btn.active:hover {
+        transform: none;
     }
 }
