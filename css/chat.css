@@ -727,3 +727,79 @@
 .message-body details[open] {
     padding-bottom: 8px;
 }
+
+/* ══════════════════════════════════════════════════════════
+   File Card Status Labels
+   ══════════════════════════════════════════════════════════ */
+
+.file-card-status {
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+/* Created */
+.file-card-created .file-card-status {
+    color: var(--accent-success);
+}
+
+.file-card-created {
+    border-left: 3px solid var(--accent-success);
+}
+
+/* Updated */
+.file-card-updated .file-card-status {
+    color: var(--accent-warning);
+}
+
+.file-card-updated {
+    border-left: 3px solid var(--accent-warning);
+}
+
+/* Creating... */
+.file-card-creating .file-card-status {
+    color: var(--accent-success);
+    animation: statusPulse 1.5s ease-in-out infinite;
+}
+
+.file-card-creating {
+    border-left: 3px dashed var(--accent-success);
+}
+
+/* Updating... */
+.file-card-updating .file-card-status {
+    color: var(--accent-warning);
+    animation: statusPulse 1.5s ease-in-out infinite;
+}
+
+.file-card-updating {
+    border-left: 3px dashed var(--accent-warning);
+}
+
+@keyframes statusPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* File card info düzeni */
+.file-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+/* Meta bilgiyi gizle (status ile değiştirildi) */
+.file-card-created .file-card-meta,
+.file-card-updated .file-card-meta {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .file-card-status {
+        font-size: 0.5rem;
+    }
+}
