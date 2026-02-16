@@ -2462,6 +2462,132 @@ svg.lucide {
     border-top: 1px solid var(--border-primary);
 }
 
+/* Sandbox Settings Sections */
+.sandbox-settings-section {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.sandbox-settings-section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.sandbox-settings-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    margin-bottom: 16px;
+    padding: 8px 12px;
+    background: var(--accent-primary-glow);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(108, 99, 255, 0.12);
+}
+
+.sandbox-settings-section-header svg.lucide {
+    width: 16px;
+    height: 16px;
+}
+
+/* Sandbox Chat History */
+.sandbox-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.sandbox-history-empty {
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
+    padding: 16px;
+}
+
+.sandbox-history-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+.sandbox-history-item:hover {
+    background: var(--bg-hover);
+}
+
+.sandbox-history-item.active {
+    background: var(--accent-primary-glow);
+}
+
+.sandbox-history-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+.sandbox-history-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sandbox-history-title {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sandbox-history-type {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    background: var(--bg-tertiary);
+    padding: 1px 6px;
+    border-radius: var(--radius-xs);
+    flex-shrink: 0;
+}
+
+.sandbox-history-delete {
+    opacity: 0;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-xs);
+    font-size: 14px;
+    color: var(--text-tertiary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.sandbox-history-item:hover .sandbox-history-delete {
+    opacity: 1;
+}
+
+.sandbox-history-delete:hover {
+    background: var(--accent-error);
+    color: white;
+}
+
 /* ── Mobile ── */
 @media (max-width: 768px) {
     .sandbox-modal-size {
