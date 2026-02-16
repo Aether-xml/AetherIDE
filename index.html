@@ -410,7 +410,7 @@
                 </div>
                 <div class="statusbar-right">
                     <span class="statusbar-item" id="statusbar-lines">0 lines</span>
-                    <span class="statusbar-item" id="statusbar-version">v1.4.0</span>
+                    <span class="statusbar-item" id="statusbar-version">v1.4.2</span>
                 </div>
             </div>
         </main>
@@ -558,75 +558,135 @@
                         <div class="sandbox-settings-scroll">
                             <div class="sandbox-settings-inner">
 
-                                <div class="settings-group">
-                                    <label class="settings-label">
-                                        <i data-lucide="file-text" class="settings-label-icon"></i>
-                                        Sandbox System Prompt
-                                    </label>
-                                    <p class="settings-desc">Custom system prompt for Sandbox conversations. Leave empty for default.</p>
-                                    <textarea id="sandbox-system-prompt" class="settings-textarea" rows="4" placeholder="You are a helpful AI assistant..."></textarea>
-                                </div>
-
-                                <div class="settings-group">
-                                    <label class="settings-label">
-                                        <i data-lucide="thermometer" class="settings-label-icon"></i>
-                                        Temperature
-                                    </label>
-                                    <p class="settings-desc">Higher = more creative, Lower = more focused</p>
-                                    <div class="settings-range-group">
-                                        <input type="range" id="sandbox-temperature" class="settings-range" min="0" max="2" step="0.1" value="0.7">
-                                        <span class="range-value" id="sandbox-temp-value">0.7</span>
+                                <!-- Direct Settings -->
+                                <div class="sandbox-settings-section">
+                                    <div class="sandbox-settings-section-header">
+                                        <i data-lucide="message-square"></i>
+                                        <span>Direct Mode Settings</span>
                                     </div>
-                                </div>
 
-                                <div class="settings-group">
-                                    <label class="settings-label">
-                                        <i data-lucide="hash" class="settings-label-icon"></i>
-                                        Max Tokens
-                                    </label>
-                                    <p class="settings-desc">Maximum response length</p>
-                                    <div class="settings-range-group">
-                                        <input type="range" id="sandbox-max-tokens" class="settings-range" min="256" max="8192" step="256" value="4096">
-                                        <span class="range-value" id="sandbox-tokens-value">4096</span>
+                                    <div class="settings-group">
+                                        <label class="settings-label">System Prompt</label>
+                                        <textarea id="sandbox-direct-system-prompt" class="settings-textarea" rows="3" placeholder="You are a helpful AI assistant..."></textarea>
                                     </div>
-                                </div>
 
-                                <div class="settings-group">
-                                    <div class="settings-toggle-row">
-                                        <div class="settings-toggle-info">
-                                            <i data-lucide="radio" class="settings-label-icon"></i>
-                                            <div>
-                                                <label class="settings-label">Stream Responses</label>
-                                                <p class="settings-desc">Show response word by word</p>
-                                            </div>
+                                    <div class="settings-group">
+                                        <label class="settings-label">Temperature</label>
+                                        <div class="settings-range-group">
+                                            <input type="range" id="sandbox-direct-temperature" class="settings-range" min="0" max="2" step="0.1" value="0.7">
+                                            <span class="range-value" id="sandbox-direct-temp-value">0.7</span>
                                         </div>
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="sandbox-stream-toggle" checked>
-                                            <span class="toggle-slider"></span>
-                                        </label>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <label class="settings-label">Max Tokens</label>
+                                        <div class="settings-range-group">
+                                            <input type="range" id="sandbox-direct-max-tokens" class="settings-range" min="256" max="8192" step="256" value="4096">
+                                            <span class="range-value" id="sandbox-direct-tokens-value">4096</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <div class="settings-toggle-row">
+                                            <div class="settings-toggle-info">
+                                                <i data-lucide="radio" class="settings-label-icon"></i>
+                                                <div>
+                                                    <label class="settings-label">Stream Responses</label>
+                                                    <p class="settings-desc">Show response word by word</p>
+                                                </div>
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="sandbox-direct-stream-toggle" checked>
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div class="settings-group">
-                                    <div class="settings-toggle-row">
-                                        <div class="settings-toggle-info">
-                                            <i data-lucide="save" class="settings-label-icon"></i>
-                                            <div>
-                                                <label class="settings-label">Save History</label>
-                                                <p class="settings-desc">Keep Sandbox conversations in memory</p>
-                                            </div>
+                                <!-- SBS Settings -->
+                                <div class="sandbox-settings-section">
+                                    <div class="sandbox-settings-section-header">
+                                        <i data-lucide="columns"></i>
+                                        <span>Side by Side Settings</span>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <label class="settings-label">System Prompt</label>
+                                        <textarea id="sandbox-sbs-system-prompt" class="settings-textarea" rows="3" placeholder="You are a helpful AI assistant..."></textarea>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <label class="settings-label">Temperature</label>
+                                        <div class="settings-range-group">
+                                            <input type="range" id="sandbox-sbs-temperature" class="settings-range" min="0" max="2" step="0.1" value="0.7">
+                                            <span class="range-value" id="sandbox-sbs-temp-value">0.7</span>
                                         </div>
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="sandbox-save-toggle">
-                                            <span class="toggle-slider"></span>
-                                        </label>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <label class="settings-label">Max Tokens</label>
+                                        <div class="settings-range-group">
+                                            <input type="range" id="sandbox-sbs-max-tokens" class="settings-range" min="256" max="8192" step="256" value="4096">
+                                            <span class="range-value" id="sandbox-sbs-tokens-value">4096</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <div class="settings-toggle-row">
+                                            <div class="settings-toggle-info">
+                                                <i data-lucide="radio" class="settings-label-icon"></i>
+                                                <div>
+                                                    <label class="settings-label">Stream Responses</label>
+                                                    <p class="settings-desc">Recommended OFF for accurate comparison</p>
+                                                </div>
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="sandbox-sbs-stream-toggle">
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Global -->
+                                <div class="sandbox-settings-section">
+                                    <div class="sandbox-settings-section-header">
+                                        <i data-lucide="settings"></i>
+                                        <span>General</span>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <div class="settings-toggle-row">
+                                            <div class="settings-toggle-info">
+                                                <i data-lucide="save" class="settings-label-icon"></i>
+                                                <div>
+                                                    <label class="settings-label">Save History</label>
+                                                    <p class="settings-desc">Keep Sandbox conversations in memory</p>
+                                                </div>
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="sandbox-save-toggle">
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- History -->
+                                <div class="sandbox-settings-section">
+                                    <div class="sandbox-settings-section-header">
+                                        <i data-lucide="clock"></i>
+                                        <span>Chat History</span>
+                                    </div>
+                                    <div class="sandbox-history-list" id="sandbox-history-list">
+                                        <div class="sandbox-history-empty">No saved chats</div>
                                     </div>
                                 </div>
 
                                 <div class="sandbox-settings-actions">
                                     <button class="modal-btn secondary" id="sandbox-settings-reset">
                                         <i data-lucide="rotate-ccw"></i>
-                                        Reset Defaults
+                                        Reset
                                     </button>
                                     <button class="modal-btn primary" id="sandbox-settings-save">
                                         <i data-lucide="save"></i>
@@ -898,7 +958,7 @@
                     <div class="settings-about">
                         <img src="assets/icons/icon-192.png" alt="AetherIDE" class="about-logo-img">
                         <div class="about-name">AetherIDE</div>
-                        <div class="about-version">v1.4.0</div>
+                        <div class="about-version">v1.4.2</div>
                         <div class="about-tagline">Code at the speed of thought</div>
                         <div class="about-links">
                             <a href="https://discord.gg/7YKCvPzKEQ" target="_blank" rel="noopener" class="about-link discord-link">
