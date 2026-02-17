@@ -442,6 +442,7 @@ const Chat = {
             };
 
             const userName = Storage.getUserName() || 'You';
+            const userColor = Storage.getUserAvatarColor() || 'purple';
             const avatarNames = {
                 user: userName, assistant: 'AetherIDE',
                 designer: 'Designer', pm: 'Project Manager', developer: 'Developer',
@@ -456,9 +457,10 @@ const Chat = {
                 bodyContent = Utils.parseMarkdown(displayText);
             }
 
+            const avatarStyle = (isUser && userColor !== 'purple') ? ` data-avatar-color="${userColor}"` : '';
             html += `
                 <div class="message">
-                    <div class="message-avatar ${agentType}">
+                    <div class="message-avatar ${agentType}"${avatarStyle}>
                         <i data-lucide="${avatarIcons[agentType] || 'bot'}"></i>
                     </div>
                     <div class="message-content">
