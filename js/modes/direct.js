@@ -5,7 +5,6 @@
 
 const DirectMode = {
 
-    // Mevcut dosya bağlamını oluştur
     buildFileContext() {
         if (Editor.files.length === 0) return '';
 
@@ -24,7 +23,6 @@ const DirectMode = {
     async send(chat, model) {
         Chat.setGenerating(true);
 
-        // Dosya bağlamını ekle
         const fileContext = this.buildFileContext();
         const settings = Storage.getSettings();
 
@@ -39,7 +37,9 @@ const DirectMode = {
         }));
 
         let streamTimeout = null;
-        const STREAM_TIMEOUT_MS = 30000;
+        let stuckCheckInterval = null;
+        const STREAM_TIMEOUT_MS = 45000;
+        const STUCK_CHECK_MS = 10000;
 
         const resetStreamTimeout = () => {
             if (streamTimeout) clearTimeout(streamTimeout);
@@ -57,23 +57,39 @@ const DirectMode = {
             if (result && typeof result[Symbol.asyncIterator] === 'function') {
                 let fullContent = '';
                 let lastCodeUpdate = 0;
+                let lastChunkTime = Date.now();
+                let lastContentLength = 0;
 
                 resetStreamTimeout();
 
+                // Takılma kontrolü — 10 saniyede içerik değişmezse abort
+                stuckCheckInterval = setInterval(() => {
+                    const now = Date.now();
+                    if (now - lastChunkTime > STUCK_CHECK_MS && fullContent.length === lastContentLength && fullContent.length > 0) {
+                        console.warn('Stream appears stuck — aborting');
+                        clearInterval(stuckCheckInterval);
+                        API.abort();
+                    }
+                    lastContentLength = fullContent.length;
+                }, 5000);
+
                 for await (const chunk of result) {
                     fullContent += chunk;
+                    lastChunkTime = Date.now();
                     resetStreamTimeout();
 
                     Chat.updateStreamMessage(fullContent);
 
+                    // Editörü throttled güncelle
                     const now = Date.now();
-                    if (fullContent.includes('```') && now - lastCodeUpdate > 500) {
+                    if (fullContent.includes('```') && now - lastCodeUpdate > 800) {
                         Editor.updateCode(fullContent);
                         lastCodeUpdate = now;
                     }
                 }
 
                 if (streamTimeout) clearTimeout(streamTimeout);
+                if (stuckCheckInterval) clearInterval(stuckCheckInterval);
 
                 if (fullContent) {
                     Chat.addAssistantMessage(fullContent);
@@ -92,14 +108,23 @@ const DirectMode = {
 
         } catch (error) {
             if (streamTimeout) clearTimeout(streamTimeout);
+            if (stuckCheckInterval) clearInterval(stuckCheckInterval);
+
             if (error.name === 'AbortError') {
-                Utils.toast('Generation stopped', 'info');
+                // Takılmadan kurtarıldıysa mevcut içeriği kaydet
+                const streamBody = document.getElementById('stream-body');
+                if (streamBody && streamBody.textContent.trim()) {
+                    Utils.toast('Stream interrupted — partial content saved', 'warning');
+                } else {
+                    Utils.toast('Generation stopped', 'info');
+                }
             } else {
                 Chat.addAssistantMessage(`**Error:** ${error.message}`);
                 Utils.toast(error.message, 'error');
             }
         } finally {
             if (streamTimeout) clearTimeout(streamTimeout);
+            if (stuckCheckInterval) clearInterval(stuckCheckInterval);
             Chat.setGenerating(false);
         }
     },
