@@ -538,6 +538,7 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
 
     extractCodeBlocks(text) {
         const blocks = [];
+        // Tamamlanmış kod blokları
         const regex = /```(\w*?)(?::([^\n]+))?\n([\s\S]*?)```/g;
         let match;
         let fileIndex = 0;
@@ -547,6 +548,9 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
             const filename = match[2]?.trim() || '';
             const code = match[3]?.trim() || '';
             if (!code) continue;
+
+            // Çok kısa kodları atla (genelde hatalı parse)
+            if (code.length < 3) continue;
 
             fileIndex++;
             let finalFilename = filename;
