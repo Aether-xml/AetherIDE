@@ -690,6 +690,7 @@
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-md);
     overflow: hidden;
+    max-width: 100%;
 }
 
 .message-body details summary {
@@ -710,6 +711,7 @@
     content: '▶';
     font-size: 0.6rem;
     transition: transform var(--transition-fast);
+    flex-shrink: 0;
 }
 
 .message-body details[open] summary::before {
@@ -726,6 +728,154 @@
 
 .message-body details[open] {
     padding-bottom: 8px;
+}
+
+/* ── Team Discussion — Mobile Fix ── */
+@media (max-width: 768px) {
+    .team-discussion-status {
+        padding: 6px 8px;
+        margin: 2px 0;
+    }
+
+    .discussion-status-inner {
+        padding: 5px 10px;
+        font-size: 0.65rem;
+        gap: 6px;
+        max-width: 100%;
+    }
+
+    .discussion-dots span {
+        width: 3px;
+        height: 3px;
+    }
+
+    /* Team mesajları mobilde kompakt */
+    .message-avatar.designer,
+    .message-avatar.pm,
+    .message-avatar.developer {
+        width: 26px;
+        height: 26px;
+        min-width: 26px;
+    }
+
+    .message-avatar.designer svg.lucide,
+    .message-avatar.pm svg.lucide,
+    .message-avatar.developer svg.lucide {
+        width: 12px;
+        height: 12px;
+    }
+
+    /* Team mesaj body — overflow fix */
+    .message {
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    .message-content {
+        max-width: calc(100% - 38px);
+        overflow: hidden;
+    }
+
+    .message-body {
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
+    }
+
+    /* Details/Spoiler mobilde */
+    .message-body details {
+        margin: 4px 0;
+        max-width: 100%;
+    }
+
+    .message-body details summary {
+        padding: 6px 10px;
+        font-size: 0.7rem;
+        gap: 5px;
+    }
+
+    .message-body details > :not(summary) {
+        padding: 0 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Team round başlıkları mobilde */
+    .message-body strong {
+        display: inline;
+        word-break: break-word;
+    }
+
+    /* Kod blokları mobilde taşma fix */
+    .message-body pre {
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        font-size: 0.72rem;
+    }
+
+    .message-body pre code {
+        font-size: 0.7rem;
+        white-space: pre;
+    }
+
+    .message-body code {
+        word-break: break-all;
+        font-size: 0.75em;
+    }
+
+    /* Agent chip mobilde */
+    .agent-chip {
+        padding: 6px 8px;
+        font-size: 0.65rem;
+    }
+
+    .agent-lucide-icon,
+    .agent-chip svg.lucide {
+        width: 12px;
+        height: 12px;
+    }
+
+    /* Team mesaj header mobilde */
+    .message-header {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .message-author {
+        font-size: 0.72rem;
+    }
+
+    .message-time {
+        font-size: 0.55rem;
+    }
+
+    /* Planner/Team butonları mobilde */
+    .planner-actions {
+        gap: 4px;
+    }
+
+    .planner-btn {
+        padding: 8px 10px;
+        font-size: 0.72rem;
+    }
+
+    .planner-btn svg.lucide {
+        width: 13px;
+        height: 13px;
+    }
+}
+
+/* ── Team mesajları — genel taşma koruması ── */
+.message-body > * {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+.message-body img {
+    max-width: 100%;
+    height: auto;
 }
 
 /* ══════════════════════════════════════════════════════════
