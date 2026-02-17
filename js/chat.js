@@ -441,8 +441,9 @@ const Chat = {
                 designer: 'palette', pm: 'kanban', developer: 'code-2',
             };
 
+            const userName = Storage.getUserName() || 'You';
             const avatarNames = {
-                user: 'You', assistant: 'AetherIDE',
+                user: userName, assistant: 'AetherIDE',
                 designer: 'Designer', pm: 'Project Manager', developer: 'Developer',
             };
 
