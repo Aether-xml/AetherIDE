@@ -99,9 +99,16 @@
 
     /* Planner & Team */
     .planner-btn span { display: none; }
-    .planner-btn { padding: 10px 14px; }
+    .planner-btn { padding: 8px 12px; min-width: 44px; }
 
     .agent-chip span { display: none; }
+    .agent-chip { min-width: 36px; justify-content: center; }
+
+    /* Team mode mesaj taşma koruması */
+    .message-content {
+        overflow: hidden;
+        min-width: 0;
+    }
 
     /* Code */
     .code-header { height: 40px; padding: 0 8px; }
