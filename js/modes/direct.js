@@ -8,14 +8,30 @@ const DirectMode = {
         if (Editor.files.length === 0) return '';
 
         let context = '\n\n--- CURRENT PROJECT FILES ---\n';
+        context += `Total files: ${Editor.files.length}\n`;
+
         for (const file of Editor.files) {
-            const preview = file.code.length > 2000
-                ? file.code.substring(0, 2000) + '\n... (truncated)'
+            const lines = file.code.split('\n').length;
+            const chars = file.code.length;
+            const preview = chars > 3000
+                ? file.code.substring(0, 3000) + '\n... (truncated, full file has ' + lines + ' lines)'
                 : file.code;
-            context += `\n📄 ${file.filename} (${file.language}):\n\`\`\`${file.language}:${file.filename}\n${preview}\n\`\`\`\n`;
+            context += `\n📄 ${file.filename} (${file.language}, ${lines} lines, ${chars} chars):\n\`\`\`${file.language}:${file.filename}\n${preview}\n\`\`\`\n`;
         }
-        context += '--- END PROJECT FILES ---\n';
-        context += '\nIMPORTANT: When modifying existing files, output the COMPLETE updated file content using the same ```language:filename format. Do not skip unchanged parts. Do not use comments like "// rest of code remains same". Always write the full file.\n';
+
+        context += '--- END PROJECT FILES ---\n\n';
+        context += `CRITICAL RULES FOR MODIFYING EXISTING FILES:
+1. When updating a file, you MUST output the COMPLETE file content — every single line.
+2. NEVER use placeholders like "// rest of code remains same", "// ...", "/* existing code */", or "// unchanged".
+3. NEVER skip, abbreviate, or summarize any part of the code.
+4. Use the exact format: \`\`\`language:filename.ext
+5. If you only need to change 2 lines in a 200-line file, you must still output all 200 lines.
+6. For new files, use the same format. The system will auto-detect create vs update.
+7. Files can include folder paths like: \`\`\`javascript:src/utils/helpers.js
+8. Maintain the same coding style, indentation, and conventions as the existing code.
+9. Preserve all existing functionality unless explicitly asked to remove it.
+10. When adding features, integrate them properly with existing code — don't break imports, references, or event bindings.\n`;
+
         return context;
     },
 
