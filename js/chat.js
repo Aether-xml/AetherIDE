@@ -29,20 +29,11 @@ const Chat = {
 
         input?.addEventListener('input', () => {
             Utils.autoResize(input);
-            sendBtn.disabled = !input.value.trim();
+            if (sendBtn) sendBtn.disabled = !input.value.trim();
         });
 
         document.getElementById('new-chat-btn')?.addEventListener('click', () => {
             this.newChat();
-        });
-
-        document.getElementById('clear-chat-btn')?.addEventListener('click', () => {
-            if (this.currentChat) {
-                this.currentChat.messages = [];
-                Storage.saveChat(this.currentChat);
-                this.renderMessages();
-                Utils.toast('Chat cleared', 'info');
-            }
         });
 
         document.querySelectorAll('.welcome-card').forEach(card => {
@@ -51,7 +42,7 @@ const Chat = {
                 if (prompt && input) {
                     input.value = prompt;
                     Utils.autoResize(input);
-                    sendBtn.disabled = false;
+                    if (sendBtn) sendBtn.disabled = false;
                     input.focus();
                 }
             });
@@ -99,9 +90,7 @@ const Chat = {
         this.currentChat = chat;
         Storage.setActiveChatId(chat.id);
 
-        // Welcome sayfasını göster
         this.showWelcome();
-
         this.renderHistory();
 
         // Console temizle
@@ -119,6 +108,9 @@ const Chat = {
         if (previewContainer) previewContainer.style.display = 'none';
         if (editorWrapper) editorWrapper.style.display = 'block';
         Editor.previewVisible = false;
+
+        const refreshBtn = document.getElementById('refresh-preview-btn');
+        if (refreshBtn) refreshBtn.style.display = 'none';
 
         const iframe = document.getElementById('preview-iframe');
         if (iframe) iframe.srcdoc = '';
@@ -140,7 +132,8 @@ const Chat = {
             input.focus();
         }
 
-        document.getElementById('send-btn').disabled = true;
+        const sendBtn = document.getElementById('send-btn');
+        if (sendBtn) sendBtn.disabled = true;
 
         // Mobilde sidebar kapat
         document.getElementById('sidebar')?.classList.remove('open');
@@ -149,65 +142,55 @@ const Chat = {
         return chat;
     },
 
-    // Welcome sayfasını göster
     showWelcome() {
         const container = document.getElementById('messages-container');
-        const welcome = document.getElementById('welcome-message');
         if (!container) return;
 
-        container.innerHTML = '';
-
-        if (welcome) {
-            // Welcome element'i klonla (DOM'dan kaldırılmış olabilir)
-            welcome.style.display = 'flex';
-            container.appendChild(welcome);
-            if (window.lucide) lucide.createIcons({ nodes: [welcome] });
-        } else {
-            // Welcome element yoksa yeniden oluştur
-            container.innerHTML = `
-                <div class="welcome-message" id="welcome-message" style="display:flex;">
-                    <div class="welcome-logo-wrap">
-                        <div class="welcome-glow"></div>
-                        <img src="assets/icons/icon-192.png" alt="AetherIDE" class="welcome-logo-img">
-                    </div>
-                    <h2 class="welcome-title">AetherIDE</h2>
-                    <p class="welcome-subtitle">Code at the speed of thought</p>
-                    <div class="welcome-cards">
-                        <button class="welcome-card" data-prompt="Build me a responsive landing page with modern design">
-                            <i data-lucide="globe" class="card-lucide-icon"></i>
-                            <span class="card-text">Landing page</span>
-                        </button>
-                        <button class="welcome-card" data-prompt="Create a todo app with local storage">
-                            <i data-lucide="check-square" class="card-lucide-icon"></i>
-                            <span class="card-text">Todo app</span>
-                        </button>
-                        <button class="welcome-card" data-prompt="Write a Python script that scrapes website data">
-                            <i data-lucide="terminal" class="card-lucide-icon"></i>
-                            <span class="card-text">Python script</span>
-                        </button>
-                        <button class="welcome-card" data-prompt="Design a REST API with Express.js">
-                            <i data-lucide="server" class="card-lucide-icon"></i>
-                            <span class="card-text">REST API</span>
-                        </button>
-                    </div>
+        container.innerHTML = `
+            <div class="welcome-message" id="welcome-message" style="display:flex;">
+                <div class="welcome-logo-wrap">
+                    <div class="welcome-glow"></div>
+                    <img src="assets/icons/icon-192.png" alt="AetherIDE" class="welcome-logo-img">
                 </div>
-            `;
-            if (window.lucide) lucide.createIcons({ nodes: [container] });
+                <h2 class="welcome-title">AetherIDE</h2>
+                <p class="welcome-subtitle">Code at the speed of thought</p>
+                <div class="welcome-cards">
+                    <button class="welcome-card" data-prompt="Build me a responsive landing page with modern design">
+                        <i data-lucide="globe" class="card-lucide-icon"></i>
+                        <span class="card-text">Landing page</span>
+                    </button>
+                    <button class="welcome-card" data-prompt="Create a todo app with local storage">
+                        <i data-lucide="check-square" class="card-lucide-icon"></i>
+                        <span class="card-text">Todo app</span>
+                    </button>
+                    <button class="welcome-card" data-prompt="Write a Python script that scrapes website data">
+                        <i data-lucide="terminal" class="card-lucide-icon"></i>
+                        <span class="card-text">Python script</span>
+                    </button>
+                    <button class="welcome-card" data-prompt="Design a REST API with Express.js">
+                        <i data-lucide="server" class="card-lucide-icon"></i>
+                        <span class="card-text">REST API</span>
+                    </button>
+                </div>
+            </div>
+        `;
 
-            // Welcome kartlarına event ekle
-            container.querySelectorAll('.welcome-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    const prompt = card.dataset.prompt;
-                    const input = document.getElementById('message-input');
-                    if (prompt && input) {
-                        input.value = prompt;
-                        Utils.autoResize(input);
-                        document.getElementById('send-btn').disabled = false;
-                        input.focus();
-                    }
-                });
+        if (window.lucide) lucide.createIcons({ nodes: [container] });
+
+        // Welcome kartlarına event ekle
+        container.querySelectorAll('.welcome-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const prompt = card.dataset.prompt;
+                const input = document.getElementById('message-input');
+                const sendBtn = document.getElementById('send-btn');
+                if (prompt && input) {
+                    input.value = prompt;
+                    Utils.autoResize(input);
+                    if (sendBtn) sendBtn.disabled = false;
+                    input.focus();
+                }
             });
-        }
+        });
     },
 
     loadLastChat() {
@@ -235,14 +218,47 @@ const Chat = {
 
         // Sohbetin modunu yükle
         if (chat.mode && Modes[chat.mode]) {
-            App.setMode(chat.mode);
+            // Önce mod kilidini bypass et (loadChat'te geçiş her zaman izinli)
+            const prevMode = App.currentMode;
+            App.currentMode = chat.mode;
+            Storage.setLastMode(chat.mode);
+            
+            // UI'ı güncelle
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === chat.mode);
+            });
+
+            const modeNames = { direct: 'Direct', planner: 'Planner', team: 'Team' };
+            const modeIcons = { direct: 'zap', planner: 'clipboard-list', team: 'users' };
+
+            const modeDisplay = document.getElementById('current-mode-display');
+            if (modeDisplay) {
+                modeDisplay.innerHTML = `
+                    <i data-lucide="${modeIcons[chat.mode]}" class="topbar-mode-icon"></i>
+                    <span class="current-mode-name">${modeNames[chat.mode]}</span>
+                `;
+                if (window.lucide) lucide.createIcons({ nodes: [modeDisplay] });
+            }
+
+            const statusMode = document.getElementById('statusbar-mode');
+            if (statusMode) {
+                statusMode.innerHTML = `<i data-lucide="${modeIcons[chat.mode]}" class="statusbar-icon"></i> ${modeNames[chat.mode]}`;
+                if (window.lucide) lucide.createIcons({ nodes: [statusMode] });
+            }
+
+            // Planner/Team UI
+            const plannerEl = document.getElementById('planner-actions');
+            const teamEl = document.getElementById('team-agents');
+            const plannerSpeedEl = document.getElementById('planner-speed-section');
+            if (plannerEl) plannerEl.style.display = 'none';
+            if (teamEl) teamEl.style.display = chat.mode === 'team' ? 'flex' : 'none';
+            if (plannerSpeedEl) plannerSpeedEl.style.display = chat.mode === 'planner' ? 'block' : 'none';
         }
 
         // Sohbetteki dosyaları editöre geri yükle
         Editor.files = [];
         Editor.activeFileIndex = 0;
 
-        // Tüm assistant mesajlarından kod bloklarını çıkar
         if (chat.messages && chat.messages.length > 0) {
             for (const msg of chat.messages) {
                 if (msg.role === 'assistant' && msg.content) {
@@ -270,6 +286,9 @@ const Chat = {
         if (editorWrapper) editorWrapper.style.display = 'block';
         Editor.previewVisible = false;
 
+        const refreshBtn = document.getElementById('refresh-preview-btn');
+        if (refreshBtn) refreshBtn.style.display = 'none';
+
         // Mobil file badge güncelle
         const tabCode = document.getElementById('tab-code');
         if (tabCode) {
@@ -296,7 +315,14 @@ const Chat = {
         if (this.currentChat?.id === chatId) {
             this.currentChat = null;
             Storage.setActiveChatId(null);
-            this.renderMessages();
+            this.showWelcome();
+
+            // Editor temizle
+            Editor.files = [];
+            Editor.activeFileIndex = 0;
+            Editor.renderTabs();
+            Editor.renderCode();
+            Editor.updateStatusBar();
         }
 
         this.renderHistory();
@@ -305,11 +331,11 @@ const Chat = {
 
     async sendMessage() {
         const input = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
         let text = input?.value?.trim();
 
         if (!text || this.isGenerating) return;
 
-        // Çok kısa mesaj uyarısı (sadece boşluk/sembol)
         if (text.replace(/[^\w]/g, '').length === 0) {
             Utils.toast('Please type a meaningful message', 'warning', 2000);
             return;
@@ -331,30 +357,33 @@ const Chat = {
         }
 
         // Console context'i mesaja ekle (hata varsa)
-        const consoleContext = Editor.getConsoleContext();
         const hasErrors = Editor.consoleLogs.some(l => l.type === 'error');
-        
         let enrichedText = text;
-        if (hasErrors && consoleContext) {
-            enrichedText = text + '\n\n' + consoleContext;
+        if (hasErrors) {
+            const consoleContext = Editor.getConsoleContext();
+            if (consoleContext) {
+                enrichedText = text + '\n\n' + consoleContext;
+            }
         }
 
         const userMessage = {
             role: 'user',
             content: enrichedText,
-            displayContent: text, // UI'da gösterilecek temiz metin
+            displayContent: text,
             timestamp: new Date().toISOString(),
         };
 
         this.currentChat.messages.push(userMessage);
 
-        if (this.currentChat.messages.length === 1) {
+        if (this.currentChat.messages.filter(m => m.role === 'user').length === 1) {
             this.currentChat.title = Utils.truncate(text, 35);
         }
 
-        input.value = '';
-        Utils.autoResize(input);
-        document.getElementById('send-btn').disabled = true;
+        if (input) {
+            input.value = '';
+            Utils.autoResize(input);
+        }
+        if (sendBtn) sendBtn.disabled = true;
 
         this.renderMessages();
         this.forceScrollToBottom();
@@ -388,7 +417,6 @@ const Chat = {
 
     renderMessages() {
         const container = document.getElementById('messages-container');
-        const welcome = document.getElementById('welcome-message');
         if (!container) return;
 
         if (!this.currentChat || this.currentChat.messages.length === 0) {
@@ -396,6 +424,8 @@ const Chat = {
             return;
         }
 
+        // Welcome gizle
+        const welcome = document.getElementById('welcome-message');
         if (welcome) welcome.style.display = 'none';
 
         let html = '';
@@ -414,7 +444,6 @@ const Chat = {
                 designer: 'Designer', pm: 'Project Manager', developer: 'Developer',
             };
 
-            // UI'da gösterilecek metni kullan (console context olmadan)
             const displayText = msg.displayContent || msg.content;
 
             let bodyContent;
@@ -493,7 +522,6 @@ const Chat = {
             if (window.lucide) lucide.createIcons({ nodes: [div] });
         }
 
-        // Throttle DOM güncellemeleri — max 100ms'de bir
         const now = Date.now();
         if (now - this._lastStreamUpdate < 100) {
             if (this._streamUpdatePending) cancelAnimationFrame(this._streamUpdatePending);
@@ -511,7 +539,6 @@ const Chat = {
         const body = document.getElementById('stream-body');
         if (body) {
             body.innerHTML = Utils.parseMarkdownWithFileCards(content, true);
-            // Lucide ikonları sadece yeni eklenen file-card'lar için
             const newCards = body.querySelectorAll('.file-card:not([data-icons-init])');
             if (newCards.length > 0) {
                 newCards.forEach(c => c.setAttribute('data-icons-init', '1'));
@@ -541,7 +568,6 @@ const Chat = {
             if (input) input.disabled = true;
             if (indicator) indicator.style.display = 'flex';
 
-            // Typing indicator'ı hemen ekle
             this.showTypingIndicator();
         } else {
             if (sendBtn) {
@@ -555,13 +581,11 @@ const Chat = {
             }
             if (indicator) indicator.style.display = 'none';
 
-            // Typing ve stream mesajlarını temizle
             const typing = document.getElementById('typing-message');
             if (typing) typing.remove();
             const streamMsg = document.getElementById('stream-message');
             if (streamMsg) streamMsg.remove();
 
-            // Stream throttle temizle
             if (Chat._streamUpdatePending) {
                 cancelAnimationFrame(Chat._streamUpdatePending);
                 Chat._streamUpdatePending = null;
@@ -576,7 +600,6 @@ const Chat = {
         const container = document.getElementById('messages-container');
         if (!container) return;
 
-        // Zaten varsa ekleme
         if (document.getElementById('typing-message')) return;
 
         const div = document.createElement('div');
