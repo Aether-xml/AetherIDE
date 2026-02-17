@@ -43,6 +43,8 @@
     --transition-fast: 120ms ease;
     --transition-normal: 200ms ease;
 
+    --editor-font-size: 14px;
+
     --radius-xs: 4px;
     --radius-sm: 6px;
     --radius-md: 10px;
