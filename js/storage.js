@@ -73,7 +73,6 @@ console.log("hello");
             fontSize: 14,
             autoSave: true,
             streamResponse: true,
-            layout: 'default',
             layout: 'default', // 'default' | 'vscode' | 'cursor'
 
             // Team Mode rol modelleri
