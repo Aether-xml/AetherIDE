@@ -410,6 +410,7 @@ const Chat = {
             content: content,
             agentType: agentType,
             timestamp: new Date().toISOString(),
+            completed: true,
         });
 
         Storage.saveChat(this.currentChat);
@@ -452,7 +453,8 @@ const Chat = {
 
             let bodyContent;
             if (!isUser) {
-                bodyContent = Utils.parseMarkdownWithFileCards(displayText);
+                const isCompleted = msg.completed !== false;
+                bodyContent = Utils.parseMarkdownWithFileCards(displayText, !isCompleted);
             } else {
                 bodyContent = Utils.parseMarkdown(displayText);
             }
