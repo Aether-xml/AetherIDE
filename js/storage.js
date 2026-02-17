@@ -68,7 +68,10 @@ console.log("hello");
 7. Make sure files reference each other correctly
 8. If the user asks for a single file, still use the filename format
 9. For non-coding questions (greetings, explanations, etc.), respond naturally WITHOUT code blocks
-10. Only write code when the user explicitly asks for code or a project`,
+10. Only write code when the user explicitly asks for code or a project
+11. When modifying existing files, ALWAYS write the COMPLETE file — never skip lines, never use "// rest remains same"
+12. Files can have folder paths like: \`\`\`javascript:src/utils/helpers.js
+13. Support nested folder structures when creating project files`,
             theme: 'dark',
             fontSize: 14,
             autoSave: true,
