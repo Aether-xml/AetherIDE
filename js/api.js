@@ -302,15 +302,7 @@ const API = {
 
         try {
             while (true) {
-                let readResult;
-                try {
-                    readResult = await reader.read();
-                } catch (readError) {
-                    console.warn('Gemini stream read error:', readError.message);
-                    break;
-                }
-
-                const { done, value } = readResult;
+                const { done, value } = await reader.read();
                 if (done) break;
 
                 buffer += decoder.decode(value, { stream: true });
@@ -321,40 +313,41 @@ const API = {
                     const trimmed = line.trim();
                     if (!trimmed) continue;
 
-                    // SSE formatı
-                    if (trimmed.startsWith('data: ') || trimmed.startsWith('data:')) {
-                        const data = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed.slice(5);
-                        if (data === '[DONE]' || data === '') continue;
+                    if (!trimmed.startsWith('data:')) continue;
 
-                        try {
-                            const parsed = JSON.parse(data);
-                            const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-                            if (text) yield text;
+                    const data = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed.slice(5);
+                    if (!data || data === '[DONE]') continue;
 
-                            // Finish reason kontrolü
-                            const finishReason = parsed.candidates?.[0]?.finishReason;
-                            if (finishReason === 'STOP') return;
-                        } catch (e) {
-                            // Parçalı JSON — buffer'a geri koy
-                            buffer = trimmed + '\n' + buffer;
-                        }
+                    try {
+                        const parsed = JSON.parse(data);
+                        const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (text) yield text;
+
+                        const finishReason = parsed.candidates?.[0]?.finishReason;
+                        if (finishReason === 'STOP') return;
+                    } catch (e) {
+                        // Parçalı JSON — skip, sonraki satırda tamamlanacak
                     }
                 }
             }
 
             // Kalan buffer
             if (buffer.trim()) {
-                const remaining = buffer.trim();
-                if (remaining.startsWith('data: ')) {
+                const lines = buffer.trim().split('\n');
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed.startsWith('data:')) continue;
+                    const data = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed.slice(5);
+                    if (!data || data === '[DONE]') continue;
                     try {
-                        const parsed = JSON.parse(remaining.slice(6));
+                        const parsed = JSON.parse(data);
                         const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
                         if (text) yield text;
                     } catch (e) { /* skip */ }
                 }
             }
         } finally {
-            try { reader.releaseLock(); } catch (e) { /* already released */ }
+            try { reader.releaseLock(); } catch (e) {}
         }
     },
 
@@ -362,48 +355,13 @@ const API = {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
-        let retryCount = 0;
-        const MAX_RETRIES = 3;
-        let totalYielded = 0;
-        let emptyChunkCount = 0;
-        const MAX_EMPTY_CHUNKS = 50;
 
         try {
             while (true) {
-                let readResult;
-                try {
-                    const readPromise = reader.read();
-                    // 30 saniye read timeout
-                    const timeoutPromise = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('Stream read timeout')), 30000)
-                    );
-                    readResult = await Promise.race([readPromise, timeoutPromise]);
-                } catch (readError) {
-                    if (readError.message === 'Stream read timeout') {
-                        console.warn('Stream read timeout — ending stream');
-                        break;
-                    }
-                    retryCount++;
-                    if (retryCount > MAX_RETRIES) throw readError;
-                    console.warn(`Stream read error (retry ${retryCount}):`, readError.message);
-                    continue;
-                }
-
-                const { done, value } = readResult;
+                const { done, value } = await reader.read();
                 if (done) break;
 
-                retryCount = 0;
-
-                // Boş chunk kontrolü
-                if (!value || value.length === 0) {
-                    emptyChunkCount++;
-                    if (emptyChunkCount > MAX_EMPTY_CHUNKS) {
-                        console.warn('Too many empty chunks — ending stream');
-                        break;
-                    }
-                    continue;
-                }
-                emptyChunkCount = 0;
+                if (!value || value.length === 0) continue;
 
                 buffer += decoder.decode(value, { stream: true });
 
@@ -414,69 +372,66 @@ const API = {
                     const trimmed = line.trim();
 
                     if (!trimmed || trimmed.startsWith(':')) continue;
-                    if (!trimmed.startsWith('data: ') && !trimmed.startsWith('data:')) continue;
+
+                    if (!trimmed.startsWith('data:')) continue;
 
                     const data = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed.slice(5);
 
-                    if (data === '[DONE]' || data === '') continue;
+                    if (!data || data === '[DONE]') continue;
 
                     try {
                         const parsed = JSON.parse(data);
 
+                        // Error in stream
+                        if (parsed.error) {
+                            console.error('Stream error:', parsed.error);
+                            return;
+                        }
+
+                        // Delta content (streaming)
                         const content = parsed.choices?.[0]?.delta?.content;
                         if (content) {
-                            totalYielded += content.length;
                             yield content;
                             continue;
                         }
 
-                        const finishReason = parsed.choices?.[0]?.finish_reason;
-                        if (finishReason === 'stop' || finishReason === 'end_turn' || finishReason === 'length') {
-                            return;
-                        }
-
+                        // Full message (bazı modeller böyle döner)
                         const fullContent = parsed.choices?.[0]?.message?.content;
                         if (fullContent) {
                             yield fullContent;
                             return;
                         }
 
-                        // Error response in stream
-                        if (parsed.error) {
-                            console.error('Stream error:', parsed.error);
+                        // Finish reason
+                        const finishReason = parsed.choices?.[0]?.finish_reason;
+                        if (finishReason && finishReason !== 'null') {
                             return;
                         }
                     } catch (parseError) {
-                        // Parçalı JSON — buffer'a geri koy ama sonsuz döngüyü önle
-                        if (buffer.length < 10000) {
-                            buffer = trimmed + '\n' + buffer;
-                        }
+                        // Parçalı JSON — bir sonraki satırla birleşecek
+                        // Buffer'a geri koymuyoruz, kaybolursa sorun değil
+                        // çünkü SSE her satır bağımsızdır
                     }
-                }
-
-                // Buffer çok büyüdüyse temizle (memory leak önleme)
-                if (buffer.length > 50000) {
-                    console.warn('Stream buffer overflow — clearing');
-                    buffer = '';
                 }
             }
 
-            // Kalan buffer
+            // Kalan buffer'ı işle
             if (buffer.trim()) {
-                const remaining = buffer.trim();
-                if (remaining.startsWith('data: ')) {
-                    const data = remaining.slice(6);
-                    if (data !== '[DONE]') {
-                        try {
-                            const parsed = JSON.parse(data);
-                            const content = parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.message?.content;
-                            if (content) yield content;
-                        } catch (e) { /* skip */ }
-                    }
+                const lines = buffer.trim().split('\n');
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed.startsWith('data:')) continue;
+                    const data = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed.slice(5);
+                    if (!data || data === '[DONE]') continue;
+                    try {
+                        const parsed = JSON.parse(data);
+                        const content = parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.message?.content;
+                        if (content) yield content;
+                    } catch (e) { /* skip */ }
                 }
             }
         } finally {
-            try { reader.releaseLock(); } catch (e) { /* already released */ }
+            try { reader.releaseLock(); } catch (e) {}
         }
     },
 
