@@ -165,4 +165,13 @@ console.log("hello");
     setLastMode(mode) {
         return this.set('last_mode', mode);
     },
+
+    // ── Kullanıcı Adı ──
+    getUserName() {
+        return this.get('user_display_name', '');
+    },
+
+    setUserName(name) {
+        return this.set('user_display_name', name);
+    },
 };
