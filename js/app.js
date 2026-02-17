@@ -497,6 +497,11 @@ const App = {
         if (searchInput) searchInput.value = '';
 
         this.populateModels();
+
+        // API key varsa connection status güncelle
+        if (API.hasApiKey()) {
+            API.updateConnectionStatus('online');
+        }
     },
 
     // Mobil panel geçişi (animasyonlu)
