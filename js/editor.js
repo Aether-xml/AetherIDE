@@ -49,6 +49,10 @@ const Editor = {
             this.togglePreview();
         });
 
+        document.getElementById('refresh-preview-btn')?.addEventListener('click', () => {
+            this.refreshPreview();
+        });
+
         document.getElementById('console-btn')?.addEventListener('click', () => {
             this.toggleConsole();
         });
@@ -368,14 +372,26 @@ const Editor = {
         Utils.toast(`Downloading ${this.files.length} files...`, 'success');
     },
 
+    refreshPreview() {
+        if (!this.previewVisible) return;
+        // Preview'i kapat ve tekrar aç
+        this.previewVisible = false;
+        this.togglePreview();
+        Utils.toast('Preview refreshed', 'info', 1500);
+    },
+
     togglePreview() {
         const previewContainer = document.getElementById('preview-container');
         const editorWrapper = document.getElementById('code-editor-wrapper');
         const iframe = document.getElementById('preview-iframe');
+        const refreshBtn = document.getElementById('refresh-preview-btn');
 
         if (!previewContainer || !editorWrapper) return;
 
         this.previewVisible = !this.previewVisible;
+
+        // Refresh butonunu göster/gizle
+        if (refreshBtn) refreshBtn.style.display = this.previewVisible ? 'inline-flex' : 'none';
 
         if (!this.previewVisible) {
             previewContainer.style.display = 'none';
