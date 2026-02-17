@@ -1,6 +1,5 @@
 /* ══════════════════════════════════════════════════════════
    AetherIDE — Direct Mode v2
-   Fix: Selamlamalara kod yazmaz, bağlama uygun cevap verir
    ══════════════════════════════════════════════════════════ */
 
 const DirectMode = {
@@ -31,15 +30,29 @@ const DirectMode = {
             systemPrompt += fileContext;
         }
 
-        const messages = chat.messages.map(m => ({
-            role: m.role,
-            content: m.content,
-        }));
+        // Mesajları API formatına çevir
+        const messages = [];
+        for (const m of chat.messages) {
+            if (m.role === 'user' || m.role === 'assistant') {
+                messages.push({
+                    role: m.role,
+                    content: m.content,
+                });
+            }
+        }
+
+        // Mesaj yoksa uyar ve çık
+        if (messages.length === 0) {
+            Chat.addAssistantMessage('No message to process. Please type something.');
+            Chat.setGenerating(false);
+            return;
+        }
 
         let streamTimeout = null;
         let stuckCheckInterval = null;
         const STREAM_TIMEOUT_MS = 45000;
         const STUCK_CHECK_MS = 10000;
+        let fullContent = '';
 
         const resetStreamTimeout = () => {
             if (streamTimeout) clearTimeout(streamTimeout);
@@ -54,15 +67,26 @@ const DirectMode = {
                 systemPrompt,
             });
 
+            // result kontrolü — null/undefined/aborted
+            if (!result) {
+                Chat.addAssistantMessage('**Error:** No response received from AI. Please try again.');
+                return;
+            }
+
+            if (result.aborted) {
+                Utils.toast('Generation stopped', 'info');
+                return;
+            }
+
+            // Stream response
             if (result && typeof result[Symbol.asyncIterator] === 'function') {
-                let fullContent = '';
                 let lastCodeUpdate = 0;
                 let lastChunkTime = Date.now();
                 let lastContentLength = 0;
 
                 resetStreamTimeout();
 
-                // Takılma kontrolü — 10 saniyede içerik değişmezse abort
+                // Takılma kontrolü
                 stuckCheckInterval = setInterval(() => {
                     const now = Date.now();
                     if (now - lastChunkTime > STUCK_CHECK_MS && fullContent.length === lastContentLength && fullContent.length > 0) {
@@ -73,37 +97,63 @@ const DirectMode = {
                     lastContentLength = fullContent.length;
                 }, 5000);
 
-                for await (const chunk of result) {
-                    fullContent += chunk;
-                    lastChunkTime = Date.now();
-                    resetStreamTimeout();
+                try {
+                    for await (const chunk of result) {
+                        if (!chunk) continue;
+                        fullContent += chunk;
+                        lastChunkTime = Date.now();
+                        resetStreamTimeout();
 
-                    Chat.updateStreamMessage(fullContent);
+                        Chat.updateStreamMessage(fullContent);
 
-                    // Editörü throttled güncelle
-                    const now = Date.now();
-                    if (fullContent.includes('```') && now - lastCodeUpdate > 800) {
-                        Editor.updateCode(fullContent);
-                        lastCodeUpdate = now;
+                        // Editörü throttled güncelle
+                        const now = Date.now();
+                        if (fullContent.includes('```') && now - lastCodeUpdate > 800) {
+                            Editor.updateCode(fullContent);
+                            lastCodeUpdate = now;
+                        }
+                    }
+                } catch (streamError) {
+                    if (streamError.name === 'AbortError') {
+                        // Abort edildi — mevcut içeriği kaydet
+                        if (fullContent.trim()) {
+                            Utils.toast('Stream interrupted — partial content saved', 'warning');
+                        } else {
+                            Utils.toast('Generation stopped', 'info');
+                        }
+                    } else {
+                        console.error('Stream iteration error:', streamError);
+                        if (!fullContent.trim()) {
+                            Chat.addAssistantMessage(`**Error:** Stream failed: ${streamError.message}`);
+                            return;
+                        }
                     }
                 }
 
                 if (streamTimeout) clearTimeout(streamTimeout);
                 if (stuckCheckInterval) clearInterval(stuckCheckInterval);
 
-                if (fullContent) {
+                if (fullContent.trim()) {
                     Chat.addAssistantMessage(fullContent);
                     if (fullContent.includes('```')) {
                         Editor.updateCode(fullContent);
                     }
+                } else {
+                    Chat.addAssistantMessage('**Error:** Empty response from AI. Please try again.');
                 }
+
+            // Non-stream response
             } else if (result && result.content) {
+                fullContent = result.content;
                 Chat.addAssistantMessage(result.content);
                 if (result.content.includes('```')) {
                     Editor.updateCode(result.content);
                 }
-            } else if (result && result.aborted) {
-                Utils.toast('Generation stopped', 'info');
+
+            // Beklenmeyen response formatı
+            } else {
+                console.warn('Unexpected API result format:', result);
+                Chat.addAssistantMessage('**Error:** Unexpected response format. Please try again or switch models.');
             }
 
         } catch (error) {
@@ -111,14 +161,17 @@ const DirectMode = {
             if (stuckCheckInterval) clearInterval(stuckCheckInterval);
 
             if (error.name === 'AbortError') {
-                // Takılmadan kurtarıldıysa mevcut içeriği kaydet
-                const streamBody = document.getElementById('stream-body');
-                if (streamBody && streamBody.textContent.trim()) {
+                if (fullContent.trim()) {
+                    Chat.addAssistantMessage(fullContent);
+                    if (fullContent.includes('```')) {
+                        Editor.updateCode(fullContent);
+                    }
                     Utils.toast('Stream interrupted — partial content saved', 'warning');
                 } else {
                     Utils.toast('Generation stopped', 'info');
                 }
             } else {
+                console.error('DirectMode error:', error);
                 Chat.addAssistantMessage(`**Error:** ${error.message}`);
                 Utils.toast(error.message, 'error');
             }
