@@ -138,8 +138,28 @@ const DirectMode = {
                     if (fullContent.includes('```')) {
                         Editor.updateCode(fullContent);
                     }
-                } else {
-                    Chat.addAssistantMessage('**Error:** Empty response from AI. Please try again.');
+                }
+                // Boş stream — non-stream olarak tekrar dene
+                else {
+                    console.warn('Stream returned empty — retrying without stream');
+                    try {
+                        const retryResult = await API.sendMessage(messages, model, {
+                            systemPrompt,
+                            stream: false,
+                        });
+                        if (retryResult && retryResult.content) {
+                            Chat.addAssistantMessage(retryResult.content);
+                            if (retryResult.content.includes('```')) {
+                                Editor.updateCode(retryResult.content);
+                            }
+                        } else {
+                            Chat.addAssistantMessage('**Error:** No response from AI. Try a different model.');
+                        }
+                    } catch (retryError) {
+                        if (retryError.name !== 'AbortError') {
+                            Chat.addAssistantMessage(`**Error:** ${retryError.message}`);
+                        }
+                    }
                 }
 
             // Non-stream response
@@ -166,10 +186,8 @@ const DirectMode = {
                     if (fullContent.includes('```')) {
                         Editor.updateCode(fullContent);
                     }
-                    Utils.toast('Stream interrupted — partial content saved', 'warning');
-                } else {
-                    Utils.toast('Generation stopped', 'info');
                 }
+                // Toast zaten _stopHandler'da gösteriliyor
             } else {
                 console.error('DirectMode error:', error);
                 Chat.addAssistantMessage(`**Error:** ${error.message}`);
