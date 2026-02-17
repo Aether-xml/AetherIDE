@@ -1,7 +1,7 @@
 {
     "name": "AetherIDE — AI Code Editor",
     "short_name": "AetherIDE",
-    "description": "AI-Powered Code Editor with Team, Planner & Direct modes. Multi-provider support for OpenRouter, Gemini & OpenAI.",
+    "description": "AI-Powered Code Editor with Team, Planner & Direct modes.",
     "start_url": "/app",
     "display": "standalone",
     "display_override": ["window-controls-overlay", "standalone"],
@@ -25,15 +25,12 @@
             "purpose": "any maskable"
         }
     ],
-    "screenshots": [],
     "shortcuts": [
         {
             "name": "New Chat",
             "short_name": "New",
-            "url": "/?action=new",
+            "url": "/app?action=new",
             "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }]
         }
-    ],
-    "related_applications": [],
-    "prefer_related_applications": false
+    ]
 }
