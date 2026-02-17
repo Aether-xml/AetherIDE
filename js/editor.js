@@ -74,33 +74,62 @@ const Editor = {
         });
     },
 
+    _lastEditorUpdate: 0,
+    _editorUpdatePending: null,
+
     // AI yanıtından dosyaları çıkar
     updateCode(aiResponse) {
         const blocks = Utils.extractCodeBlocks(aiResponse);
         if (blocks.length === 0) return;
 
-        // Mevcut dosyaları güncelle veya ekle
+        let hasChanges = false;
+
         for (const block of blocks) {
+            // Boş kod bloklarını atla
+            if (!block.code || block.code.trim().length === 0) continue;
+
             const existingIndex = this.files.findIndex(f => f.filename === block.filename);
             if (existingIndex >= 0) {
-                this.files[existingIndex] = {
-                    filename: block.filename,
-                    language: block.language,
-                    code: block.code,
-                };
+                // Sadece içerik değiştiyse güncelle
+                if (this.files[existingIndex].code !== block.code) {
+                    this.files[existingIndex] = {
+                        filename: block.filename,
+                        language: block.language,
+                        code: block.code,
+                    };
+                    hasChanges = true;
+                }
             } else {
                 this.files.push({
                     filename: block.filename,
                     language: block.language,
                     code: block.code,
                 });
+                hasChanges = true;
             }
         }
+
+        if (!hasChanges) return;
 
         if (this.activeFileIndex >= this.files.length) {
             this.activeFileIndex = 0;
         }
 
+        // DOM güncellemelerini throttle et
+        const now = Date.now();
+        if (now - this._lastEditorUpdate < 500) {
+            if (this._editorUpdatePending) cancelAnimationFrame(this._editorUpdatePending);
+            this._editorUpdatePending = requestAnimationFrame(() => {
+                this._renderEditorUI();
+            });
+            return;
+        }
+
+        this._lastEditorUpdate = now;
+        this._renderEditorUI();
+    },
+
+    _renderEditorUI() {
         this.renderTabs();
         this.renderCode();
         this.updateStatusBar();
