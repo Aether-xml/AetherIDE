@@ -600,7 +600,7 @@ const Sandbox = {
                     </div>
                     <div class="sandbox-msg-content">
                         <div class="sandbox-msg-name">
-                            ${isUser ? 'You' : 'AI'}
+                            ${isUser ? (Storage.getUserName() || 'You') : 'AI'}
                             <span class="sandbox-token-badge" title="Estimated tokens">~${tokens} tok</span>
                         </div>
                         <div class="sandbox-msg-text">${Utils.parseMarkdown(msg.content)}</div>
@@ -768,6 +768,7 @@ const Sandbox = {
 
         for (const msg of this.sbsMessages) {
             const userTokens = Utils.estimateTokens(msg.content);
+            const sbsUserName = Storage.getUserName() || 'You';
             const userHtml = `
                 <div class="sandbox-msg sandbox-msg-user">
                     <div class="message-avatar user">
@@ -775,7 +776,7 @@ const Sandbox = {
                     </div>
                     <div class="sandbox-msg-content">
                         <div class="sandbox-msg-name">
-                            You
+                            ${sbsUserName}
                             <span class="sandbox-token-badge">~${userTokens} tok</span>
                         </div>
                         <div class="sandbox-msg-text">${Utils.parseMarkdown(msg.content)}</div>
