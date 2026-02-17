@@ -196,7 +196,13 @@ const API = {
         const apiKey = this.getApiKey();
         const provider = this.getCurrentProvider();
         if (!apiKey) throw new Error('API key not set. Go to Settings to add your API key.');
+        if (!model) throw new Error('No model selected. Please select a model first.');
+        if (!messages || messages.length === 0) throw new Error('No messages to send.');
 
+        // Yeni abort controller — öncekini temizle
+        if (this.abortController) {
+            try { this.abortController.abort(); } catch(e) {}
+        }
         this.abortController = new AbortController();
 
         if (provider === 'gemini') return this._sendGemini(messages, model, apiKey, options);
@@ -233,27 +239,7 @@ const API = {
             this.updateConnectionStatus('online');
 
             if (body.stream && response.body) {
-                try {
-                    return this.handleStream(response);
-                } catch (streamError) {
-                    console.warn('Stream failed, retrying without stream:', streamError);
-                    // Stream başarısızsa non-stream olarak tekrar dene
-                    body.stream = false;
-                    const retryResponse = await fetch(`${config.baseUrl}${config.chatEndpoint}`, {
-                        method: 'POST',
-                        headers: config.headers(apiKey),
-                        body: JSON.stringify(body),
-                        signal: this.abortController.signal,
-                    });
-                    if (retryResponse.ok) {
-                        const retryData = await retryResponse.json();
-                        return {
-                            content: retryData.choices?.[0]?.message?.content || '',
-                            model: retryData.model,
-                            stream: false,
-                        };
-                    }
-                }
+                return this.handleStream(response);
             }
 
             const data = await response.json();
