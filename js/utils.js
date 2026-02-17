@@ -344,7 +344,8 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
 
             if (filename?.trim()) {
                 let fname = filename.trim().replace(/^\.\//, '').replace(/^\//, '');
-                const iconName = Utils.getFileIcon(langLabel);
+                const iconName = fname.includes('/') ? 'folder' : Utils.getFileIcon(langLabel);
+                const displayFname = fname.includes('/') ? `<span style="color:var(--text-tertiary);font-size:0.65rem;">${Utils.escapeHtml(fname.substring(0, fname.lastIndexOf('/') + 1))}</span>${Utils.escapeHtml(fname.split('/').pop())}` : Utils.escapeHtml(fname);
                 const exists = Editor.files.some(f => f.filename === fname);
                 const statusLabel = exists ? 'Updated' : 'Created';
                 const statusClass = exists ? 'file-card-updated' : 'file-card-created';
@@ -352,7 +353,7 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
                             <div class="file-card-icon"><i data-lucide="${iconName}"></i></div>
                             <div class="file-card-info">
                                 <span class="file-card-status">${statusLabel}</span>
-                                <span class="file-card-name">${Utils.escapeHtml(fname)}</span>
+                                <span class="file-card-name">${displayFname}</span>
                             </div>
                             <div class="file-card-action"><i data-lucide="arrow-right"></i></div>
                         </div>`;
@@ -384,30 +385,54 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
             }
         });
 
-        // Devam eden bloklar (stream sırasında)
-        html = html.replace(/```\s*(\w*?)(?:\s*:\s*([^\n]*?))?\s*\n([\s\S]*)$/g, (match, lang, filename, code) => {
-            const langLabel = lang || 'code';
-            const fname = filename?.trim() || '';
-            const lineCount = (code?.trim() || '').split('\n').length;
-            let displayName = fname || `output.${Utils.getExtension(langLabel)}`;
-            // Baştaki ./ temizle
-            if (displayName.startsWith('./')) displayName = displayName.slice(2);
-            const iconName = Utils.getFileIcon(langLabel);
+        // Devam eden bloklar (sadece stream sırasında göster)
+        if (isStreaming) {
+            html = html.replace(/```\s*(\w*?)(?:\s*:\s*([^\n]*?))?\s*\n([\s\S]*)$/g, (match, lang, filename, code) => {
+                const langLabel = lang || 'code';
+                const fname = filename?.trim() || '';
+                let displayName = fname || `output.${Utils.getExtension(langLabel)}`;
+                if (displayName.startsWith('./')) displayName = displayName.slice(2);
+                if (displayName.startsWith('/')) displayName = displayName.slice(1);
+                const iconName = Utils.getFileIcon(langLabel);
 
-            const exists = Editor.files.some(f => f.filename === displayName);
-            const writingLabel = exists ? 'Updating...' : 'Creating...';
-            const writingClass = exists ? 'file-card-updating' : 'file-card-creating';
-            return `<div class="file-card writing ${writingClass}">
-                        <div class="file-card-icon"><i data-lucide="${iconName}"></i></div>
-                        <div class="file-card-info">
-                            <span class="file-card-status">${writingLabel}</span>
-                            <span class="file-card-name">${Utils.escapeHtml(displayName)}</span>
-                        </div>
-                        <div class="file-card-writing-dots">
-                            <span></span><span></span><span></span>
-                        </div>
-                    </div>`;
-        });
+                const exists = Editor.files.some(f => f.filename === displayName);
+                const writingLabel = exists ? 'Updating...' : 'Creating...';
+                const writingClass = exists ? 'file-card-updating' : 'file-card-creating';
+                return `<div class="file-card writing ${writingClass}">
+                            <div class="file-card-icon"><i data-lucide="${iconName}"></i></div>
+                            <div class="file-card-info">
+                                <span class="file-card-status">${writingLabel}</span>
+                                <span class="file-card-name">${Utils.escapeHtml(displayName)}</span>
+                            </div>
+                            <div class="file-card-writing-dots">
+                                <span></span><span></span><span></span>
+                            </div>
+                        </div>`;
+            });
+        } else {
+            // Stream bitti, kapanmamış code block varsa normal code olarak göster
+            html = html.replace(/```\s*(\w*?)(?:\s*:\s*([^\n]*?))?\s*\n([\s\S]*)$/g, (match, lang, filename, code) => {
+                const langLabel = lang || 'code';
+                const trimmedCode = code?.trim() || '';
+                if (!trimmedCode) return '';
+                const fname = filename?.trim() || '';
+                let displayName = fname || `output.${Utils.getExtension(langLabel)}`;
+                if (displayName.startsWith('./')) displayName = displayName.slice(2);
+                if (displayName.startsWith('/')) displayName = displayName.slice(1);
+                const iconName = Utils.getFileIcon(langLabel);
+                const exists = Editor.files.some(f => f.filename === displayName);
+                const statusLabel = exists ? 'Updated' : 'Created';
+                const statusClass = exists ? 'file-card-updated' : 'file-card-created';
+                return `<div class="file-card ${statusClass}" onclick="Utils.openFileInEditor('${Utils.escapeHtml(displayName)}')">
+                            <div class="file-card-icon"><i data-lucide="${iconName}"></i></div>
+                            <div class="file-card-info">
+                                <span class="file-card-status">${statusLabel}</span>
+                                <span class="file-card-name">${Utils.escapeHtml(displayName)}</span>
+                            </div>
+                            <div class="file-card-action"><i data-lucide="arrow-right"></i></div>
+                        </div>`;
+            });
+        }
 
         html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
         html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
@@ -451,7 +476,8 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
         return html;
     },
 
-    getFileIcon(language) {
+    getFileIcon(language, filename) {
+        // Klasör içindeki dosya için folder ikonu kullanma, dosya ikonunu kullan
         const map = {
             html: 'globe', htm: 'globe',
             css: 'palette', scss: 'palette', sass: 'palette', less: 'palette',
@@ -577,8 +603,12 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
             if (filename) {
                 // Baştaki ./ veya / temizle
                 filename = filename.replace(/^\.\//, '').replace(/^\//, '');
-                // Geçersiz karakterleri temizle
+                // Geçersiz karakterleri temizle (slash'i koru — klasör yolu)
                 filename = filename.replace(/[<>"|?*]/g, '');
+                // Çift slash temizle
+                filename = filename.replace(/\/\//g, '/');
+                // Sondaki slash temizle
+                filename = filename.replace(/\/$/, '');
                 // Boşlukları trim et
                 filename = filename.trim();
             }
