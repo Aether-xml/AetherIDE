@@ -193,12 +193,16 @@ const Editor = {
         this.files.forEach((file, index) => {
             const isActive = index === this.activeFileIndex;
             const icon = langIcons[file.language] || 'file';
+            // Klasör yolundan sadece dosya adını göster, tooltip'te tam yol
+            const displayName = file.filename.includes('/') ? file.filename.split('/').pop() : file.filename;
+            const folderPrefix = file.filename.includes('/') ? file.filename.substring(0, file.filename.lastIndexOf('/') + 1) : '';
             html += `
                 <button class="code-tab ${isActive ? 'active' : ''}"
                         onclick="Editor.switchTab(${index})"
                         title="${Utils.escapeHtml(file.filename)}">
                     <i data-lucide="${icon}" class="tab-lucide-icon"></i>
-                    <span>${Utils.escapeHtml(file.filename)}</span>
+                    ${folderPrefix ? `<span class="tab-folder-prefix">${Utils.escapeHtml(folderPrefix)}</span>` : ''}
+                    <span>${Utils.escapeHtml(displayName)}</span>
                 </button>
             `;
         });
@@ -206,7 +210,6 @@ const Editor = {
         tabsEl.innerHTML = html;
         if (window.lucide) lucide.createIcons({ nodes: [tabsEl] });
 
-        // Aktif tab'ı görünür yap (scroll)
         requestAnimationFrame(() => {
             const activeTab = tabsEl.querySelector('.code-tab.active');
             if (activeTab) {
