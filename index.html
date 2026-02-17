@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AetherIDE — AI-Powered Code Editor. Build projects with AI teams, smart planning, and instant code generation. Your API keys never leave your browser.">
+    <meta name="keywords" content="AI code editor, AI coding, code generator, OpenRouter, Gemini, OpenAI, web IDE, AetherIDE">
+    <meta name="theme-color" content="#0D0F13">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="AetherIDE — AI-Powered Code Editor">
+    <meta property="og:description" content="Code at the speed of thought. Multi-AI team collaboration, smart planning, and instant code generation.">
+    <meta property="og:image" content="https://aetheride.com/assets/icons/icon-512.png">
+
+    <title>AetherIDE — AI-Powered Code Editor</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
+
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0D0F13;
+            --bg2: #12151A;
+            --bg3: #181B22;
+            --border: #1F2329;
+            --text: #E4E7EB;
+            --text2: #9DA5B4;
+            --text3: #636D7E;
+            --purple: #6C63FF;
+            --purple-glow: rgba(108,99,255,0.12);
+            --cyan: #00D9FF;
+            --green: #00E676;
+            --pink: #E040FB;
+            --orange: #FFB300;
+            --red: #FF5252;
+        }
+
+        html { scroll-behavior: smooth; font-size: 16px; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { color: var(--purple); text-decoration: none; }
+        button { font-family: inherit; cursor: pointer; border: none; outline: none; background: none; }
+
+        /* ── Navbar ── */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(13,15,19,0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            transition: all 0.3s ease;
+        }
+
+        .navbar.scrolled {
+            padding: 12px 24px;
+            background: rgba(13,15,19,0.95);
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-logo img {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+        }
+
+        .nav-logo span {
+            font-size: 1.1rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--purple), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-link {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text2);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+
+        .nav-cta {
+            padding: 9px 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: white;
+            background: var(--purple);
+            border-radius: 10px;
+            transition: all 0.2s ease;
+            margin-left: 8px;
+        }
+
+        .nav-cta:hover { background: #7B73FF; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(108,99,255,0.3); }
+
+        .nav-menu-btn {
+            display: none;
+            width: 40px;
+            height: 40px;
+            align-items: center;
+            justify-content: center;
+            color: var(--text2);
+            border-radius: 8px;
+        }
+
+        .nav-menu-btn svg { width: 22px; height: 22px; }
+
+        /* ── Hero ── */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 120px 24px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(108,99,255,0.08) 0%, transparent 70%);
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: heroGlow 6s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .hero-glow-2 {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0,217,255,0.05) 0%, transparent 70%);
+            bottom: 10%;
+            right: 10%;
+            animation: heroGlow 8s ease-in-out infinite reverse;
+            pointer-events: none;
+        }
+
+        @keyframes heroGlow {
+            0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); }
+            50% { opacity: 1; transform: translateX(-50%) scale(1.2); }
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: var(--purple-glow);
+            border: 1px solid rgba(108,99,255,0.2);
+            border-radius: 100px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--purple);
+            margin-bottom: 28px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-badge svg { width: 14px; height: 14px; }
+
+        .hero-title {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+            letter-spacing: -1.5px;
+        }
+
+        .hero-title .gradient {
+            background: linear-gradient(135deg, var(--purple), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            color: var(--text2);
+            max-width: 600px;
+            line-height: 1.7;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            position: relative;
+            z-index: 1;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 32px;
+            background: var(--purple);
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 14px;
+            transition: all 0.25s ease;
+        }
+
+        .btn-primary:hover { background: #7B73FF; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(108,99,255,0.35); }
+
+        .btn-primary svg { width: 20px; height: 20px; }
+
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            color: var(--text2);
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 14px;
+            transition: all 0.25s ease;
+        }
+
+        .btn-secondary:hover { background: rgba(255,255,255,0.08); color: var(--text); transform: translateY(-2px); }
+
+        .btn-secondary svg { width: 18px; height: 18px; }
+
+        .hero-note {
+            margin-top: 24px;
+            font-size: 0.78rem;
+            color: var(--text3);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-note svg { width: 14px; height: 14px; color: var(--green); }
+
+        /* ── Section ── */
+        .section {
+            padding: 100px 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .section-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: var(--purple);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .section-label svg { width: 16px; height: 16px; }
+
+        .section-title {
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        .section-subtitle {
+            font-size: 1.05rem;
+            color: var(--text2);
+            max-width: 600px;
+            line-height: 1.7;
+            margin-bottom: 48px;
+        }
+
+        /* ── Modes Grid ── */
+        .modes-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .mode-card {
+            padding: 32px 28px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mode-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--card-accent, var(--purple));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .mode-card:hover { border-color: rgba(108,99,255,0.2); transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+        .mode-card:hover::before { opacity: 1; }
+
+        .mode-card-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
+            margin-bottom: 20px;
+        }
+
+        .mode-card-icon svg { width: 24px; height: 24px; }
+
+        .mode-card-icon.direct { background: rgba(108,99,255,0.1); color: var(--purple); }
+        .mode-card-icon.planner { background: rgba(0,217,255,0.1); color: var(--cyan); }
+        .mode-card-icon.team { background: rgba(224,64,251,0.1); color: var(--pink); }
+
+        .mode-card h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .mode-card p {
+            font-size: 0.88rem;
+            color: var(--text2);
+            line-height: 1.65;
+        }
+
+        .mode-badge {
+            display: inline-flex;
+            padding: 2px 8px;
+            font-size: 0.6rem;
+            font-weight: 800;
+            border-radius: 4px;
+            background: rgba(224,64,251,0.12);
+            color: var(--pink);
+            letter-spacing: 0.8px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        /* ── Security ── */
+        .security-section {
+            background: var(--bg2);
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            padding: 60px 48px;
+            margin: 0 24px;
+            max-width: 1100px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .security-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-top: 40px;
+        }
+
+        .security-item {
+            display: flex;
+            gap: 16px;
+            padding: 20px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            transition: all 0.2s ease;
+        }
+
+        .security-item:hover { background: rgba(0,230,118,0.03); border-color: rgba(0,230,118,0.1); }
+
+        .security-icon {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: rgba(0,230,118,0.08);
+            color: var(--green);
+            flex-shrink: 0;
+        }
+
+        .security-icon svg { width: 20px; height: 20px; }
+
+        .security-item h4 {
+            font-size: 0.92rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .security-item p {
+            font-size: 0.8rem;
+            color: var(--text2);
+            line-height: 1.55;
+        }
+
+        /* ── Providers ── */
+        .providers-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
+
+        .provider-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 24px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .provider-badge:hover { border-color: rgba(108,99,255,0.2); transform: translateY(-2px); }
+
+        .provider-badge svg { width: 22px; height: 22px; color: var(--text2); }
+
+        .provider-badge span { font-size: 0.9rem; font-weight: 600; }
+
+        .provider-badge .provider-sub { font-size: 0.7rem; color: var(--text3); font-weight: 400; }
+
+        /* ── Features List ── */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 40px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 20px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .feature-item:hover { border-color: rgba(108,99,255,0.15); }
+
+        .feature-item svg { width: 18px; height: 18px; color: var(--purple); flex-shrink: 0; margin-top: 2px; }
+
+        .feature-item div { min-width: 0; }
+
+        .feature-item h4 { font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; }
+
+        .feature-item p { font-size: 0.78rem; color: var(--text2); line-height: 1.5; }
+
+        /* ── CTA ── */
+        .cta-section {
+            text-align: center;
+            padding: 100px 24px;
+        }
+
+        .cta-section .section-title {
+            max-width: 500px;
+            margin: 0 auto 16px;
+        }
+
+        .cta-section .section-subtitle {
+            max-width: 460px;
+            margin: 0 auto 36px;
+        }
+
+        /* ── Footer ── */
+        .footer {
+            padding: 40px 24px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .footer-left { font-size: 0.8rem; color: var(--text3); }
+
+        .footer-links { display: flex; gap: 20px; }
+
+        .footer-links a {
+            font-size: 0.8rem;
+            color: var(--text3);
+            transition: color 0.2s ease;
+        }
+
+        .footer-links a:hover { color: var(--text); }
+
+        .discord-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: #5865F2;
+            color: white;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .discord-btn:hover { background: #4752C4; transform: translateY(-2px); }
+
+        .discord-btn svg { width: 18px; height: 18px; }
+
+        /* ── Mobile ── */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .nav-menu-btn { display: flex; }
+
+            .nav-links.open {
+                display: flex;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(13,15,19,0.98);
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 16px;
+                z-index: 200;
+            }
+
+            .nav-links.open .nav-link { font-size: 1.1rem; padding: 12px 24px; }
+            .nav-links.open .nav-cta { font-size: 1rem; padding: 14px 32px; margin: 8px 0 0; }
+
+            .hero { padding: 100px 20px 60px; min-height: auto; }
+            .hero-glow { width: 300px; height: 300px; }
+            .hero-subtitle { font-size: 0.95rem; }
+
+            .btn-primary { padding: 12px 24px; font-size: 0.9rem; }
+            .btn-secondary { padding: 12px 20px; font-size: 0.9rem; }
+
+            .section { padding: 60px 20px; }
+            .section-title { margin-bottom: 12px; }
+            .section-subtitle { margin-bottom: 32px; }
+
+            .modes-grid { grid-template-columns: 1fr; gap: 14px; }
+            .mode-card { padding: 24px 20px; }
+
+            .security-section { margin: 0 12px; padding: 40px 24px; border-radius: 18px; }
+            .security-grid { grid-template-columns: 1fr; gap: 14px; }
+
+            .features-grid { grid-template-columns: 1fr; gap: 12px; }
+
+            .providers-row { gap: 12px; }
+            .provider-badge { padding: 12px 18px; }
+
+            .footer-inner { flex-direction: column; text-align: center; }
+        }
+
+        @media (max-width: 400px) {
+            .hero-actions { flex-direction: column; width: 100%; }
+            .btn-primary, .btn-secondary { width: 100%; justify-content: center; }
+        }
+
+        /* ── Animations ── */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-logo">
+            <img src="assets/icons/icon-192.png" alt="AetherIDE">
+            <span>AetherIDE</span>
+        </div>
+        <div class="nav-links" id="nav-links">
+            <a href="#modes" class="nav-link">Modes</a>
+            <a href="#security" class="nav-link">Security</a>
+            <a href="#features" class="nav-link">Features</a>
+            <a href="https://discord.gg/7YKCvPzKEQ" target="_blank" class="nav-link">Discord</a>
+            <a href="/app" class="nav-cta">Open AetherIDE <i data-lucide="arrow-right" style="width:16px;height:16px;"></i></a>
+        </div>
+        <button class="nav-menu-btn" id="nav-menu-btn" onclick="toggleMobileMenu()">
+            <i data-lucide="menu"></i>
+        </button>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-glow"></div>
+        <div class="hero-glow-2"></div>
+
+        <div class="hero-badge">
+            <i data-lucide="sparkles"></i>
+            v1.3.0 — Multi-Provider Support
+        </div>
+
+        <h1 class="hero-title">
+            Code at the<br><span class="gradient">Speed of Thought</span>
+        </h1>
+
+        <p class="hero-subtitle">
+            AI-powered code editor with team collaboration, smart planning, and instant code generation. Your API keys stay in your browser — always.
+        </p>
+
+        <div class="hero-actions">
+            <a href="/app" class="btn-primary">
+                <i data-lucide="zap"></i>
+                Start Coding
+            </a>
+            <a href="#modes" class="btn-secondary">
+                <i data-lucide="play-circle"></i>
+                See How It Works
+            </a>
+        </div>
+
+        <p class="hero-note">
+            <i data-lucide="shield-check"></i>
+            No sign-up required · 100% client-side · Your keys, your data
+        </p>
+    </section>
+
+    <!-- Modes -->
+    <section class="section" id="modes">
+        <div class="fade-up">
+            <div class="section-label"><i data-lucide="layers"></i> Three Powerful Modes</div>
+            <h2 class="section-title">Choose How You Build</h2>
+            <p class="section-subtitle">From quick prototypes to full-stack projects — pick the mode that fits your workflow.</p>
+        </div>
+
+        <div class="modes-grid fade-up">
+            <div class="mode-card" style="--card-accent: var(--purple);">
+                <div class="mode-card-icon direct"><i data-lucide="zap"></i></div>
+                <h3>Direct Mode</h3>
+                <p>Instant code generation. Describe what you want, get production-ready code immediately. No planning, no waiting — just results.</p>
+            </div>
+
+            <div class="mode-card" style="--card-accent: var(--cyan);">
+                <div class="mode-card-icon planner"><i data-lucide="clipboard-list"></i></div>
+                <h3>Planner Mode</h3>
+                <p>AI analyzes your request and creates a detailed plan. Review, modify, or approve before any code is written. Flash & Pro thinking speeds.</p>
+            </div>
+
+            <div class="mode-card" style="--card-accent: var(--pink);">
+                <div class="mode-card-icon team"><i data-lucide="users"></i></div>
+                <h3>Team Mode <span class="mode-badge">BETA</span></h3>
+                <p>Three AI agents — Designer, PM, and Developer — discuss, debate, and collaboratively build your project. Like a real dev team.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Security -->
+    <section class="security-section fade-up" id="security">
+        <div class="section-label"><i data-lucide="shield"></i> Privacy & Security</div>
+        <h2 class="section-title">Your Keys Never Leave Your Browser</h2>
+        <p class="section-subtitle">AetherIDE is 100% client-side. We don't have servers, databases, or analytics. Everything runs in your browser.</p>
+
+        <div class="security-grid">
+            <div class="security-item">
+                <div class="security-icon"><i data-lucide="hard-drive"></i></div>
+                <div>
+                    <h4>Local Storage Only</h4>
+                    <p>API keys, chat history, and settings are stored in your browser's localStorage. We never see or transmit your data.</p>
+                </div>
+            </div>
+
+            <div class="security-item">
+                <div class="security-icon"><i data-lucide="server-off"></i></div>
+                <div>
+                    <h4>No Backend Servers</h4>
+                    <p>Zero servers, zero databases, zero tracking. AetherIDE is a static web app — your browser talks directly to AI providers.</p>
+                </div>
+            </div>
+
+            <div class="security-item">
+                <div class="security-icon"><i data-lucide="key"></i></div>
+                <div>
+                    <h4>Direct API Communication</h4>
+                    <p>Your API keys go straight from your browser to OpenRouter, Google, or OpenAI. No middleman, no proxy, no interception.</p>
+                </div>
+            </div>
+
+            <div class="security-item">
+                <div class="security-icon"><i data-lucide="code-2"></i></div>
+                <div>
+                    <h4>Open & Transparent</h4>
+                    <p>Every line of code runs in your browser. You can inspect it, audit it, and verify exactly what happens with your data.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Providers -->
+    <section class="section" id="providers">
+        <div class="fade-up" style="text-align:center;">
+            <div class="section-label"><i data-lucide="cloud"></i> Multi-Provider</div>
+            <h2 class="section-title">Bring Your Own API Key</h2>
+            <p class="section-subtitle" style="margin-left:auto;margin-right:auto;">Use the AI provider you prefer. Switch between them anytime — your choice, your models, your budget.</p>
+
+            <div class="providers-row">
+                <div class="provider-badge">
+                    <i data-lucide="cloud"></i>
+                    <div>
+                        <span>OpenRouter</span><br>
+                        <span class="provider-sub">200+ models, one key</span>
+                    </div>
+                </div>
+                <div class="provider-badge">
+                    <i data-lucide="sparkles"></i>
+                    <div>
+                        <span>Google Gemini</span><br>
+                        <span class="provider-sub">Direct Gemini access</span>
+                    </div>
+                </div>
+                <div class="provider-badge">
+                    <i data-lucide="brain"></i>
+                    <div>
+                        <span>OpenAI</span><br>
+                        <span class="provider-sub">GPT models direct</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section" id="features">
+        <div class="fade-up">
+            <div class="section-label"><i data-lucide="grid-3x3"></i> Features</div>
+            <h2 class="section-title">Everything You Need to Build</h2>
+            <p class="section-subtitle">A complete development environment powered by AI — right in your browser.</p>
+        </div>
+
+        <div class="features-grid fade-up">
+            <div class="feature-item">
+                <i data-lucide="files"></i>
+                <div>
+                    <h4>Multi-File Editor</h4>
+                    <p>Tabbed editing with syntax highlighting for 10+ languages.</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <i data-lucide="eye"></i>
+                <div>
+                    <h4>Live Preview</h4>
+                    <p>Instant HTML/CSS/JS preview with console capture.</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <i data-lucide="terminal"></i>
+                <div>
+                    <h4>Built-in Console</h4>
+                    <p>Real-time logs, errors, and a mini terminal emulator.</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <i data-lucide="sparkles"></i>
+                <div>
+                    <h4>Prompt Enhancer</h4>
+                    <p>AI improves your prompts before sending for better results.</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <i data-lucide="message-circle"></i>
+                <div>
+                    <h4>Sandbox Chat</h4>
+                    <p>Free-form AI chat and side-by-side model comparison.</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <i data-lucide="download"></i>
+                <div>
+                    <h4>Export & Download</h4>
+                    <p>Download individual files or batch export your project.</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <i data-lucide="layout"></i>
+                <div>
+                    <h4>Custom Layouts</h4>
+                    <p>Default, VSCode, and Cursor-style layouts on desktop.</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <i data-lucide="smartphone"></i>
+                <div>
+                    <h4>Mobile Ready</h4>
+                    <p>Fully optimized for phones and tablets. Code anywhere.</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <i data-lucide="wifi-off"></i>
+                <div>
+                    <h4>PWA & Offline</h4>
+                    <p>Install as an app. Static assets cached for instant loads.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section fade-up">
+        <div class="section-label"><i data-lucide="rocket"></i> Ready?</div>
+        <h2 class="section-title">Start Building with AI</h2>
+        <p class="section-subtitle">No sign-up, no credit card, no data collection. Just bring your API key and start coding.</p>
+        <div class="hero-actions">
+            <a href="/app" class="btn-primary">
+                <i data-lucide="zap"></i>
+                Launch AetherIDE
+            </a>
+            <a href="https://discord.gg/7YKCvPzKEQ" target="_blank" class="discord-btn">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+                Join Community
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-left">© 2025 AetherIDE. Code at the speed of thought.</div>
+            <div class="footer-links">
+                <a href="/app">App</a>
+                <a href="https://discord.gg/7YKCvPzKEQ" target="_blank">Discord</a>
+                <a href="https://github.com" target="_blank">GitHub</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Lucide icons
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+        });
+        window.addEventListener('load', () => {
+            if (window.lucide) lucide.createIcons();
+        });
+
+        // Navbar scroll
+        window.addEventListener('scroll', () => {
+            document.getElementById('navbar')?.classList.toggle('scrolled', window.scrollY > 50);
+        });
+
+        // Fade-up animation
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+        document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+        // Mobile menu
+        function toggleMobileMenu() {
+            const links = document.getElementById('nav-links');
+            const btn = document.getElementById('nav-menu-btn');
+            links?.classList.toggle('open');
+            // İkon değiştir
+            if (links?.classList.contains('open')) {
+                btn.innerHTML = '<i data-lucide="x" style="width:22px;height:22px;"></i>';
+            } else {
+                btn.innerHTML = '<i data-lucide="menu" style="width:22px;height:22px;"></i>';
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        document.querySelectorAll('.nav-link, .nav-cta').forEach(link => {
+            link.addEventListener('click', () => {
+                document.getElementById('nav-links')?.classList.remove('open');
+                const btn = document.getElementById('nav-menu-btn');
+                if (btn) btn.innerHTML = '<i data-lucide="menu" style="width:22px;height:22px;"></i>';
+                if (window.lucide) lucide.createIcons();
+            });
+        });
+    </script>
+
+</body>
+</html>

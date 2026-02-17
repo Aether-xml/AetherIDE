@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="AetherIDE — AI-Powered Code Editor with Team, Planner & Direct modes. Build projects with OpenRouter, Gemini & OpenAI.">
+    <meta name="keywords" content="AI code editor, AI coding, code generator, OpenRouter, Gemini, OpenAI, web IDE, AetherIDE">
+    <meta name="author" content="AetherIDE">
+    <meta name="theme-color" content="#0D0F13">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="AetherIDE — AI-Powered Code Editor">
+    <meta property="og:description" content="Code at the speed of thought. Multi-AI team collaboration, smart planning, and instant code generation.">
+    <meta property="og:image" content="https://aetheride.com/assets/icons/icon-512.png">
+    <meta property="og:url" content="https://aetheride.com">
+    <meta property="og:site_name" content="AetherIDE">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AetherIDE — AI-Powered Code Editor">
+    <meta name="twitter:description" content="Code at the speed of thought. Multi-AI team collaboration, smart planning, and instant code generation.">
+    <meta name="twitter:image" content="https://aetheride.com/assets/icons/icon-512.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <title>AetherIDE</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/sidebar.css">
+    <link rel="stylesheet" href="css/editor.css">
+    <link rel="stylesheet" href="css/chat.css">
+    <link rel="stylesheet" href="css/modal.css">
+    <link rel="stylesheet" href="css/responsive.css">
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div id="app">
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- SIDEBAR -->
+        <!-- ═══════════════════════════════════════ -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">
+                    <img src="assets/icons/icon-192.png" alt="AetherIDE" class="logo-img">
+                </div>
+                <span class="logo-text">AetherIDE</span>
+                <button class="sidebar-close-btn" id="sidebar-close-btn">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+
+            <!-- Mode Selector -->
+            <div class="sidebar-section">
+                <div class="section-label">MODE</div>
+                <div class="mode-selector">
+                    <button class="mode-btn active" data-mode="direct" title="Direct Mode">
+                        <i data-lucide="zap" class="mode-lucide-icon"></i>
+                        <span class="mode-name">Direct</span>
+                        <span class="mode-desc">Instant coding</span>
+                    </button>
+                    <button class="mode-btn" data-mode="planner" title="Planner Mode">
+                        <i data-lucide="clipboard-list" class="mode-lucide-icon"></i>
+                        <span class="mode-name">Planner</span>
+                        <span class="mode-desc">Plan & approve</span>
+                    </button>
+                    <button class="mode-btn" data-mode="team" title="Team Mode (Beta)">
+                        <i data-lucide="users" class="mode-lucide-icon"></i>
+                        <span class="mode-name">Team</span>
+                        <span class="beta-badge">BETA</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Planner Speed (sadece planner modunda görünür) -->
+            <div class="sidebar-section planner-speed-section" id="planner-speed-section" style="display: none;">
+                <div class="section-label">PLANNER SPEED</div>
+                <div class="planner-speed-toggle">
+                    <button class="planner-speed-btn active" data-speed="flash" title="Fast planning">
+                        <i data-lucide="zap"></i>
+                        <div class="speed-info">
+                            <span class="speed-name">Flash</span>
+                            <span class="speed-desc">Fast & efficient</span>
+                        </div>
+                    </button>
+                    <button class="planner-speed-btn" data-speed="pro" title="Deep thinking">
+                        <i data-lucide="brain"></i>
+                        <div class="speed-info">
+                            <span class="speed-name">Pro</span>
+                            <span class="speed-desc">Deep thinking</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- AI Options -->
+            <div class="sidebar-section">
+                <div class="section-label">AI OPTIONS</div>
+
+                <div class="toggle-option">
+                    <div class="toggle-info">
+                        <i data-lucide="brain" class="toggle-lucide-icon"></i>
+                        <span class="toggle-name">Thinking</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="thinking-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="model-selector">
+                    <div class="section-sublabel">MODEL</div>
+                    <div class="custom-select" id="model-select-wrapper">
+                        <button class="select-btn" id="model-select-btn">
+                            <i data-lucide="cpu" class="select-icon"></i>
+                            <span class="select-value">Select Model</span>
+                            <i data-lucide="chevron-down" class="select-arrow-icon"></i>
+                        </button>
+                        <div class="select-dropdown" id="model-dropdown">
+                            <div class="select-search">
+                                <i data-lucide="search" class="search-icon"></i>
+                                <input type="text" placeholder="Search models..." id="model-search">
+                            </div>
+                            <div class="select-options" id="model-options"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat History -->
+            <div class="sidebar-section sidebar-section-grow">
+                <div class="section-label">
+                    HISTORY
+                    <button class="new-chat-btn" id="new-chat-btn" title="New Chat">
+                        <i data-lucide="plus"></i>
+                    </button>
+                </div>
+                <div class="chat-history" id="chat-history">
+                    <div class="empty-history">
+                        <i data-lucide="message-square" class="empty-lucide-icon"></i>
+                        <span class="empty-text">No conversations yet</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Actions -->
+            <div class="sidebar-bottom">
+                <button class="sidebar-action-btn" id="sandbox-btn" title="Sandbox">
+                    <i data-lucide="message-circle"></i>
+                    <span class="action-text">Sandbox</span>
+                    <span class="beta-badge">BETA</span>
+                </button>
+                <button class="sidebar-action-btn" id="settings-btn" title="Settings">
+                    <i data-lucide="settings"></i>
+                    <span class="action-text">Settings</span>
+                </button>
+            </div>
+        </aside>
+
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- MAIN CONTENT -->
+        <!-- ═══════════════════════════════════════ -->
+        <main id="main-content" class="main-content">
+
+            <!-- Top Bar -->
+            <div class="topbar">
+                <div class="topbar-left">
+                    <button class="mobile-menu-btn" id="mobile-menu-btn">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <div class="current-mode" id="current-mode-display">
+                        <i data-lucide="zap" class="topbar-mode-icon"></i>
+                        <span class="current-mode-name">Direct</span>
+                    </div>
+                    <div class="topbar-divider"></div>
+                    <div class="current-model" id="current-model-display">No model</div>
+                </div>
+                <div class="topbar-right">
+                    <div class="thinking-indicator" id="thinking-indicator" style="display: none;">
+                        <div class="thinking-dots-bar">
+                            <span></span><span></span><span></span>
+                        </div>
+                        <span class="thinking-label">Thinking</span>
+                    </div>
+                    <div class="connection-status" id="connection-status">
+                        <span class="status-dot offline"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Tab Bar -->
+            <div class="mobile-tab-bar" id="mobile-tab-bar">
+                <button class="mobile-tab active" data-tab="chat" id="tab-chat">
+                    <i data-lucide="message-square"></i>
+                    <span>Chat</span>
+                </button>
+                <button class="mobile-tab" data-tab="code" id="tab-code">
+                    <i data-lucide="code-2"></i>
+                    <span>Code</span>
+                </button>
+            </div>
+
+            <!-- Split View Container -->
+            <div class="split-container" id="split-container">
+
+                <!-- ═══ Chat Panel ═══ -->
+                <div class="panel chat-panel" id="chat-panel">
+
+                    <div class="messages-container" id="messages-container">
+                        <div class="welcome-message" id="welcome-message">
+                            <div class="welcome-logo-wrap">
+                                <div class="welcome-glow"></div>
+                                <img src="assets/icons/icon-512.png" alt="AetherIDE" class="welcome-logo-img">
+                            </div>
+                            <h2 class="welcome-title">AetherIDE</h2>
+                            <p class="welcome-subtitle">Code at the speed of thought</p>
+
+                            <div class="welcome-cards">
+                                <button class="welcome-card" data-prompt="Build me a responsive landing page with modern design">
+                                    <i data-lucide="globe" class="card-lucide-icon"></i>
+                                    <span class="card-text">Landing page</span>
+                                </button>
+                                <button class="welcome-card" data-prompt="Create a todo app with local storage">
+                                    <i data-lucide="check-square" class="card-lucide-icon"></i>
+                                    <span class="card-text">Todo app</span>
+                                </button>
+                                <button class="welcome-card" data-prompt="Write a Python script that scrapes website data">
+                                    <i data-lucide="terminal" class="card-lucide-icon"></i>
+                                    <span class="card-text">Python script</span>
+                                </button>
+                                <button class="welcome-card" data-prompt="Design a REST API with Express.js">
+                                    <i data-lucide="server" class="card-lucide-icon"></i>
+                                    <span class="card-text">REST API</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                        <!-- Planner Thinking Display -->
+                        <div class="planner-thinking-display" id="planner-thinking-display" style="display: none;">
+                            <div class="thinking-header">
+                                <i data-lucide="brain" class="thinking-brain-icon"></i>
+                                <span class="thinking-title">Thinking...</span>
+                                <button class="thinking-collapse-btn" id="thinking-collapse-btn">
+                                    <i data-lucide="chevron-down"></i>
+                                </button>
+                            </div>
+                            <div class="thinking-content" id="thinking-content">
+                                <div class="thinking-text" id="thinking-text"></div>
+                            </div>
+                        </div>
+
+                    <!-- Input Area -->
+                    <div class="input-area" id="input-area">
+                        <!-- Planner Mode Actions -->
+                        <div class="planner-actions" id="planner-actions" style="display: none;">
+                            <button class="planner-btn approve" id="plan-approve-btn">
+                                <i data-lucide="check"></i>
+                                <span>Approve</span>
+                            </button>
+                            <button class="planner-btn modify" id="plan-modify-btn">
+                                <i data-lucide="pencil"></i>
+                                <span>Modify</span>
+                            </button>
+                            <button class="planner-btn reject" id="plan-reject-btn">
+                                <i data-lucide="x"></i>
+                                <span>Reject</span>
+                            </button>
+                        </div>
+
+                        <!-- Team Mode Agents -->
+                        <div class="team-agents" id="team-agents" style="display: none;">
+                            <div class="agent-chip" data-agent="designer">
+                                <i data-lucide="palette" class="agent-lucide-icon designer"></i>
+                                <span>Designer</span>
+                            </div>
+                            <div class="agent-chip" data-agent="pm">
+                                <i data-lucide="kanban" class="agent-lucide-icon pm"></i>
+                                <span>PM</span>
+                            </div>
+                            <div class="agent-chip" data-agent="developer">
+                                <i data-lucide="code-2" class="agent-lucide-icon developer"></i>
+                                <span>Dev</span>
+                            </div>
+                        </div>
+
+                        <!-- Input Box -->
+                        <div class="input-wrapper" id="input-wrapper">
+                            <button class="input-icon-btn enhance-btn" id="enhance-btn" title="Enhance Prompt">
+                                <i data-lucide="sparkles"></i>
+                            </button>
+                            <textarea
+                                id="message-input"
+                                class="message-input"
+                                placeholder="What do you want to build?"
+                                rows="1"
+                            ></textarea>
+                            <div class="input-actions">
+                                <button class="input-icon-btn" id="attach-btn" title="Attach">
+                                    <i data-lucide="paperclip"></i>
+                                </button>
+                                <button class="send-btn" id="send-btn" title="Send" disabled>
+                                    <i data-lucide="arrow-up"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resizer -->
+                <div class="panel-resizer" id="panel-resizer">
+                    <div class="resizer-line"></div>
+                </div>
+
+                <!-- ═══ Code Panel ═══ -->
+                <div class="panel code-panel" id="code-panel">
+                    <div class="code-header">
+                        <div class="code-tabs" id="code-tabs">
+                            <button class="code-tab active" data-tab="output">
+                                <i data-lucide="file-code" class="tab-lucide-icon"></i>
+                                <span>Output</span>
+                            </button>
+                        </div>
+                        <div class="code-actions">
+                            <button class="code-action-btn" id="copy-code-btn" title="Copy">
+                                <i data-lucide="copy"></i>
+                            </button>
+                            <div class="download-dropdown">
+                                <button class="code-action-btn" id="download-code-btn" title="Download Current File">
+                                    <i data-lucide="download"></i>
+                                </button>
+                                <button class="code-action-btn" id="download-all-btn" title="Download All Files" onclick="Editor.downloadAll()">
+                                    <i data-lucide="archive"></i>
+                                </button>
+                            </div>
+                            <button class="code-action-btn" id="console-btn" title="Toggle Console">
+                                <i data-lucide="terminal"></i>
+                            </button>
+                            <button class="code-action-btn" id="refresh-preview-btn" title="Refresh Preview" style="display:none;">
+                                <i data-lucide="refresh-cw"></i>
+                            </button>
+                            <button class="code-action-btn" id="preview-btn" title="Preview">
+                                <i data-lucide="eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="code-editor-wrapper" id="code-editor-wrapper">
+                        <div class="code-editor" id="code-editor">
+                            <div class="empty-editor">
+                                <i data-lucide="code-2" class="empty-editor-icon"></i>
+                                <p class="empty-editor-text">Code will appear here</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="preview-container" id="preview-container" style="display: none;">
+                        <iframe id="preview-iframe" sandbox="allow-scripts allow-same-origin allow-modals allow-forms"></iframe>
+                    </div>
+
+                    <!-- Console Panel -->
+                    <div class="console-panel" id="console-panel" style="display: none;">
+                        <div class="console-header">
+                            <div class="console-header-left">
+                                <i data-lucide="terminal" class="console-header-icon"></i>
+                                <span class="console-title">Console</span>
+                            </div>
+                            <div class="console-header-right">
+                                <button class="console-action-btn" id="console-clear-btn" title="Clear Console">
+                                    <i data-lucide="trash-2"></i>
+                                </button>
+                                <button class="console-action-btn" onclick="Editor.toggleConsole()" title="Close">
+                                    <i data-lucide="x"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="console-output" id="console-output">
+                            <div class="console-empty">No console output</div>
+                        </div>
+                        <div class="terminal-input-wrapper">
+                            <span class="terminal-prompt">$</span>
+                            <input type="text" id="terminal-input" class="terminal-input" placeholder="Type a command..." autocomplete="off" spellcheck="false">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Status Bar -->
+            <div class="statusbar" id="statusbar">
+                <div class="statusbar-left">
+                    <span class="statusbar-item" id="statusbar-mode">
+                        <i data-lucide="zap" class="statusbar-icon"></i> Direct
+                    </span>
+                    <span class="statusbar-item" id="statusbar-thinking">
+                        <i data-lucide="brain" class="statusbar-icon"></i> Off
+                    </span>
+                </div>
+                <div class="statusbar-right">
+                    <span class="statusbar-item" id="statusbar-lines">0 lines</span>
+                    <span class="statusbar-item" id="statusbar-version">v1.4.3</span>
+                </div>
+            </div>
+        </main>
+        
+        <!-- ═══════════════════════════════════════ -->
+        <!-- SANDBOX MODAL -->
+        <!-- ═══════════════════════════════════════ -->
+        <div class="modal-overlay" id="sandbox-modal" style="display: none;">
+            <div class="modal sandbox-modal-size">
+                <div class="sandbox-header">
+                    <div class="sandbox-header-left">
+                        <h2 class="sandbox-title">
+                            <i data-lucide="message-circle" class="sandbox-title-icon"></i>
+                            Sandbox
+                            <span class="beta-badge">BETA</span>
+                        </h2>
+                    </div>
+                    <div class="sandbox-header-center">
+                        <div class="sandbox-tab-bar">
+                            <button class="sandbox-tab-btn active" data-stab="direct">
+                                <i data-lucide="message-square"></i>
+                                <span>Direct</span>
+                            </button>
+                            <button class="sandbox-tab-btn" data-stab="sidebyside">
+                                <i data-lucide="columns"></i>
+                                <span>Side by Side</span>
+                            </button>
+                            <button class="sandbox-tab-btn" data-stab="settings">
+                                <i data-lucide="settings"></i>
+                                <span>Settings</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="sandbox-header-right">
+                        <button class="modal-close" id="sandbox-close">
+                            <i data-lucide="x"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="sandbox-content">
+
+                    <!-- ═══ Direct Mode ═══ -->
+                    <div class="sandbox-view active" id="sandbox-direct-view">
+                        <div class="sandbox-model-bar">
+                            <div class="sandbox-model-select">
+                                <i data-lucide="cpu" class="sandbox-select-icon"></i>
+                                <select id="sandbox-direct-model" class="sandbox-select">
+                                    <option value="">Select model...</option>
+                                </select>
+                            </div>
+                            <button class="sandbox-clear-btn" id="sandbox-direct-clear" title="Clear chat">
+                                <i data-lucide="trash-2"></i>
+                            </button>
+                        </div>
+
+                        <div class="sandbox-messages" id="sandbox-direct-messages">
+                            <div class="sandbox-empty">
+                                <i data-lucide="message-circle" class="sandbox-empty-icon"></i>
+                                <p>Start a conversation</p>
+                                <span class="sandbox-empty-hint">Chat freely — no code generation rules here</span>
+                            </div>
+                        </div>
+
+                        <div class="sandbox-input-area">
+                            <div class="sandbox-input-wrapper">
+                                <textarea id="sandbox-direct-input" class="sandbox-input" placeholder="Type anything..." rows="1"></textarea>
+                                <button class="sandbox-send-btn" id="sandbox-direct-send" disabled>
+                                    <i data-lucide="arrow-up"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ Side by Side Mode ═══ -->
+                    <div class="sandbox-view" id="sandbox-sbs-view">
+                        <div class="sandbox-sbs-models">
+                            <div class="sandbox-model-bar sbs-bar">
+                                <div class="sbs-label">
+                                    <span class="sbs-header-dot dot-a"></span>
+                                    Model A
+                                </div>
+                                <div class="sandbox-model-select">
+                                    <select id="sandbox-sbs-model-a" class="sandbox-select">
+                                        <option value="">Select model A...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="sandbox-model-bar sbs-bar">
+                                <div class="sbs-label">
+                                    <span class="sbs-header-dot dot-b"></span>
+                                    Model B
+                                </div>
+                                <div class="sandbox-model-select">
+                                    <select id="sandbox-sbs-model-b" class="sandbox-select">
+                                        <option value="">Select model B...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="sandbox-clear-btn" id="sandbox-sbs-clear" title="Clear">
+                                <i data-lucide="trash-2"></i>
+                            </button>
+                        </div>
+
+                        <div class="sandbox-sbs-container">
+                            <div class="sandbox-sbs-panel">
+                                <div class="sandbox-sbs-header">
+                                    <span class="sbs-header-dot dot-a"></span>
+                                    <span id="sandbox-sbs-name-a">Model A</span>
+                                </div>
+                                <div class="sandbox-messages" id="sandbox-sbs-messages-a">
+                                    <div class="sandbox-empty">
+                                        <i data-lucide="bot" class="sandbox-empty-icon"></i>
+                                        <p>Model A</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sandbox-sbs-divider"></div>
+                            <div class="sandbox-sbs-panel">
+                                <div class="sandbox-sbs-header">
+                                    <span class="sbs-header-dot dot-b"></span>
+                                    <span id="sandbox-sbs-name-b">Model B</span>
+                                </div>
+                                <div class="sandbox-messages" id="sandbox-sbs-messages-b">
+                                    <div class="sandbox-empty">
+                                        <i data-lucide="bot" class="sandbox-empty-icon"></i>
+                                        <p>Model B</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sandbox-input-area">
+                            <div class="sandbox-input-wrapper">
+                                <textarea id="sandbox-sbs-input" class="sandbox-input" placeholder="Send to both models..." rows="1"></textarea>
+                                <button class="sandbox-send-btn" id="sandbox-sbs-send" disabled>
+                                    <i data-lucide="arrow-up"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ═══ Settings Tab ═══ -->
+                    <div class="sandbox-view" id="sandbox-settings-view">
+                        <div class="sandbox-settings-scroll">
+                            <div class="sandbox-settings-inner">
+
+                                <!-- Direct Settings -->
+                                <div class="sandbox-settings-section">
+                                    <div class="sandbox-settings-section-header">
+                                        <i data-lucide="message-square"></i>
+                                        <span>Direct Mode Settings</span>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <label class="settings-label">System Prompt</label>
+                                        <textarea id="sandbox-direct-system-prompt" class="settings-textarea" rows="3" placeholder="You are a helpful AI assistant..."></textarea>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <label class="settings-label">Temperature</label>
+                                        <div class="settings-range-group">
+                                            <input type="range" id="sandbox-direct-temperature" class="settings-range" min="0" max="2" step="0.1" value="0.7">
+                                            <span class="range-value" id="sandbox-direct-temp-value">0.7</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <label class="settings-label">Max Tokens</label>
+                                        <div class="settings-range-group">
+                                            <input type="range" id="sandbox-direct-max-tokens" class="settings-range" min="256" max="8192" step="256" value="4096">
+                                            <span class="range-value" id="sandbox-direct-tokens-value">4096</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <div class="settings-toggle-row">
+                                            <div class="settings-toggle-info">
+                                                <i data-lucide="radio" class="settings-label-icon"></i>
+                                                <div>
+                                                    <label class="settings-label">Stream Responses</label>
+                                                    <p class="settings-desc">Show response word by word</p>
+                                                </div>
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="sandbox-direct-stream-toggle" checked>
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SBS Settings -->
+                                <div class="sandbox-settings-section">
+                                    <div class="sandbox-settings-section-header">
+                                        <i data-lucide="columns"></i>
+                                        <span>Side by Side Settings</span>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <label class="settings-label">System Prompt</label>
+                                        <textarea id="sandbox-sbs-system-prompt" class="settings-textarea" rows="3" placeholder="You are a helpful AI assistant..."></textarea>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <label class="settings-label">Temperature</label>
+                                        <div class="settings-range-group">
+                                            <input type="range" id="sandbox-sbs-temperature" class="settings-range" min="0" max="2" step="0.1" value="0.7">
+                                            <span class="range-value" id="sandbox-sbs-temp-value">0.7</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <label class="settings-label">Max Tokens</label>
+                                        <div class="settings-range-group">
+                                            <input type="range" id="sandbox-sbs-max-tokens" class="settings-range" min="256" max="8192" step="256" value="4096">
+                                            <span class="range-value" id="sandbox-sbs-tokens-value">4096</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <div class="settings-toggle-row">
+                                            <div class="settings-toggle-info">
+                                                <i data-lucide="radio" class="settings-label-icon"></i>
+                                                <div>
+                                                    <label class="settings-label">Stream Responses</label>
+                                                    <p class="settings-desc">Recommended OFF for accurate comparison</p>
+                                                </div>
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="sandbox-sbs-stream-toggle">
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Global -->
+                                <div class="sandbox-settings-section">
+                                    <div class="sandbox-settings-section-header">
+                                        <i data-lucide="settings"></i>
+                                        <span>General</span>
+                                    </div>
+
+                                    <div class="settings-group">
+                                        <div class="settings-toggle-row">
+                                            <div class="settings-toggle-info">
+                                                <i data-lucide="save" class="settings-label-icon"></i>
+                                                <div>
+                                                    <label class="settings-label">Save History</label>
+                                                    <p class="settings-desc">Keep Sandbox conversations in memory</p>
+                                                </div>
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="sandbox-save-toggle">
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- History -->
+                                <div class="sandbox-settings-section">
+                                    <div class="sandbox-settings-section-header">
+                                        <i data-lucide="clock"></i>
+                                        <span>Chat History</span>
+                                    </div>
+                                    <div class="sandbox-history-list" id="sandbox-history-list">
+                                        <div class="sandbox-history-empty">No saved chats</div>
+                                    </div>
+                                </div>
+
+                                <div class="sandbox-settings-actions">
+                                    <button class="modal-btn secondary" id="sandbox-settings-reset">
+                                        <i data-lucide="rotate-ccw"></i>
+                                        Reset
+                                    </button>
+                                    <button class="modal-btn primary" id="sandbox-settings-save">
+                                        <i data-lucide="save"></i>
+                                        Save
+                                    </button>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>        
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- SETTINGS MODAL -->
+        <!-- ═══════════════════════════════════════ -->
+        <div class="modal-overlay" id="settings-modal" style="display: none;">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2 class="modal-title">
+                        <i data-lucide="settings" class="modal-title-icon"></i>
+                        Settings
+                    </h2>
+                    <button class="modal-close" id="settings-close">
+                        <i data-lucide="x"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- API Provider -->
+                    <div class="settings-group">
+                        <label class="settings-label">
+                            <i data-lucide="cloud" class="settings-label-icon"></i>
+                            API Provider
+                        </label>
+                        <p class="settings-desc">Choose your API provider. Each provider needs its own API key.</p>
+                        <div class="provider-options" id="provider-options">
+                            <button class="provider-option active" data-provider="openrouter">
+                                <i data-lucide="cloud"></i>
+                                <div class="provider-info">
+                                    <span class="provider-name">OpenRouter</span>
+                                    <span class="provider-desc">200+ models, one key</span>
+                                </div>
+                            </button>
+                            <button class="provider-option" data-provider="gemini">
+                                <i data-lucide="sparkles"></i>
+                                <div class="provider-info">
+                                    <span class="provider-name">Google Gemini</span>
+                                    <span class="provider-desc">Direct Gemini access</span>
+                                </div>
+                            </button>
+                            <button class="provider-option" data-provider="openai">
+                                <i data-lucide="brain"></i>
+                                <div class="provider-info">
+                                    <span class="provider-name">OpenAI</span>
+                                    <span class="provider-desc">GPT models direct</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- API Key -->
+                    <div class="settings-group">
+                        <label class="settings-label">
+                            <i data-lucide="key" class="settings-label-icon"></i>
+                            <span id="api-key-label">OpenRouter API Key</span>
+                        </label>
+                        <p class="settings-desc">
+                            Stored locally. Never sent to our servers.
+                            <a id="api-key-docs-link" href="https://openrouter.ai/keys" target="_blank" rel="noopener" style="color:var(--accent-primary);margin-left:4px;">Get key →</a>
+                        </p>
+                        <div class="settings-input-group">
+                            <input type="password" id="api-key-input" class="settings-input" placeholder="sk-or-v1-...">
+                            <button class="settings-input-btn" id="toggle-key-visibility">
+                                <i data-lucide="eye-off" id="key-eye-icon"></i>
+                            </button>
+                        </div>
+                        <div class="api-key-status" id="api-key-status"></div>
+                    </div>
+
+                    <!-- Default Model -->
+                    <div class="settings-group">
+                        <label class="settings-label">
+                            <i data-lucide="cpu" class="settings-label-icon"></i>
+                            Default Model
+                        </label>
+                        <select id="default-model-select" class="settings-select">
+                            <option value="">Select a model...</option>
+                        </select>
+                    </div>
+
+                    <!-- System Prompt -->
+                    <div class="settings-group">
+                        <label class="settings-label">
+                            <i data-lucide="file-text" class="settings-label-icon"></i>
+                            System Prompt
+                        </label>
+                        <textarea id="system-prompt-input" class="settings-textarea" rows="3" placeholder="You are an expert programmer..."></textarea>
+                    </div>
+
+                    <!-- ── Team Mode Models ── -->
+                    <div class="settings-group">
+                        <label class="settings-label">
+                            <i data-lucide="users" class="settings-label-icon"></i>
+                            Team Mode — Role Models
+                        </label>
+                        <p class="settings-desc">Assign different models to each role. Leave empty to use the main model.</p>
+
+                        <div class="team-model-row">
+                            <span class="team-role-label">
+                                <i data-lucide="palette" style="width:14px;height:14px;color:var(--accent-designer);"></i>
+                                Designer
+                            </span>
+                            <input type="text" id="team-designer-model" class="settings-input settings-input-sm" placeholder="e.g. google/gemini-2.5-flash">
+                        </div>
+
+                        <div class="team-model-row">
+                            <span class="team-role-label">
+                                <i data-lucide="kanban" style="width:14px;height:14px;color:var(--accent-pm);"></i>
+                                PM
+                            </span>
+                            <input type="text" id="team-pm-model" class="settings-input settings-input-sm" placeholder="e.g. anthropic/claude-sonnet-4">
+                        </div>
+
+                        <div class="team-model-row">
+                            <span class="team-role-label">
+                                <i data-lucide="code-2" style="width:14px;height:14px;color:var(--accent-developer);"></i>
+                                Developer
+                            </span>
+                            <input type="text" id="team-developer-model" class="settings-input settings-input-sm" placeholder="e.g. deepseek/deepseek-chat-v3">
+                        </div>
+                    </div>
+
+                    <!-- ── Prompt Enhancer ── -->
+                    <div class="settings-group">
+                        <div class="settings-toggle-row">
+                            <div class="settings-toggle-info">
+                                <i data-lucide="sparkles" class="settings-label-icon"></i>
+                                <div>
+                                    <label class="settings-label">Prompt Enhancer</label>
+                                    <p class="settings-desc">Improve your prompts with AI before sending</p>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="enhancer-enabled-toggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="settings-sub-group">
+                            <label class="settings-sublabel">Custom Model (optional)</label>
+                            <input type="text" id="enhancer-model-input" class="settings-input settings-input-sm" placeholder="Leave empty to use active model">
+                        </div>
+
+                        <div class="settings-sub-group">
+                            <label class="settings-sublabel">Custom Enhancement Prompt (optional)</label>
+                            <textarea id="enhancer-prompt-input" class="settings-textarea settings-textarea-sm" rows="2" placeholder="Leave empty for default enhancement"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Layout (Desktop Only) -->
+                    <div class="settings-group settings-desktop-only">
+                        <label class="settings-label">
+                            <i data-lucide="layout" class="settings-label-icon"></i>
+                            Interface Layout
+                        </label>
+                        <p class="settings-desc">Choose a familiar layout style. Desktop only.</p>
+                        <div class="layout-options">
+                            <button class="layout-option active" data-layout="default">
+                                <div class="layout-preview layout-preview-default">
+                                    <div class="lp-sidebar"></div>
+                                    <div class="lp-chat"></div>
+                                    <div class="lp-code"></div>
+                                </div>
+                                <span class="layout-name">Default</span>
+                                <span class="layout-desc">Sidebar | Chat | Code</span>
+                            </button>
+                            <button class="layout-option" data-layout="vscode">
+                                <div class="layout-preview layout-preview-vscode">
+                                    <div class="lp-sidebar"></div>
+                                    <div class="lp-code"></div>
+                                    <div class="lp-chat"></div>
+                                </div>
+                                <span class="layout-name">VSCode</span>
+                                <span class="layout-desc">Sidebar | Code | Chat</span>
+                            </button>
+                            <button class="layout-option" data-layout="cursor">
+                                <div class="layout-preview layout-preview-cursor">
+                                    <div class="lp-activity"></div>
+                                    <div class="lp-sidebar-sm"></div>
+                                    <div class="lp-code"></div>
+                                    <div class="lp-chat"></div>
+                                </div>
+                                <span class="layout-name">Cursor</span>
+                                <span class="layout-desc">Activity | Explorer | Code | Chat</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Theme -->
+                    <div class="settings-group">
+                        <label class="settings-label">
+                            <i data-lucide="palette" class="settings-label-icon"></i>
+                            Theme
+                        </label>
+                        <div class="theme-options">
+                            <button class="theme-option active" data-theme="dark">
+                                <i data-lucide="moon"></i>
+                                <span>Dark</span>
+                            </button>
+                            <button class="theme-option" data-theme="aether">
+                                <i data-lucide="zap"></i>
+                                <span>Aether</span>
+                            </button>
+                            <button class="theme-option" data-theme="midnight">
+                                <i data-lucide="stars"></i>
+                                <span>Midnight</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Font Size -->
+                    <div class="settings-group">
+                        <label class="settings-label">
+                            <i data-lucide="type" class="settings-label-icon"></i>
+                            Editor Font Size
+                        </label>
+                        <div class="settings-range-group">
+                            <input type="range" id="font-size-range" min="12" max="24" value="14" class="settings-range">
+                            <span class="range-value" id="font-size-value">14px</span>
+                        </div>
+                    </div>
+
+                    <!-- Toggles -->
+                    <div class="settings-group">
+                        <div class="settings-toggle-row">
+                            <div class="settings-toggle-info">
+                                <i data-lucide="save" class="settings-label-icon"></i>
+                                <div>
+                                    <label class="settings-label">Auto Save</label>
+                                    <p class="settings-desc">Save conversations automatically</p>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="auto-save-toggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="settings-toggle-row">
+                            <div class="settings-toggle-info">
+                                <i data-lucide="radio" class="settings-label-icon"></i>
+                                <div>
+                                    <label class="settings-label">Stream Response</label>
+                                    <p class="settings-desc">Show response word by word</p>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="stream-toggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- About -->
+                    <div class="settings-about">
+                        <img src="assets/icons/icon-192.png" alt="AetherIDE" class="about-logo-img">
+                        <div class="about-name">AetherIDE</div>
+                        <div class="about-version">v1.4.3</div>
+                        <div class="about-tagline">Code at the speed of thought</div>
+                        <div class="about-links">
+                            <a href="https://discord.gg/7YKCvPzKEQ" target="_blank" rel="noopener" class="about-link discord-link">
+                                <svg class="discord-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+                                Join Discord
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="modal-btn secondary" id="settings-reset">Reset</button>
+                    <button class="modal-btn primary" id="settings-save">
+                        <i data-lucide="save"></i>
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div class="toast-container" id="toast-container"></div>
+
+    </div>
+
+    <!-- Init Lucide Icons -->
+    <script>
+        function initIcons() {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        }
+        document.addEventListener('DOMContentLoaded', initIcons);
+        window.addEventListener('load', initIcons);
+    </script>
+
+    <!-- Service Worker -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+    </script>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/themes.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/editor.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/modes/direct.js"></script>
+    <script src="js/modes/planner.js"></script>
+    <script src="js/modes/team.js"></script>
+    <script src="js/sandbox.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
