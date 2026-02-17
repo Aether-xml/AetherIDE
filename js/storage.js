@@ -174,4 +174,12 @@ console.log("hello");
     setUserName(name) {
         return this.set('user_display_name', name);
     },
+
+    getUserAvatarColor() {
+        return this.get('user_avatar_color', 'purple');
+    },
+
+    setUserAvatarColor(color) {
+        return this.set('user_avatar_color', color);
+    },
 };
