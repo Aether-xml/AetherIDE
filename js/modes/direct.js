@@ -5,17 +5,41 @@
 
 const DirectMode = {
 
+    // Mevcut dosya bağlamını oluştur
+    buildFileContext() {
+        if (Editor.files.length === 0) return '';
+
+        let context = '\n\n--- CURRENT PROJECT FILES ---\n';
+        for (const file of Editor.files) {
+            const preview = file.code.length > 2000
+                ? file.code.substring(0, 2000) + '\n... (truncated)'
+                : file.code;
+            context += `\n📄 ${file.filename} (${file.language}):\n\`\`\`${file.language}:${file.filename}\n${preview}\n\`\`\`\n`;
+        }
+        context += '--- END PROJECT FILES ---\n';
+        context += '\nIMPORTANT: When modifying existing files, output the COMPLETE updated file content using the same ```language:filename format. Do not skip unchanged parts. Do not use comments like "// rest of code remains same". Always write the full file.\n';
+        return context;
+    },
+
     async send(chat, model) {
         Chat.setGenerating(true);
+
+        // Dosya bağlamını ekle
+        const fileContext = this.buildFileContext();
+        const settings = Storage.getSettings();
+
+        let systemPrompt = settings.systemPrompt || '';
+        if (fileContext) {
+            systemPrompt += fileContext;
+        }
 
         const messages = chat.messages.map(m => ({
             role: m.role,
             content: m.content,
         }));
 
-        // Stream timeout — takılmayı önle
         let streamTimeout = null;
-        const STREAM_TIMEOUT_MS = 30000; // 30 saniye sessizlik = timeout
+        const STREAM_TIMEOUT_MS = 30000;
 
         const resetStreamTimeout = () => {
             if (streamTimeout) clearTimeout(streamTimeout);
@@ -26,9 +50,10 @@ const DirectMode = {
         };
 
         try {
-            const result = await API.sendMessage(messages, model);
+            const result = await API.sendMessage(messages, model, {
+                systemPrompt,
+            });
 
-            // Stream response
             if (result && typeof result[Symbol.asyncIterator] === 'function') {
                 let fullContent = '';
                 let lastCodeUpdate = 0;
@@ -41,7 +66,6 @@ const DirectMode = {
 
                     Chat.updateStreamMessage(fullContent);
 
-                    // Editörü throttled güncelle (her 500ms'de bir)
                     const now = Date.now();
                     if (fullContent.includes('```') && now - lastCodeUpdate > 500) {
                         Editor.updateCode(fullContent);
@@ -57,22 +81,17 @@ const DirectMode = {
                         Editor.updateCode(fullContent);
                     }
                 }
-            }
-            // Normal response
-            else if (result && result.content) {
+            } else if (result && result.content) {
                 Chat.addAssistantMessage(result.content);
                 if (result.content.includes('```')) {
                     Editor.updateCode(result.content);
                 }
-            }
-            // Aborted
-            else if (result && result.aborted) {
+            } else if (result && result.aborted) {
                 Utils.toast('Generation stopped', 'info');
             }
 
         } catch (error) {
             if (streamTimeout) clearTimeout(streamTimeout);
-
             if (error.name === 'AbortError') {
                 Utils.toast('Generation stopped', 'info');
             } else {
