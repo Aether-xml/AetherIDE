@@ -199,10 +199,6 @@ const API = {
         if (!model) throw new Error('No model selected. Please select a model first.');
         if (!messages || messages.length === 0) throw new Error('No messages to send.');
 
-        // Yeni abort controller — öncekini temizle
-        if (this.abortController) {
-            try { this.abortController.abort(); } catch(e) {}
-        }
         this.abortController = new AbortController();
 
         if (provider === 'gemini') return this._sendGemini(messages, model, apiKey, options);
@@ -245,7 +241,9 @@ const API = {
             const data = await response.json();
             return { content: data.choices?.[0]?.message?.content || '', model: data.model, usage: data.usage, stream: false };
         } catch (error) {
-            if (error.name === 'AbortError') return { content: '', aborted: true, stream: false };
+            if (error.name === 'AbortError') {
+                return { content: '', aborted: true, stream: false };
+            }
             this.updateConnectionStatus('error');
             throw error;
         }
@@ -483,6 +481,10 @@ const API = {
     },
 
     abort() {
-        if (this.abortController) { this.abortController.abort(); this.abortController = null; }
+        if (this.abortController) {
+            const controller = this.abortController;
+            this.abortController = null;
+            try { controller.abort(); } catch(e) {}
+        }
     },
 };
