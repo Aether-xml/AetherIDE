@@ -77,7 +77,6 @@ const Editor = {
     _lastEditorUpdate: 0,
     _editorUpdatePending: null,
 
-    // AI yanıtından dosyaları çıkar
     updateCode(aiResponse) {
         const blocks = Utils.extractCodeBlocks(aiResponse);
         if (blocks.length === 0) return;
@@ -85,37 +84,48 @@ const Editor = {
         let hasChanges = false;
 
         for (const block of blocks) {
-            // Boş kod bloklarını atla
             if (!block.code || block.code.trim().length === 0) continue;
 
-            const existingIndex = this.files.findIndex(f => f.filename === block.filename);
+            // Dosya adını normalize et (case-sensitive ama path normalize)
+            const normalizedName = block.filename.replace(/^\.\//, '').replace(/^\//, '');
+
+            const existingIndex = this.files.findIndex(f => {
+                const existingNorm = f.filename.replace(/^\.\//, '').replace(/^\//, '');
+                return existingNorm === normalizedName;
+            });
+
             if (existingIndex >= 0) {
                 // Sadece içerik değiştiyse güncelle
-                if (this.files[existingIndex].code !== block.code) {
+                const existingCode = this.files[existingIndex].code;
+                if (existingCode !== block.code) {
                     this.files[existingIndex] = {
-                        filename: block.filename,
-                        language: block.language,
+                        filename: normalizedName,
+                        language: block.language || this.files[existingIndex].language,
                         code: block.code,
                     };
                     hasChanges = true;
                 }
             } else {
                 this.files.push({
-                    filename: block.filename,
+                    filename: normalizedName,
                     language: block.language,
                     code: block.code,
                 });
                 hasChanges = true;
+
+                // Yeni dosya eklendiğinde o dosyaya geç
+                this.activeFileIndex = this.files.length - 1;
             }
         }
 
         if (!hasChanges) return;
 
+        // Güvenli index kontrolü
         if (this.activeFileIndex >= this.files.length) {
-            this.activeFileIndex = 0;
+            this.activeFileIndex = this.files.length - 1;
         }
+        if (this.activeFileIndex < 0) this.activeFileIndex = 0;
 
-        // DOM güncellemelerini throttle et
         const now = Date.now();
         if (now - this._lastEditorUpdate < 500) {
             if (this._editorUpdatePending) cancelAnimationFrame(this._editorUpdatePending);
@@ -134,7 +144,6 @@ const Editor = {
         this.renderCode();
         this.updateStatusBar();
 
-        // Mobilde badge
         const tabCode = document.getElementById('tab-code');
         if (tabCode && this.files.length > 0) {
             let badge = tabCode.querySelector('.file-count-badge');
@@ -187,15 +196,23 @@ const Editor = {
             html += `
                 <button class="code-tab ${isActive ? 'active' : ''}"
                         onclick="Editor.switchTab(${index})"
-                        title="${file.filename}">
+                        title="${Utils.escapeHtml(file.filename)}">
                     <i data-lucide="${icon}" class="tab-lucide-icon"></i>
-                    <span>${file.filename}</span>
+                    <span>${Utils.escapeHtml(file.filename)}</span>
                 </button>
             `;
         });
 
         tabsEl.innerHTML = html;
         if (window.lucide) lucide.createIcons({ nodes: [tabsEl] });
+
+        // Aktif tab'ı görünür yap (scroll)
+        requestAnimationFrame(() => {
+            const activeTab = tabsEl.querySelector('.code-tab.active');
+            if (activeTab) {
+                activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+            }
+        });
     },
 
     switchTab(index) {
@@ -205,11 +222,17 @@ const Editor = {
         this.renderCode();
         this.updateStatusBar();
 
-        const previewContainer = document.getElementById('preview-container');
-        const editorWrapper = document.getElementById('code-editor-wrapper');
-        if (previewContainer) previewContainer.style.display = 'none';
-        if (editorWrapper) editorWrapper.style.display = 'block';
-        this.previewVisible = false;
+        // Preview açıksa kapat
+        if (this.previewVisible) {
+            const previewContainer = document.getElementById('preview-container');
+            const editorWrapper = document.getElementById('code-editor-wrapper');
+            if (previewContainer) previewContainer.style.display = 'none';
+            if (editorWrapper) editorWrapper.style.display = 'block';
+            this.previewVisible = false;
+
+            const refreshBtn = document.getElementById('refresh-preview-btn');
+            if (refreshBtn) refreshBtn.style.display = 'none';
+        }
     },
 
     renderCode() {
@@ -227,11 +250,14 @@ const Editor = {
             return;
         }
 
-        const lines = this.currentCode.split('\n');
+        // Font size uygula
+        const settings = Storage.getSettings();
+        const fontSize = settings.fontSize || 14;
+
         const highlighted = SyntaxHighlighter.highlight(this.currentCode, this.currentLanguage);
         const highlightedLines = highlighted.split('\n');
 
-        let html = '<div class="code-display">';
+        let html = `<div class="code-display" style="font-size: ${fontSize}px;">`;
         highlightedLines.forEach((line, i) => {
             html += `<div class="line">
                 <span class="line-number">${i + 1}</span>
@@ -249,6 +275,11 @@ const Editor = {
         if (consolePanel) {
             consolePanel.style.display = this.consoleVisible ? 'flex' : 'none';
         }
+
+        // Console açıldığında en alta scroll
+        if (this.consoleVisible) {
+            this.renderConsole();
+        }
     },
 
     clearConsole() {
@@ -260,7 +291,7 @@ const Editor = {
 
     addConsoleLog(type, message, source = '') {
         const entry = {
-            type, // 'log' | 'error' | 'warn' | 'info'
+            type,
             message: typeof message === 'object' ? JSON.stringify(message, null, 2) : String(message),
             source,
             timestamp: new Date().toISOString(),
@@ -268,12 +299,14 @@ const Editor = {
 
         this.consoleLogs.push(entry);
 
-        // Max 200 log tut
         if (this.consoleLogs.length > 200) {
             this.consoleLogs = this.consoleLogs.slice(-200);
         }
 
-        this.renderConsole();
+        // Sadece console görünürse render et
+        if (this.consoleVisible) {
+            this.renderConsole();
+        }
     },
 
     renderConsole() {
@@ -301,7 +334,6 @@ const Editor = {
         output.scrollTop = output.scrollHeight;
     },
 
-    // Console loglarını AI'ya gönderilecek formatta al
     getConsoleContext() {
         if (this.consoleLogs.length === 0) return '';
 
@@ -318,19 +350,19 @@ const Editor = {
     executeTerminalCommand(command) {
         this.addConsoleLog('info', `$ ${command}`, 'terminal');
 
-        // Basit komut simülasyonu
+        const cmd = command.toLowerCase().trim();
         const commands = {
             'clear': () => { this.clearConsole(); },
             'cls': () => { this.clearConsole(); },
             'help': () => {
-                this.addConsoleLog('info', 'Available commands: clear, help, files, pwd, echo <text>, run');
+                this.addConsoleLog('info', 'Available commands:\n  clear — Clear console\n  help — Show commands\n  files — List files\n  pwd — Current directory\n  run — Run preview\n  echo <text> — Print text\n  version — Show version');
             },
             'files': () => {
                 if (this.files.length === 0) {
                     this.addConsoleLog('info', 'No files loaded');
                 } else {
-                    const list = this.files.map(f => `  ${f.filename} (${f.language})`).join('\n');
-                    this.addConsoleLog('info', `Files:\n${list}`);
+                    const list = this.files.map(f => `  ${f.filename} (${f.language}, ${f.code.length} chars)`).join('\n');
+                    this.addConsoleLog('info', `Files (${this.files.length}):\n${list}`);
                 }
             },
             'pwd': () => {
@@ -340,12 +372,23 @@ const Editor = {
                 this.togglePreview();
                 this.addConsoleLog('info', 'Running preview...');
             },
+            'version': () => {
+                this.addConsoleLog('info', 'AetherIDE v1.4.3');
+            },
         };
 
-        if (commands[command.toLowerCase()]) {
-            commands[command.toLowerCase()]();
+        if (commands[cmd]) {
+            commands[cmd]();
         } else if (command.startsWith('echo ')) {
             this.addConsoleLog('log', command.slice(5));
+        } else if (command.startsWith('cat ')) {
+            const filename = command.slice(4).trim();
+            const file = this.files.find(f => f.filename === filename);
+            if (file) {
+                this.addConsoleLog('log', file.code);
+            } else {
+                this.addConsoleLog('error', `File not found: ${filename}`);
+            }
         } else {
             this.addConsoleLog('warn', `Command not found: ${command}. Type 'help' for available commands.`);
         }
@@ -403,7 +446,6 @@ const Editor = {
 
     refreshPreview() {
         if (!this.previewVisible) return;
-        // Preview'i kapat ve tekrar aç
         this.previewVisible = false;
         this.togglePreview();
         Utils.toast('Preview refreshed', 'info', 1500);
@@ -419,7 +461,6 @@ const Editor = {
 
         this.previewVisible = !this.previewVisible;
 
-        // Refresh butonunu göster/gizle
         if (refreshBtn) refreshBtn.style.display = this.previewVisible ? 'inline-flex' : 'none';
 
         if (!this.previewVisible) {
@@ -445,49 +486,66 @@ const Editor = {
             if (htmlFile) {
                 let htmlContent = htmlFile.code;
 
-                // CSS inline
+                // CSS dosyalarını inline et
                 this.files.forEach(f => {
                     if (f.language === 'css' || f.filename.endsWith('.css')) {
+                        // <link> tag'ını <style> ile değiştir
+                        const escapedFilename = f.filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                         const linkRegex = new RegExp(
-                            `<link[^>]*href=["']${f.filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*/?>`, 'gi'
+                            `<link[^>]*href=["'](?:\\./)?${escapedFilename}["'][^>]*/?>`, 'gi'
                         );
-                        htmlContent = htmlContent.replace(linkRegex, `<style>\n${f.code}\n</style>`);
+                        const replaced = htmlContent.replace(linkRegex, `<style>\n${f.code}\n</style>`);
 
-                        if (!htmlContent.includes(f.code.substring(0, Math.min(30, f.code.length)))) {
+                        if (replaced !== htmlContent) {
+                            htmlContent = replaced;
+                        } else {
+                            // Link tag bulunamadıysa head'e ekle
                             if (htmlContent.includes('</head>')) {
                                 htmlContent = htmlContent.replace('</head>', `<style>\n${f.code}\n</style>\n</head>`);
+                            } else if (htmlContent.includes('<body')) {
+                                htmlContent = htmlContent.replace(/<body/i, `<style>\n${f.code}\n</style>\n<body`);
                             }
                         }
                     }
                 });
 
-                // JS inline
+                // JS dosyalarını inline et
                 this.files.forEach(f => {
                     if (f.language === 'javascript' || f.language === 'js' || f.filename.endsWith('.js')) {
+                        const escapedFilename = f.filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                         const scriptRegex = new RegExp(
-                            `<script[^>]*src=["']${f.filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*>\\s*</script>`, 'gi'
+                            `<script[^>]*src=["'](?:\\./)?${escapedFilename}["'][^>]*>\\s*</script>`, 'gi'
                         );
-                        htmlContent = htmlContent.replace(scriptRegex, `<script>\n${f.code}\n</script>`);
+                        const replaced = htmlContent.replace(scriptRegex, `<script>\n${f.code}\n</script>`);
 
-                        if (!htmlContent.includes(f.code.substring(0, Math.min(30, f.code.length)))) {
+                        if (replaced !== htmlContent) {
+                            htmlContent = replaced;
+                        } else {
                             if (htmlContent.includes('</body>')) {
                                 htmlContent = htmlContent.replace('</body>', `<script>\n${f.code}\n</script>\n</body>`);
+                            } else {
+                                htmlContent += `\n<script>\n${f.code}\n</script>`;
                             }
                         }
                     }
                 });
 
-                // Console capture script — iframe'den logları yakala
+                // Console capture script
                 const consoleCapture = `
 <script>
 (function() {
-    const origConsole = {};
+    var origConsole = {};
     ['log', 'error', 'warn', 'info'].forEach(function(type) {
         origConsole[type] = console[type];
         console[type] = function() {
             var args = Array.prototype.slice.call(arguments);
             var msg = args.map(function(a) {
-                return typeof a === 'object' ? JSON.stringify(a) : String(a);
+                if (a === null) return 'null';
+                if (a === undefined) return 'undefined';
+                if (typeof a === 'object') {
+                    try { return JSON.stringify(a); } catch(e) { return String(a); }
+                }
+                return String(a);
             }).join(' ');
             origConsole[type].apply(console, arguments);
             try {
@@ -505,17 +563,21 @@ const Editor = {
             window.parent.postMessage({
                 type: 'aetheride-console',
                 logType: 'error',
-                message: e.message + ' at ' + (e.filename || '') + ':' + (e.lineno || '')
+                message: (e.message || 'Unknown error') + ' at ' + (e.filename || '') + ':' + (e.lineno || '')
             }, '*');
         } catch(ex) {}
     });
 
     window.addEventListener('unhandledrejection', function(e) {
         try {
+            var msg = 'Unhandled Promise: ';
+            if (e.reason && e.reason.message) msg += e.reason.message;
+            else if (typeof e.reason === 'string') msg += e.reason;
+            else msg += 'Unknown';
             window.parent.postMessage({
                 type: 'aetheride-console',
                 logType: 'error',
-                message: 'Unhandled Promise: ' + (e.reason?.message || e.reason || 'Unknown')
+                message: msg
             }, '*');
         } catch(ex) {}
     });
@@ -525,15 +587,21 @@ const Editor = {
                 // Console capture'ı <head> sonrasına ekle
                 if (htmlContent.includes('<head>')) {
                     htmlContent = htmlContent.replace('<head>', '<head>' + consoleCapture);
+                } else if (htmlContent.includes('<head ')) {
+                    htmlContent = htmlContent.replace(/<head\s/i, '<head>' + consoleCapture + '</head><head ');
                 } else if (htmlContent.includes('<html>')) {
                     htmlContent = htmlContent.replace('<html>', '<html><head>' + consoleCapture + '</head>');
+                } else if (htmlContent.includes('<html ')) {
+                    htmlContent = htmlContent.replace(/<html([^>]*)>/i, '<html$1><head>' + consoleCapture + '</head>');
                 } else {
                     htmlContent = consoleCapture + htmlContent;
                 }
 
                 iframe.srcdoc = htmlContent;
             } else {
-                iframe.srcdoc = `<pre style="font-family:monospace;padding:20px;background:#1e1e1e;color:#d4d4d4;margin:0;height:100vh;overflow:auto;">${Utils.escapeHtml(this.currentCode)}</pre>`;
+                // HTML dosyası yoksa mevcut kodu göster
+                const escaped = Utils.escapeHtml(this.currentCode);
+                iframe.srcdoc = `<pre style="font-family:'JetBrains Mono',monospace;padding:20px;background:#1e1e1e;color:#d4d4d4;margin:0;height:100vh;overflow:auto;white-space:pre-wrap;word-break:break-all;">${escaped}</pre>`;
             }
         }
     },
@@ -543,17 +611,8 @@ const Editor = {
         if (linesEl && this.currentCode) {
             const lines = this.currentCode.split('\n').length;
             linesEl.textContent = `${lines} lines`;
+        } else if (linesEl) {
+            linesEl.textContent = '0 lines';
         }
     },
 };
-
-// ── Console mesaj dinleyici ──
-window.addEventListener('message', (event) => {
-    if (event.data?.type === 'aetheride-console') {
-        Editor.addConsoleLog(
-            event.data.logType || 'log',
-            event.data.message || '',
-            'preview'
-        );
-    }
-});
