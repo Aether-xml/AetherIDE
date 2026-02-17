@@ -72,6 +72,11 @@ Think deeply. Quality over speed.`,
         this.thinkingContent = '';
 
         const config = this.getConfig();
+        const fileContext = this.buildFileContext();
+
+        const planPrompt = fileContext
+            ? config.planPrompt + '\n\n' + fileContext
+            : config.planPrompt;
 
         const messages = chat.messages.map(m => ({
             role: m.role,
@@ -80,7 +85,7 @@ Think deeply. Quality over speed.`,
 
         try {
             const result = await API.sendMessage(messages, model, {
-                systemPrompt: config.planPrompt,
+                systemPrompt: planPrompt,
                 temperature: config.temperature,
                 maxTokens: config.maxTokens,
             });
@@ -128,6 +133,22 @@ Think deeply. Quality over speed.`,
         }
     },
 
+    // Mevcut dosya bağlamını oluştur
+    buildFileContext() {
+        if (Editor.files.length === 0) return '';
+
+        let context = '\n\n--- CURRENT PROJECT FILES ---\n';
+        for (const file of Editor.files) {
+            const preview = file.code.length > 2000
+                ? file.code.substring(0, 2000) + '\n... (truncated)'
+                : file.code;
+            context += `\n📄 ${file.filename} (${file.language}):\n\`\`\`${file.language}:${file.filename}\n${preview}\n\`\`\`\n`;
+        }
+        context += '--- END PROJECT FILES ---\n';
+        context += '\nIMPORTANT: When modifying existing files, output the COMPLETE updated file content using the same ```language:filename format. Do not skip unchanged parts. Always write the full file.\n';
+        return context;
+    },
+
     async executePlan(chat, model) {
         Chat.setGenerating(true);
         this.showPlanActions(false);
@@ -136,8 +157,9 @@ Think deeply. Quality over speed.`,
 
         const config = this.getConfig();
         const basePrompt = Storage.getSettings().systemPrompt;
+        const fileContext = this.buildFileContext();
 
-        const systemPrompt = basePrompt + '\n\n' + config.codePrompt;
+        const systemPrompt = basePrompt + '\n\n' + config.codePrompt + fileContext;
 
         const messages = chat.messages.map(m => ({
             role: m.role,
