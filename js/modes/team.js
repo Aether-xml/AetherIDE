@@ -250,19 +250,24 @@ End with: "**Do you approve this plan?** We're ready to start coding!"`;
         return content;
     },
 
-    // Mevcut dosya bağlamını oluştur
     buildFileContext() {
         if (Editor.files.length === 0) return '';
 
         let context = '\n\n--- CURRENT PROJECT FILES ---\n';
+        context += `Total files: ${Editor.files.length}\n`;
+
         for (const file of Editor.files) {
-            const preview = file.code.length > 1500
-                ? file.code.substring(0, 1500) + '\n... (truncated)'
+            const lines = file.code.split('\n').length;
+            const chars = file.code.length;
+            const preview = chars > 2500
+                ? file.code.substring(0, 2500) + '\n... (truncated, full file has ' + lines + ' lines)'
                 : file.code;
-            context += `\n📄 ${file.filename} (${file.language}):\n\`\`\`${file.language}:${file.filename}\n${preview}\n\`\`\`\n`;
+            context += `\n📄 ${file.filename} (${file.language}, ${lines} lines):\n\`\`\`${file.language}:${file.filename}\n${preview}\n\`\`\`\n`;
         }
-        context += '--- END PROJECT FILES ---\n';
-        context += '\nWhen modifying existing files, output the COMPLETE updated file. Never skip parts.\n';
+
+        context += '--- END PROJECT FILES ---\n\n';
+        context += `RULES: When modifying existing files, output the COMPLETE file. NEVER skip lines or use placeholders. Files can include folder paths like src/components/App.js\n`;
+
         return context;
     },
 
