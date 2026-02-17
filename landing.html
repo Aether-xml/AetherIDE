@@ -650,7 +650,7 @@
             <a href="https://discord.gg/7YKCvPzKEQ" target="_blank" class="nav-link">Discord</a>
             <a href="/app" class="nav-cta">Open AetherIDE <i data-lucide="arrow-right" style="width:16px;height:16px;"></i></a>
         </div>
-        <button class="nav-menu-btn" id="nav-menu-btn" onclick="document.getElementById('nav-links').classList.toggle('open')">
+        <button class="nav-menu-btn" id="nav-menu-btn" onclick="toggleMobileMenu()">
             <i data-lucide="menu"></i>
         </button>
     </nav>
@@ -922,10 +922,26 @@
 
         document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
 
-        // Mobile menu close on link click
-        document.querySelectorAll('.nav-link').forEach(link => {
+        // Mobile menu
+        function toggleMobileMenu() {
+            const links = document.getElementById('nav-links');
+            const btn = document.getElementById('nav-menu-btn');
+            links?.classList.toggle('open');
+            // İkon değiştir
+            if (links?.classList.contains('open')) {
+                btn.innerHTML = '<i data-lucide="x" style="width:22px;height:22px;"></i>';
+            } else {
+                btn.innerHTML = '<i data-lucide="menu" style="width:22px;height:22px;"></i>';
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        document.querySelectorAll('.nav-link, .nav-cta').forEach(link => {
             link.addEventListener('click', () => {
                 document.getElementById('nav-links')?.classList.remove('open');
+                const btn = document.getElementById('nav-menu-btn');
+                if (btn) btn.innerHTML = '<i data-lucide="menu" style="width:22px;height:22px;"></i>';
+                if (window.lucide) lucide.createIcons();
             });
         });
     </script>
