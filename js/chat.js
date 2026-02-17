@@ -309,6 +309,12 @@ const Chat = {
 
         if (!text || this.isGenerating) return;
 
+        // Çok kısa mesaj uyarısı (sadece boşluk/sembol)
+        if (text.replace(/[^\w]/g, '').length === 0) {
+            Utils.toast('Please type a meaningful message', 'warning', 2000);
+            return;
+        }
+
         if (!API.hasApiKey()) {
             Utils.toast('Please add your API key in Settings', 'warning');
             return;
@@ -455,6 +461,9 @@ const Chat = {
         if (window.lucide) lucide.createIcons({ nodes: [container] });
     },
 
+    _lastStreamUpdate: 0,
+    _streamUpdatePending: null,
+
     updateStreamMessage(content) {
         const container = document.getElementById('messages-container');
         if (!container) return;
@@ -484,12 +493,31 @@ const Chat = {
             if (window.lucide) lucide.createIcons({ nodes: [div] });
         }
 
+        // Throttle DOM güncellemeleri — max 100ms'de bir
+        const now = Date.now();
+        if (now - this._lastStreamUpdate < 100) {
+            if (this._streamUpdatePending) cancelAnimationFrame(this._streamUpdatePending);
+            this._streamUpdatePending = requestAnimationFrame(() => {
+                this._renderStreamBody(content);
+            });
+            return;
+        }
+
+        this._lastStreamUpdate = now;
+        this._renderStreamBody(content);
+    },
+
+    _renderStreamBody(content) {
         const body = document.getElementById('stream-body');
         if (body) {
             body.innerHTML = Utils.parseMarkdownWithFileCards(content, true);
-            if (window.lucide) lucide.createIcons({ nodes: [body] });
+            // Lucide ikonları sadece yeni eklenen file-card'lar için
+            const newCards = body.querySelectorAll('.file-card:not([data-icons-init])');
+            if (newCards.length > 0) {
+                newCards.forEach(c => c.setAttribute('data-icons-init', '1'));
+                if (window.lucide) lucide.createIcons({ nodes: Array.from(newCards) });
+            }
         }
-
         this.scrollToBottom(false);
     },
 
@@ -532,6 +560,13 @@ const Chat = {
             if (typing) typing.remove();
             const streamMsg = document.getElementById('stream-message');
             if (streamMsg) streamMsg.remove();
+
+            // Stream throttle temizle
+            if (Chat._streamUpdatePending) {
+                cancelAnimationFrame(Chat._streamUpdatePending);
+                Chat._streamUpdatePending = null;
+            }
+            Chat._lastStreamUpdate = 0;
         }
 
         if (window.lucide && sendBtn) lucide.createIcons({ nodes: [sendBtn] });
