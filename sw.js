@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aetheride-v1.4.0';
+const CACHE_NAME = 'aetheride-v1.3.1';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
