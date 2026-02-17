@@ -191,6 +191,7 @@ const Settings = {
         if (modal) {
             modal.style.display = 'flex';
             this.loadSettings();
+            this.populateDefaultModel();
             if (window.lucide) lucide.createIcons();
         }
     },
@@ -198,6 +199,29 @@ const Settings = {
     close() {
         const modal = document.getElementById('settings-modal');
         if (modal) modal.style.display = 'none';
+    },
+
+    // Default model select'i doldur
+    populateDefaultModel() {
+        const select = document.getElementById('default-model-select');
+        if (!select) return;
+
+        const models = API.getModelsForCurrentProvider();
+        const settings = Storage.getSettings();
+
+        // Mevcut seçenekleri temizle (ilk option hariç)
+        while (select.options.length > 1) select.remove(1);
+
+        models.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            opt.textContent = m.name;
+            select.appendChild(opt);
+        });
+
+        if (settings.defaultModel) {
+            select.value = settings.defaultModel;
+        }
     },
 
     save() {
@@ -233,10 +257,22 @@ const Settings = {
         ThemeManager.apply(settings.theme);
         LayoutManager.apply(settings.layout);
 
-        // Model listesini güncelle
-        App.populateModels();
+        // Font size uygula
+        document.documentElement.style.setProperty('--editor-font-size', settings.fontSize + 'px');
 
-        if (currentKey) this.checkApiKey(currentKey, this.currentProvider);
+        // Model listesini provider değişikliğine göre güncelle
+        Sandbox.populateModelSelects();
+
+        // API key varsa bağlantı durumunu güncelle
+        if (currentKey) {
+            this.checkApiKey(currentKey, this.currentProvider);
+            API.updateConnectionStatus('online');
+        }
+
+        // Default model varsa ve aktif model yoksa, onu seç
+        if (settings.defaultModel && !App.currentModel) {
+            App.selectModel(settings.defaultModel);
+        }
 
         this.close();
         Utils.toast('Settings saved!', 'success');
