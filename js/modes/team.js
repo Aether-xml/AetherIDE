@@ -139,8 +139,12 @@ When writing code, ONLY write JS/logic files using the format: \`\`\`javascript:
             .map(d => `[${d.agent.toUpperCase()} - Round ${d.round}]: ${d.content}`)
             .join('\n\n');
 
+        const existingFiles = Editor.files.length > 0
+            ? `\n\nEXISTING PROJECT FILES: ${Editor.files.map(f => f.filename).join(', ')}\nThe user may want modifications to these existing files.`
+            : '';
+
         const prompts = {
-            designer: `USER REQUEST: ${userRequest}
+            designer: `USER REQUEST: ${userRequest}${existingFiles}
 
 ${previousDiscussion ? `PREVIOUS DISCUSSION:\n${previousDiscussion}\n\n` : ''}
 
@@ -151,7 +155,7 @@ ${round === 1
 
 Keep response under 150 words. Be constructive.`,
 
-            pm: `USER REQUEST: ${userRequest}
+            pm: `USER REQUEST: ${userRequest}${existingFiles}
 
 ${previousDiscussion ? `PREVIOUS DISCUSSION:\n${previousDiscussion}\n\n` : ''}
 
@@ -162,7 +166,7 @@ ${round === 1
 
 Keep response under 150 words. Be organized.`,
 
-            developer: `USER REQUEST: ${userRequest}
+            developer: `USER REQUEST: ${userRequest}${existingFiles}
 
 ${previousDiscussion ? `PREVIOUS DISCUSSION:\n${previousDiscussion}\n\n` : ''}
 
@@ -246,12 +250,29 @@ End with: "**Do you approve this plan?** We're ready to start coding!"`;
         return content;
     },
 
+    // Mevcut dosya bağlamını oluştur
+    buildFileContext() {
+        if (Editor.files.length === 0) return '';
+
+        let context = '\n\n--- CURRENT PROJECT FILES ---\n';
+        for (const file of Editor.files) {
+            const preview = file.code.length > 1500
+                ? file.code.substring(0, 1500) + '\n... (truncated)'
+                : file.code;
+            context += `\n📄 ${file.filename} (${file.language}):\n\`\`\`${file.language}:${file.filename}\n${preview}\n\`\`\`\n`;
+        }
+        context += '--- END PROJECT FILES ---\n';
+        context += '\nWhen modifying existing files, output the COMPLETE updated file. Never skip parts.\n';
+        return context;
+    },
+
     async executeCode(chat, model) {
         Chat.setGenerating(true);
         this.showApprovalActions(false);
         this.showTeamAgents(true);
 
         const userRequest = chat.messages.find(m => m.role === 'user')?.content || '';
+        const fileContext = this.buildFileContext();
         const fullDiscussion = this.discussionLog
             .map(d => `[${d.agent.toUpperCase()}]: ${d.content}`)
             .join('\n\n');
@@ -307,20 +328,23 @@ End with: "**Do you approve this plan?** We're ready to start coding!"`;
 
     async runCodingAgent(agentType, userRequest, model, discussion, prevCode1 = '', prevCode2 = '') {
         const basePrompt = Storage.getSettings().systemPrompt;
+        const fileContext = this.buildFileContext();
 
         const roleContext = {
-            designer: `Based on the team discussion, create the CSS/style files.
+            designer: `Based on the team discussion, create or update the CSS/style files.
 Make it beautiful and responsive.
-${prevCode1 ? '' : ''}`,
+${fileContext ? '\nExisting project files are provided below — update them if needed, or create new ones.' : ''}`,
 
-            pm: `Based on the team discussion, create the HTML structure files.
+            pm: `Based on the team discussion, create or update the HTML structure files.
 Reference the CSS files the designer created.
+${fileContext ? '\nExisting project files are provided below — update them if needed, or create new ones.' : ''}
 
 Designer's CSS:
 ${prevCode1}`,
 
-            developer: `Based on the team discussion, create the JavaScript files.
+            developer: `Based on the team discussion, create or update the JavaScript files.
 Make everything functional.
+${fileContext ? '\nExisting project files are provided below — update them if needed, or create new ones.' : ''}
 
 Designer's CSS:
 ${prevCode1}
@@ -335,8 +359,9 @@ USER REQUEST: ${userRequest}
 
 TEAM DISCUSSION SUMMARY:
 ${discussion}
+${fileContext}
 
-Write your code files now. Use complete, production-ready code.`;
+Write your code files now. Use complete, production-ready code. When updating existing files, write the COMPLETE file content.`;
 
         const messages = [{ role: 'user', content: prompt }];
 
