@@ -271,7 +271,7 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
 
         let html = Utils.escapeHtml(text);
 
-        html = html.replace(/```(\w*?)(?::([^\n]*))?\n([\s\S]*?)```/g, (match, lang, filename, code) => {
+        html = html.replace(/```\s*(\w*?)(?:\s*:\s*([^\n]*?))?\s*\n([\s\S]*?)```/g, (match, lang, filename, code) => {
             const langLabel = lang || 'code';
             const displayName = filename?.trim()
                 ? `<i data-lucide="file-code" style="width:12px;height:12px;display:inline-block;vertical-align:middle;margin-right:4px;"></i>${filename.trim()}`
@@ -336,14 +336,14 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
         let html = Utils.escapeHtml(text);
 
         // Tamamlanmış kod blokları
-        html = html.replace(/```(\w*?)(?::([^\n]*))?\n([\s\S]*?)```/g, (match, lang, filename, code) => {
+        html = html.replace(/```\s*(\w*?)(?:\s*:\s*([^\n]*?))?\s*\n([\s\S]*?)```/g, (match, lang, filename, code) => {
             const langLabel = lang || 'code';
             const trimmedCode = code?.trim() || '';
             const lines = trimmedCode.split('\n').length;
             const chars = trimmedCode.length;
 
             if (filename?.trim()) {
-                const fname = filename.trim();
+                let fname = filename.trim().replace(/^\.\//, '').replace(/^\//, '');
                 const iconName = Utils.getFileIcon(langLabel);
                 const exists = Editor.files.some(f => f.filename === fname);
                 const statusLabel = exists ? 'Updated' : 'Created';
@@ -384,12 +384,14 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
             }
         });
 
-        // Devam eden bloklar
-        html = html.replace(/```(\w*?)(?::([^\n]*))?\n([\s\S]*)$/g, (match, lang, filename, code) => {
+        // Devam eden bloklar (stream sırasında)
+        html = html.replace(/```\s*(\w*?)(?:\s*:\s*([^\n]*?))?\s*\n([\s\S]*)$/g, (match, lang, filename, code) => {
             const langLabel = lang || 'code';
             const fname = filename?.trim() || '';
             const lineCount = (code?.trim() || '').split('\n').length;
-            const displayName = fname || `output.${Utils.getExtension(langLabel)}`;
+            let displayName = fname || `output.${Utils.getExtension(langLabel)}`;
+            // Baştaki ./ temizle
+            if (displayName.startsWith('./')) displayName = displayName.slice(2);
             const iconName = Utils.getFileIcon(langLabel);
 
             const exists = Editor.files.some(f => f.filename === displayName);
@@ -538,32 +540,79 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
 
     extractCodeBlocks(text) {
         const blocks = [];
-        // Tamamlanmış kod blokları
-        const regex = /```(\w*?)(?::([^\n]+))?\n([\s\S]*?)```/g;
+        if (!text) return blocks;
+
+        // Daha kapsamlı regex:
+        // - Dil adından sonra : veya boşluk+: ile dosya adı
+        // - Dosya adında harf, rakam, nokta, tire, alt çizgi, slash olabilir
+        // - ``` sonrası boşluk toleransı
+        // - Satır sonu \r\n ve \n desteği
+        const regex = /```\s*(\w+?)(?:\s*:\s*([^\n\r]+?))?\s*[\r\n]+([\s\S]*?)```/g;
         let match;
         let fileIndex = 0;
+        const seenFiles = new Map(); // Aynı dosya birden fazla gelirse son halini al
 
         while ((match = regex.exec(text)) !== null) {
-            const language = match[1] || '';
-            const filename = match[2]?.trim() || '';
-            const code = match[3]?.trim() || '';
-            if (!code) continue;
+            let language = (match[1] || '').trim().toLowerCase();
+            let filename = (match[2] || '').trim();
+            let code = match[3] || '';
 
-            // Çok kısa kodları atla (genelde hatalı parse)
-            if (code.length < 3) continue;
+            // Sondaki boşlukları temizle ama yapıyı koru
+            code = code.replace(/\s+$/, '');
 
-            fileIndex++;
-            let finalFilename = filename;
-            if (!finalFilename) {
-                const ext = Utils.getExtension(language);
-                finalFilename = `file${fileIndex}.${ext}`;
+            if (!code || code.length < 3) continue;
+
+            // Dil alias'larını normalize et
+            const langAliases = {
+                'js': 'javascript', 'ts': 'typescript', 'py': 'python',
+                'rb': 'ruby', 'sh': 'bash', 'shell': 'bash',
+                'htm': 'html', 'yml': 'yaml', 'kt': 'kotlin',
+                'rs': 'rust', 'cs': 'csharp', 'md': 'markdown',
+                'jsx': 'javascript', 'tsx': 'typescript',
+                'scss': 'css', 'sass': 'css', 'less': 'css',
+            };
+            if (langAliases[language]) language = langAliases[language];
+
+            // Dosya adı temizleme
+            if (filename) {
+                // Baştaki ./ veya / temizle
+                filename = filename.replace(/^\.\//, '').replace(/^\//, '');
+                // Geçersiz karakterleri temizle
+                filename = filename.replace(/[<>"|?*]/g, '');
+                // Boşlukları trim et
+                filename = filename.trim();
             }
 
-            blocks.push({
+            // Dosya adı yoksa otomatik oluştur
+            if (!filename) {
+                fileIndex++;
+                const ext = Utils.getExtension(language);
+
+                // Eğer tek dosyalık basit bir bloksa, dile göre mantıklı isim ver
+                if (language === 'html') filename = fileIndex === 1 ? 'index.html' : `page${fileIndex}.html`;
+                else if (language === 'css') filename = fileIndex === 1 ? 'styles.css' : `styles${fileIndex}.css`;
+                else if (language === 'javascript') filename = fileIndex === 1 ? 'script.js' : `script${fileIndex}.js`;
+                else if (language === 'python') filename = fileIndex === 1 ? 'main.py' : `script${fileIndex}.py`;
+                else filename = `file${fileIndex}.${ext}`;
+            }
+
+            // Dosya adı validasyonu — en az bir nokta ve uzantı olmalı
+            if (!filename.includes('.')) {
+                const ext = Utils.getExtension(language);
+                filename = filename + '.' + ext;
+            }
+
+            // Aynı dosya tekrar geldiyse güncelle (son hali geçerli)
+            seenFiles.set(filename, {
                 language: language || Utils.detectLanguage(code),
-                filename: finalFilename,
+                filename: filename,
                 code: code,
             });
+        }
+
+        // Map'ten array'e çevir (sırayı koru)
+        for (const [, block] of seenFiles) {
+            blocks.push(block);
         }
 
         return blocks;
