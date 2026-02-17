@@ -18,7 +18,9 @@ const Chat = {
         const sendBtn = document.getElementById('send-btn');
         const input = document.getElementById('message-input');
 
-        sendBtn?.addEventListener('click', () => this.sendMessage());
+        // Send click handler'ı sakla — setGenerating'de kullanılacak
+        Chat._sendClickHandler = () => Chat.sendMessage();
+        sendBtn?.addEventListener('click', Chat._sendClickHandler);
 
         input?.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -548,6 +550,8 @@ const Chat = {
         this.scrollToBottom(false);
     },
 
+    _stopHandler: null,
+
     setGenerating(generating) {
         this.isGenerating = generating;
 
@@ -555,15 +559,31 @@ const Chat = {
         const input = document.getElementById('message-input');
         const indicator = document.getElementById('thinking-indicator');
 
+        // Eski stop handler'ı temizle
+        if (this._stopHandler && sendBtn) {
+            sendBtn.removeEventListener('click', this._stopHandler);
+            this._stopHandler = null;
+        }
+
         if (generating) {
             this.userScrolledUp = false;
             if (sendBtn) {
                 sendBtn.innerHTML = '<i data-lucide="square"></i>';
                 sendBtn.disabled = false;
-                sendBtn.onclick = () => {
+
+                // Yeni stop handler oluştur
+                this._stopHandler = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Sadece bir kez çalışsın
+                    if (!this.isGenerating) return;
                     API.abort();
                     this.setGenerating(false);
+                    Utils.toast('Generation stopped', 'info');
                 };
+                sendBtn.addEventListener('click', this._stopHandler);
+                // onclick'i temizle — addEventListener kullanıyoruz
+                sendBtn.onclick = null;
             }
             if (input) input.disabled = true;
             if (indicator) indicator.style.display = 'flex';
@@ -573,7 +593,10 @@ const Chat = {
             if (sendBtn) {
                 sendBtn.innerHTML = '<i data-lucide="arrow-up"></i>';
                 sendBtn.disabled = !input?.value?.trim();
-                sendBtn.onclick = () => Chat.sendMessage();
+                sendBtn.onclick = null;
+
+                // Send handler'ı geri koy
+                sendBtn.addEventListener('click', Chat._sendClickHandler);
             }
             if (input) {
                 input.disabled = false;
