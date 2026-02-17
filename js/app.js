@@ -16,7 +16,7 @@ const App = {
     isEnhancing: false,
 
     init() {
-        console.log('⚡ AetherIDE v1.2.0 initializing...');
+        console.log('⚡ AetherIDE v1.4.3 initializing...');
 
         ThemeManager.init();
         LayoutManager.init();
@@ -28,12 +28,26 @@ const App = {
         this.bindEvents();
         this.loadState();
         this.initModelSelector();
+        this.initConsoleListener();
 
         if (API.hasApiKey()) {
             API.updateConnectionStatus('online');
         }
 
         console.log('⚡ AetherIDE ready!');
+    },
+
+    // Console mesajlarını dinle (iframe'den)
+    initConsoleListener() {
+        window.addEventListener('message', (event) => {
+            if (event.data?.type === 'aetheride-console') {
+                Editor.addConsoleLog(
+                    event.data.logType || 'log',
+                    event.data.message || '',
+                    'preview'
+                );
+            }
+        });
     },
 
     bindEvents() {
@@ -90,13 +104,12 @@ const App = {
 
         // Klavye kısayolları
         document.addEventListener('keydown', (e) => {
-            // Sandbox veya Settings modal açıksa kısayolları çalıştırma
             const sandboxModal = document.getElementById('sandbox-modal');
             const settingsModal = document.getElementById('settings-modal');
             const isSandboxOpen = sandboxModal && sandboxModal.style.display !== 'none';
             const isSettingsOpen = settingsModal && settingsModal.style.display !== 'none';
 
-            // Ctrl+Enter — Mesaj gönder (input odaklıyken)
+            // Ctrl+Enter — Mesaj gönder
             if (e.ctrlKey && e.key === 'Enter') {
                 e.preventDefault();
                 if (isSandboxOpen) {
@@ -120,11 +133,8 @@ const App = {
             // Ctrl+, — Ayarlar
             if (e.ctrlKey && e.key === ',') {
                 e.preventDefault();
-                if (isSettingsOpen) {
-                    Settings.close();
-                } else {
-                    Settings.open();
-                }
+                if (isSettingsOpen) Settings.close();
+                else Settings.open();
                 return;
             }
 
@@ -143,11 +153,8 @@ const App = {
             // Ctrl+Shift+S — Sandbox toggle
             if (e.ctrlKey && e.shiftKey && e.key === 'S') {
                 e.preventDefault();
-                if (isSandboxOpen) {
-                    Sandbox.close();
-                } else {
-                    Sandbox.open();
-                }
+                if (isSandboxOpen) Sandbox.close();
+                else Sandbox.open();
                 return;
             }
 
@@ -185,7 +192,7 @@ const App = {
                 return;
             }
 
-            // Ctrl+/ — Kısayol listesini göster
+            // Ctrl+/ — Kısayol listesi
             if (e.ctrlKey && e.key === '/') {
                 e.preventDefault();
                 this.showShortcutsHelp();
@@ -194,7 +201,6 @@ const App = {
         });
     },
 
-    // Kısayol yardım mesajı
     showShortcutsHelp() {
         const shortcuts = [
             'Ctrl+Enter — Send message',
@@ -215,6 +221,12 @@ const App = {
     async enhanceCurrentPrompt() {
         const input = document.getElementById('message-input');
         if (!input || !input.value.trim() || this.isEnhancing) return;
+
+        const settings = Storage.getSettings();
+        if (settings.promptEnhancer?.enabled === false) {
+            Utils.toast('Prompt enhancer is disabled. Enable it in Settings.', 'info');
+            return;
+        }
 
         if (!API.hasApiKey()) {
             Utils.toast('API key required for prompt enhancement', 'warning');
@@ -241,7 +253,6 @@ const App = {
                 Utils.autoResize(input);
                 document.getElementById('send-btn').disabled = false;
 
-                // Başarı animasyonu
                 if (enhanceBtn) {
                     enhanceBtn.classList.remove('enhancing');
                     enhanceBtn.classList.add('enhanced');
@@ -253,7 +264,7 @@ const App = {
                 Utils.toast('Prompt is already good!', 'info', 1500);
             }
         } catch (e) {
-            Utils.toast('Enhancement failed', 'error');
+            Utils.toast('Enhancement failed: ' + e.message, 'error');
         } finally {
             this.isEnhancing = false;
             if (enhanceBtn) {
@@ -263,11 +274,11 @@ const App = {
         }
     },
 
-    // ── Mode Ayarla (Mod kilidi dahil) ──
+    // ── Mode Ayarla ──
     setMode(mode) {
         if (!Modes[mode]) return;
 
-        // Team mode aktifken diğer modlara geçişi engelle
+        // Team mode aktifken geçişi engelle
         if (this.currentMode === 'team' && TeamMode.isActive() && mode !== 'team') {
             Utils.toast('Cannot switch modes while Team is active. Wait for completion or start a new chat.', 'warning', 4000);
             return;
@@ -279,10 +290,12 @@ const App = {
             return;
         }
 
-        // Aktif sohbet varsa ve mesaj varsa, mod değişimini engelle
+        // Aktif sohbet modundan farklı moda geçişi engelle
         if (Chat.currentChat && Chat.currentChat.messages.length > 0 && Chat.currentChat.mode) {
             if (Chat.currentChat.mode !== mode) {
-                Utils.toast(`This chat was started in ${Chat.currentChat.mode.charAt(0).toUpperCase() + Chat.currentChat.mode.slice(1)} mode. Start a new chat to use ${mode.charAt(0).toUpperCase() + mode.slice(1)} mode.`, 'warning', 4000);
+                const currentModeName = Chat.currentChat.mode.charAt(0).toUpperCase() + Chat.currentChat.mode.slice(1);
+                const newModeName = mode.charAt(0).toUpperCase() + mode.slice(1);
+                Utils.toast(`This chat uses ${currentModeName} mode. Start a new chat for ${newModeName}.`, 'warning', 4000);
                 return;
             }
         }
@@ -315,7 +328,7 @@ const App = {
             if (window.lucide) lucide.createIcons({ nodes: [statusMode] });
         }
 
-        // Planner/Team UI
+        // UI öğelerini güncelle
         const plannerEl = document.getElementById('planner-actions');
         const teamEl = document.getElementById('team-agents');
         const plannerSpeedEl = document.getElementById('planner-speed-section');
@@ -331,6 +344,7 @@ const App = {
         if (mode !== 'planner' && PlannerMode) {
             PlannerMode.phase = 'planning';
             PlannerMode.currentPlan = null;
+            PlannerMode.thinkingContent = '';
         }
 
         // Placeholder güncelle
@@ -396,6 +410,11 @@ const App = {
                     wrapper.classList.remove('open');
                 }
             }
+
+            // Escape ile kapat
+            if (e.key === 'Escape') {
+                wrapper.classList.remove('open');
+            }
         });
 
         const lastModel = Storage.getLastModel();
@@ -412,15 +431,16 @@ const App = {
         let html = '';
 
         if (filter) {
+            const lowerFilter = filter.toLowerCase();
             models = models.filter(m =>
-                m.name.toLowerCase().includes(filter.toLowerCase()) ||
-                m.id.toLowerCase().includes(filter.toLowerCase())
+                m.name.toLowerCase().includes(lowerFilter) ||
+                m.id.toLowerCase().includes(lowerFilter)
             );
 
             if (models.length === 0 && filter.includes('/')) {
                 html = `
                     <div class="select-option custom-model-option"
-                         onclick="App.selectModel('${Utils.escapeHtml(filter)}')">
+                         onclick="App.selectModel('${Utils.escapeHtml(filter)}'); document.getElementById('model-select-wrapper').classList.remove('open');">
                         <span class="custom-model-label">
                             <i data-lucide="plus-circle" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:6px;"></i>
                             Use: ${Utils.escapeHtml(filter)}
@@ -432,26 +452,30 @@ const App = {
         }
 
         // Kategoriye göre grupla
-        const categories = {
-            free: { label: '🆓 Free Models', models: [] },
-            thinking: { label: '🧠 Thinking Models', models: [] },
-            premium: { label: '⭐ Premium Models', models: [] },
+        const categories = {};
+        const categoryLabels = {
+            free: '🆓 Free Models',
+            thinking: '🧠 Thinking Models',
+            premium: '⭐ Premium Models',
+            latest: '🔥 Latest',
+            stable: '✅ Stable',
+            flagship: '🏆 Flagship',
+            reasoning: '🧠 Reasoning',
+            legacy: '📦 Legacy',
+            available: '📋 Available',
         };
 
         models.forEach(m => {
             const cat = m.category || 'premium';
-            if (categories[cat]) {
-                categories[cat].models.push(m);
-            } else {
-                categories.premium.models.push(m);
-            }
+            if (!categories[cat]) categories[cat] = [];
+            categories[cat].push(m);
         });
 
-        for (const [key, cat] of Object.entries(categories)) {
-            if (cat.models.length === 0) continue;
+        for (const [key, catModels] of Object.entries(categories)) {
+            if (catModels.length === 0) continue;
 
-            html += `<div class="select-category-label">${cat.label}</div>`;
-            html += cat.models.map(m => `
+            html += `<div class="select-category-label">${categoryLabels[key] || key}</div>`;
+            html += catModels.map(m => `
                 <div class="select-option ${m.id === this.currentModel ? 'selected' : ''}"
                      onclick="App.selectModel('${m.id}')">
                     <span>${m.name}</span>
@@ -470,10 +494,6 @@ const App = {
 
         optionsEl.innerHTML = html;
         if (window.lucide) lucide.createIcons({ nodes: [optionsEl] });
-    },
-
-    filterModels(query) {
-        this.populateModels(query);
     },
 
     selectModel(modelId) {
@@ -498,13 +518,12 @@ const App = {
 
         this.populateModels();
 
-        // API key varsa connection status güncelle
         if (API.hasApiKey()) {
             API.updateConnectionStatus('online');
         }
     },
 
-    // Mobil panel geçişi (animasyonlu)
+    // Mobil panel geçişi
     showMobilePanel(panel) {
         const chatPanel = document.getElementById('chat-panel');
         const codePanel = document.getElementById('code-panel');
@@ -527,6 +546,9 @@ const App = {
             codePanel.classList.add('panel-enter');
             tabChat?.classList.remove('active');
             tabCode?.classList.add('active');
+
+            // Kod paneline geçince editörü yeniden render et
+            Editor.renderCode();
         }
 
         // Animasyonu temizle
@@ -551,29 +573,26 @@ const App = {
 
         const doResize = (e) => {
             if (!isResizing) return;
+            e.preventDefault();
 
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const rect = container.getBoundingClientRect();
             const percent = ((clientX - rect.left) / rect.width) * 100;
 
-            // Layout'a göre sınırları ayarla
             const isReversed = document.body.classList.contains('layout-vscode') ||
                                document.body.classList.contains('layout-cursor');
 
             let clamped;
             if (isReversed) {
-                // Code sol, Chat sağ — code paneli boyutlandır
                 clamped = Math.max(20, Math.min(80, percent));
                 codePanel.style.flex = `0 0 ${clamped}%`;
                 chatPanel.style.flex = `0 0 ${100 - clamped}%`;
             } else {
-                // Chat sol, Code sağ — chat paneli boyutlandır
                 clamped = Math.max(20, Math.min(80, percent));
                 chatPanel.style.flex = `0 0 ${clamped}%`;
                 codePanel.style.flex = `0 0 ${100 - clamped}%`;
             }
 
-            // Iframe seçim sorununu önle
             const iframe = document.getElementById('preview-iframe');
             if (iframe) iframe.style.pointerEvents = 'none';
         };
@@ -585,16 +604,13 @@ const App = {
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
 
-            // Iframe etkileşimini geri aç
             const iframe = document.getElementById('preview-iframe');
             if (iframe) iframe.style.pointerEvents = '';
 
-            // Kaydet
             savedChatFlex = chatPanel.style.flex;
             savedCodeFlex = codePanel.style.flex;
         };
 
-        // Mouse events
         resizer.addEventListener('mousedown', (e) => {
             isResizing = true;
             resizer.classList.add('active');
@@ -606,7 +622,6 @@ const App = {
         document.addEventListener('mousemove', doResize);
         document.addEventListener('mouseup', stopResize);
 
-        // Touch events (tablet desteği)
         resizer.addEventListener('touchstart', (e) => {
             isResizing = true;
             resizer.classList.add('active');
@@ -616,7 +631,6 @@ const App = {
         document.addEventListener('touchmove', doResize, { passive: false });
         document.addEventListener('touchend', stopResize);
 
-        // Pencere boyutu değiştiğinde panelleri sıfırla
         window.addEventListener('resize', Utils.debounce(() => {
             if (window.innerWidth <= 768) {
                 chatPanel.style.flex = '';
@@ -627,7 +641,6 @@ const App = {
             }
         }, 200));
 
-        // Çift tıkla sıfırla
         resizer.addEventListener('dblclick', () => {
             chatPanel.style.flex = '';
             codePanel.style.flex = '';
@@ -640,6 +653,12 @@ const App = {
     loadState() {
         const lastMode = Storage.getLastMode();
         if (lastMode) this.setMode(lastMode);
+
+        // Font size uygula
+        const settings = Storage.getSettings();
+        if (settings.fontSize) {
+            document.documentElement.style.setProperty('--editor-font-size', settings.fontSize + 'px');
+        }
     },
 };
 
