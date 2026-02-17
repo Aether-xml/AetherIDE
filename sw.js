@@ -2,6 +2,7 @@ const CACHE_NAME = 'aetheride-v1.4.0';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
+    '/landing.html',
     '/404.html',
     '/manifest.json',
     '/css/main.css',
