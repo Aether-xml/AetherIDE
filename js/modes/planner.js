@@ -78,10 +78,19 @@ Think deeply. Quality over speed.`,
             ? config.planPrompt + '\n\n' + fileContext
             : config.planPrompt;
 
-        const messages = chat.messages.map(m => ({
-            role: m.role,
-            content: m.content,
-        }));
+        // Mesajları filtrele
+        const messages = [];
+        for (const m of chat.messages) {
+            if (m.role === 'user' || m.role === 'assistant') {
+                messages.push({ role: m.role, content: m.content });
+            }
+        }
+
+        if (messages.length === 0) {
+            Chat.addAssistantMessage('No message to process. Please type something.');
+            Chat.setGenerating(false);
+            return;
+        }
 
         try {
             const result = await API.sendMessage(messages, model, {
@@ -90,18 +99,41 @@ Think deeply. Quality over speed.`,
                 maxTokens: config.maxTokens,
             });
 
+            if (!result) {
+                Chat.addAssistantMessage('**Error:** No response received. Please try again.');
+                Chat.setGenerating(false);
+                return;
+            }
+
+            if (result.aborted) {
+                Utils.toast('Generation stopped', 'info');
+                Chat.setGenerating(false);
+                return;
+            }
+
             let fullContent = '';
 
             if (result && typeof result[Symbol.asyncIterator] === 'function') {
-                for await (const chunk of result) {
-                    fullContent += chunk;
+                try {
+                    for await (const chunk of result) {
+                        if (!chunk) continue;
+                        fullContent += chunk;
 
-                    // Pro modda thinking bloğunu ayır
-                    if (this.speed === 'pro') {
-                        this.processThinking(fullContent);
+                        if (this.speed === 'pro') {
+                            this.processThinking(fullContent);
+                        }
+
+                        Chat.updateStreamMessage(this.getDisplayContent(fullContent));
                     }
-
-                    Chat.updateStreamMessage(this.getDisplayContent(fullContent));
+                } catch (streamError) {
+                    if (streamError.name !== 'AbortError') {
+                        console.error('Planner stream error:', streamError);
+                    }
+                    if (!fullContent.trim()) {
+                        Chat.addAssistantMessage(`**Error:** Stream failed: ${streamError.message}`);
+                        Chat.setGenerating(false);
+                        return;
+                    }
                 }
             } else if (result && result.content) {
                 fullContent = result.content;
@@ -110,24 +142,28 @@ Think deeply. Quality over speed.`,
                 }
             }
 
-            if (fullContent) {
+            if (fullContent.trim()) {
                 this.currentPlan = fullContent;
                 this.phase = 'reviewing';
 
-                // Thinking bloğunu mesajdan çıkar, sadece planı göster
                 const displayContent = this.getDisplayContent(fullContent);
                 Chat.addAssistantMessage(displayContent);
 
-                // Pro modda thinking panel'i göster
                 if (this.speed === 'pro' && this.thinkingContent) {
                     this.showThinkingDisplay(true);
                 }
 
                 this.showPlanActions(true);
+            } else {
+                Chat.addAssistantMessage('**Error:** Empty response from AI. Please try again.');
             }
         } catch (error) {
-            Chat.addAssistantMessage(`**Error:** ${error.message}`);
-            Utils.toast(error.message, 'error');
+            if (error.name === 'AbortError') {
+                Utils.toast('Generation stopped', 'info');
+            } else {
+                Chat.addAssistantMessage(`**Error:** ${error.message}`);
+                Utils.toast(error.message, 'error');
+            }
         } finally {
             Chat.setGenerating(false);
         }
@@ -161,10 +197,14 @@ Think deeply. Quality over speed.`,
 
         const systemPrompt = basePrompt + '\n\n' + config.codePrompt + fileContext;
 
-        const messages = chat.messages.map(m => ({
-            role: m.role,
-            content: m.content,
-        }));
+        const messages = [];
+        for (const m of chat.messages) {
+            if (m.role === 'user' || m.role === 'assistant') {
+                messages.push({ role: m.role, content: m.content });
+            }
+        }
+
+        let fullContent = '';
 
         try {
             const result = await API.sendMessage(messages, model, {
@@ -173,27 +213,52 @@ Think deeply. Quality over speed.`,
                 maxTokens: config.maxTokens,
             });
 
-            let fullContent = '';
+            if (!result) {
+                Chat.addAssistantMessage('**Error:** No response received. Please try again.');
+                this.phase = 'planning';
+                this.currentPlan = null;
+                Chat.setGenerating(false);
+                return;
+            }
+
+            if (result.aborted) {
+                Utils.toast('Generation stopped', 'info');
+                this.phase = 'planning';
+                this.currentPlan = null;
+                Chat.setGenerating(false);
+                return;
+            }
 
             if (result && typeof result[Symbol.asyncIterator] === 'function') {
-                for await (const chunk of result) {
-                    fullContent += chunk;
+                let lastCodeUpdate = 0;
 
-                    if (this.speed === 'pro') {
-                        this.processThinking(fullContent);
+                try {
+                    for await (const chunk of result) {
+                        if (!chunk) continue;
+                        fullContent += chunk;
+
+                        if (this.speed === 'pro') {
+                            this.processThinking(fullContent);
+                        }
+
+                        Chat.updateStreamMessage(this.getDisplayContent(fullContent));
+
+                        const now = Date.now();
+                        if (fullContent.includes('```') && now - lastCodeUpdate > 800) {
+                            Editor.updateCode(fullContent);
+                            lastCodeUpdate = now;
+                        }
                     }
-
-                    Chat.updateStreamMessage(this.getDisplayContent(fullContent));
-
-                    if (fullContent.includes('```')) {
-                        Editor.updateCode(fullContent);
+                } catch (streamError) {
+                    if (streamError.name !== 'AbortError') {
+                        console.error('Planner executePlan stream error:', streamError);
                     }
                 }
             } else if (result && result.content) {
                 fullContent = result.content;
             }
 
-            if (fullContent) {
+            if (fullContent.trim()) {
                 const displayContent = this.getDisplayContent(fullContent);
                 Chat.addAssistantMessage(displayContent);
 
@@ -204,13 +269,29 @@ Think deeply. Quality over speed.`,
                 if (this.speed === 'pro' && this.thinkingContent) {
                     this.showThinkingDisplay(true);
                 }
+            } else {
+                Chat.addAssistantMessage('**Error:** Empty response. Please try again.');
             }
 
             this.phase = 'planning';
             this.currentPlan = null;
         } catch (error) {
-            Chat.addAssistantMessage(`**Error:** ${error.message}`);
-            Utils.toast(error.message, 'error');
+            if (error.name === 'AbortError') {
+                if (fullContent.trim()) {
+                    Chat.addAssistantMessage(this.getDisplayContent(fullContent));
+                    if (fullContent.includes('```')) {
+                        Editor.updateCode(fullContent);
+                    }
+                    Utils.toast('Stream interrupted — partial content saved', 'warning');
+                } else {
+                    Utils.toast('Generation stopped', 'info');
+                }
+            } else {
+                Chat.addAssistantMessage(`**Error:** ${error.message}`);
+                Utils.toast(error.message, 'error');
+            }
+            this.phase = 'planning';
+            this.currentPlan = null;
         } finally {
             Chat.setGenerating(false);
         }
