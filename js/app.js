@@ -35,6 +35,9 @@ const App = {
         }
 
         console.log('⚡ AetherIDE ready!');
+
+        // Show setup wizard for first-time users
+        SetupWizard.show();
     },
 
     // Console mesajlarını dinle (iframe'den)
