@@ -28,19 +28,21 @@ const STATIC_ASSETS = [
     '/assets/icons/icon-512.png',
 ];
 
+// CDN kaynakları — network-first
 const CDN_PATTERNS = [
     'fonts.googleapis.com',
     'fonts.gstatic.com',
     'unpkg.com',
 ];
 
+// API istekleri — asla cache'leme
 const API_PATTERNS = [
     'openrouter.ai',
     'generativelanguage.googleapis.com',
     'api.openai.com',
 ];
 
-// Install
+// ── Install ──
 self.addEventListener('install', (e) => {
     e.waitUntil(
         caches.open(CACHE_NAME)
@@ -49,26 +51,30 @@ self.addEventListener('install', (e) => {
     );
 });
 
-// Activate — eski cache temizle
+// ── Activate — eski cache'leri temizle ──
 self.addEventListener('activate', (e) => {
     e.waitUntil(
         caches.keys().then(keys =>
-            Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+            Promise.all(
+                keys
+                    .filter(key => key !== CACHE_NAME)
+                    .map(key => caches.delete(key))
+            )
         ).then(() => self.clients.claim())
     );
 });
 
-// Fetch
+// ── Fetch ──
 self.addEventListener('fetch', (e) => {
     const url = new URL(e.request.url);
 
-    // API — network only
+    // API istekleri — network only
     if (API_PATTERNS.some(p => url.hostname.includes(p))) {
         e.respondWith(fetch(e.request));
         return;
     }
 
-    // Root ve /app — network first
+    // Root ve /app — her zaman network first (routing için)
     if (url.pathname === '/' || url.pathname === '/app' || url.pathname === '/app/') {
         e.respondWith(
             fetch(e.request)
@@ -82,7 +88,7 @@ self.addEventListener('fetch', (e) => {
         return;
     }
 
-    // CDN — network first
+    // CDN kaynakları — network first, fallback cache
     if (CDN_PATTERNS.some(p => url.hostname.includes(p))) {
         e.respondWith(
             fetch(e.request)
@@ -96,12 +102,13 @@ self.addEventListener('fetch', (e) => {
         return;
     }
 
-    // Static — cache first
+    // Statik dosyalar — cache first, fallback network
     e.respondWith(
         caches.match(e.request)
             .then(cached => {
                 if (cached) return cached;
                 return fetch(e.request).then(response => {
+                    // Sadece başarılı GET isteklerini cache'le
                     if (response.ok && e.request.method === 'GET') {
                         const clone = response.clone();
                         caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
@@ -110,6 +117,7 @@ self.addEventListener('fetch', (e) => {
                 });
             })
             .catch(() => {
+                // Offline fallback — navigation istekleri için
                 if (e.request.mode === 'navigate') {
                     return caches.match('/index.html');
                 }
@@ -117,7 +125,9 @@ self.addEventListener('fetch', (e) => {
     );
 });
 
-// Skip waiting mesajı
+// ── Background Sync (gelecek için hazırlık) ──
 self.addEventListener('message', (e) => {
-    if (e.data === 'skipWaiting') self.skipWaiting();
+    if (e.data === 'skipWaiting') {
+        self.skipWaiting();
+    }
 });
