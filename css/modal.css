@@ -607,6 +607,71 @@
     }
 }
 
+/* ── Changelog ── */
+.changelog-container {
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    background: var(--bg-tertiary);
+}
+
+.changelog-release {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.changelog-release:last-child {
+    border-bottom: none;
+}
+
+.changelog-version-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.changelog-version {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--accent-primary);
+    font-family: var(--font-code);
+}
+
+.changelog-date {
+    font-size: 0.65rem;
+    color: var(--text-tertiary);
+    font-family: var(--font-code);
+}
+
+.changelog-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.changelog-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.changelog-type {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    width: 18px;
+    text-align: center;
+}
+
+.changelog-text {
+    flex: 1;
+    min-width: 0;
+}
+
 /* ── Discord Link ── */
 .about-links {
     display: flex;
