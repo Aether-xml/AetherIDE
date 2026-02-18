@@ -900,7 +900,7 @@
                             <i data-lucide="palette" class="settings-label-icon"></i>
                             Theme
                         </label>
-                        <div class="theme-options">
+                        <div class="theme-options" id="theme-options-container">
                             <button class="theme-option active" data-theme="dark">
                                 <i data-lucide="moon"></i>
                                 <span>Dark</span>
@@ -913,6 +913,35 @@
                                 <i data-lucide="stars"></i>
                                 <span>Midnight</span>
                             </button>
+                            <button class="theme-option" data-theme="nord">
+                                <i data-lucide="snowflake"></i>
+                                <span>Nord</span>
+                            </button>
+                            <button class="theme-option" data-theme="sunset">
+                                <i data-lucide="sunset"></i>
+                                <span>Sunset</span>
+                            </button>
+                            <button class="theme-option" data-theme="ocean">
+                                <i data-lucide="waves"></i>
+                                <span>Ocean</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Accent Color -->
+                    <div class="settings-group">
+                        <label class="settings-label">
+                            <i data-lucide="paintbrush" class="settings-label-icon"></i>
+                            Accent Color
+                        </label>
+                        <p class="settings-desc">Changes buttons, highlights, and statusbar color.</p>
+                        <div class="accent-options" id="accent-options-container">
+                            <button class="accent-option active" data-accent="purple" style="--accent-dot:#6C63FF;"><span class="accent-dot"></span><span>Purple</span></button>
+                            <button class="accent-option" data-accent="blue" style="--accent-dot:#3B82F6;"><span class="accent-dot"></span><span>Blue</span></button>
+                            <button class="accent-option" data-accent="cyan" style="--accent-dot:#06B6D4;"><span class="accent-dot"></span><span>Cyan</span></button>
+                            <button class="accent-option" data-accent="green" style="--accent-dot:#10B981;"><span class="accent-dot"></span><span>Green</span></button>
+                            <button class="accent-option" data-accent="rose" style="--accent-dot:#F43F5E;"><span class="accent-dot"></span><span>Rose</span></button>
+                            <button class="accent-option" data-accent="amber" style="--accent-dot:#F59E0B;"><span class="accent-dot"></span><span>Amber</span></button>
                         </div>
                     </div>
 
