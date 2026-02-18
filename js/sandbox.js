@@ -14,10 +14,16 @@ const Sandbox = {
     _betaShown: false,
     _timerInterval: null,
     _timerStart: 0,
+    _sbsTimerA: null,
+    _sbsTimerB: null,
+    _sbsDoneA: false,
+    _sbsDoneB: false,
 
     // Sohbet geçmişi
     directChatId: null,
     sbsChatId: null,
+    sbsElapsedA: [],
+    sbsElapsedB: [],
 
     // Ayrık ayarlar
     settings: {
@@ -113,6 +119,8 @@ const Sandbox = {
             this.sbsMessages = [];
             this.sbsResponsesA = [];
             this.sbsResponsesB = [];
+            this.sbsElapsedA = [];
+            this.sbsElapsedB = [];
             this.sbsChatId = null;
             this.saveHistory();
             this.renderSbsMessages();
@@ -561,7 +569,8 @@ const Sandbox = {
             }
 
             if (fullContent) {
-                this.directMessages.push({ role: 'assistant', content: fullContent });
+                const elapsed = ((Date.now() - this._timerStart) / 1000).toFixed(1);
+                this.directMessages.push({ role: 'assistant', content: fullContent, elapsed });
                 this.updateSandboxChatData('direct');
             }
         } catch (error) {
@@ -604,6 +613,7 @@ const Sandbox = {
                         <div class="sandbox-msg-name">
                             ${isUser ? (Storage.getUserName() || 'You') : 'AI'}
                             <span class="sandbox-token-badge" title="Estimated tokens">~${tokens} tok</span>
+                            ${(!isUser && msg.elapsed) ? `<span class="sandbox-token-badge sandbox-time-badge" title="Response time">⚡${msg.elapsed}s</span>` : ''}
                         </div>
                         <div class="sandbox-msg-text">${Utils.parseMarkdown(msg.content)}</div>
                     </div>
@@ -699,6 +709,9 @@ const Sandbox = {
 
             this.sbsResponsesA.push(resultA || 'No response');
             this.sbsResponsesB.push(resultB || 'No response');
+            this.sbsElapsedA.push(this._sbsElapsed?.a || '');
+            this.sbsElapsedB.push(this._sbsElapsed?.b || '');
+            this._sbsElapsed = {};
 
             this.updateSandboxChatData('sbs');
         } catch (error) {
@@ -731,6 +744,11 @@ const Sandbox = {
         } else if (result?.content) {
             content = result.content;
         }
+
+        // Bu tarafın timer'ını durdur
+        const elapsed = this._stopSbsSideTimer(side);
+        this._sbsElapsed = this._sbsElapsed || {};
+        this._sbsElapsed[side] = elapsed;
 
         return content;
     },
@@ -790,6 +808,7 @@ const Sandbox = {
 
             if (this.sbsResponsesA[responseIndex]) {
                 const tokA = Utils.estimateTokens(this.sbsResponsesA[responseIndex]);
+                const elapsedA = this.sbsElapsedA?.[responseIndex] || '';
                 htmlA += `
                     <div class="sandbox-msg sandbox-msg-ai">
                         <div class="message-avatar assistant sbs-a">
@@ -799,6 +818,7 @@ const Sandbox = {
                             <div class="sandbox-msg-name">
                                 ${Utils.escapeHtml(nameA)}
                                 <span class="sandbox-token-badge">~${tokA} tok</span>
+                                ${elapsedA ? `<span class="sandbox-token-badge sandbox-time-badge">⚡${elapsedA}s</span>` : ''}
                             </div>
                             <div class="sandbox-msg-text">${Utils.parseMarkdown(this.sbsResponsesA[responseIndex])}</div>
                         </div>
@@ -808,6 +828,7 @@ const Sandbox = {
 
             if (this.sbsResponsesB[responseIndex]) {
                 const tokB = Utils.estimateTokens(this.sbsResponsesB[responseIndex]);
+                const elapsedB = this.sbsElapsedB?.[responseIndex] || '';
                 htmlB += `
                     <div class="sandbox-msg sandbox-msg-ai">
                         <div class="message-avatar assistant sbs-b">
@@ -817,6 +838,7 @@ const Sandbox = {
                             <div class="sandbox-msg-name">
                                 ${Utils.escapeHtml(nameB)}
                                 <span class="sandbox-token-badge">~${tokB} tok</span>
+                                ${elapsedB ? `<span class="sandbox-token-badge sandbox-time-badge">⚡${elapsedB}s</span>` : ''}
                             </div>
                             <div class="sandbox-msg-text">${Utils.parseMarkdown(this.sbsResponsesB[responseIndex])}</div>
                         </div>
@@ -929,74 +951,124 @@ const Sandbox = {
     },
 
     _startTimer(mode) {
-        this._removeTimerEl(mode);
+        this._removeTimerEl();
         if (this._timerInterval) clearInterval(this._timerInterval);
+        this._timerStart = Date.now();
 
-        const containerId = mode === 'direct' ? 'sandbox-direct-messages' : null;
-        const container = containerId ? document.getElementById(containerId) : null;
+        if (mode === 'direct') {
+            const container = document.getElementById('sandbox-direct-messages');
+            if (container) {
+                const timerEl = document.createElement('div');
+                timerEl.id = 'sandbox-timer-direct';
+                timerEl.className = 'sandbox-timer';
+                timerEl.innerHTML = `
+                    <div class="sandbox-timer-inner">
+                        <div class="sandbox-timer-dots"><span></span><span></span><span></span></div>
+                        <span class="sandbox-timer-text" data-timer="direct">0.0s</span>
+                    </div>
+                `;
+                container.appendChild(timerEl);
+                container.scrollTop = container.scrollHeight;
+            }
 
-        // Direct modda mesaj alanına timer ekle
-        if (container) {
-            const timerEl = document.createElement('div');
-            timerEl.id = 'sandbox-timer';
-            timerEl.className = 'sandbox-timer';
-            timerEl.innerHTML = `
-                <div class="sandbox-timer-inner">
-                    <div class="sandbox-timer-dots"><span></span><span></span><span></span></div>
-                    <span class="sandbox-timer-text">0.0s</span>
-                </div>
-            `;
-            container.appendChild(timerEl);
-            container.scrollTop = container.scrollHeight;
+            this._timerInterval = setInterval(() => {
+                const el = document.querySelector('[data-timer="direct"]');
+                if (el) el.textContent = ((Date.now() - this._timerStart) / 1000).toFixed(1) + 's';
+            }, 100);
         }
 
-        // SBS modda her iki panele de timer ekle
         if (mode === 'sbs') {
-            ['sandbox-sbs-messages-a', 'sandbox-sbs-messages-b'].forEach(id => {
-                const c = document.getElementById(id);
+            this._sbsDoneA = false;
+            this._sbsDoneB = false;
+            this._sbsTimerA = Date.now();
+            this._sbsTimerB = Date.now();
+
+            ['a', 'b'].forEach(side => {
+                const c = document.getElementById(`sandbox-sbs-messages-${side}`);
                 if (c) {
                     const timerEl = document.createElement('div');
-                    timerEl.className = 'sandbox-timer sandbox-timer-sbs';
-                    timerEl.dataset.sbsTimer = id;
+                    timerEl.id = `sandbox-timer-sbs-${side}`;
+                    timerEl.className = 'sandbox-timer';
                     timerEl.innerHTML = `
                         <div class="sandbox-timer-inner">
                             <div class="sandbox-timer-dots"><span></span><span></span><span></span></div>
-                            <span class="sandbox-timer-text">0.0s</span>
+                            <span class="sandbox-timer-text" data-timer="sbs-${side}">0.0s</span>
                         </div>
                     `;
                     c.appendChild(timerEl);
                     c.scrollTop = c.scrollHeight;
                 }
             });
+
+            this._timerInterval = setInterval(() => {
+                if (!this._sbsDoneA) {
+                    const elA = document.querySelector('[data-timer="sbs-a"]');
+                    if (elA) elA.textContent = ((Date.now() - this._sbsTimerA) / 1000).toFixed(1) + 's';
+                }
+                if (!this._sbsDoneB) {
+                    const elB = document.querySelector('[data-timer="sbs-b"]');
+                    if (elB) elB.textContent = ((Date.now() - this._sbsTimerB) / 1000).toFixed(1) + 's';
+                }
+                if (this._sbsDoneA && this._sbsDoneB) {
+                    clearInterval(this._timerInterval);
+                    this._timerInterval = null;
+                }
+            }, 100);
+        }
+    },
+
+    _stopSbsSideTimer(side) {
+        const elapsed = ((Date.now() - (side === 'a' ? this._sbsTimerA : this._sbsTimerB)) / 1000).toFixed(1);
+
+        if (side === 'a') this._sbsDoneA = true;
+        else this._sbsDoneB = true;
+
+        const timerEl = document.getElementById(`sandbox-timer-sbs-${side}`);
+        if (timerEl) {
+            timerEl.innerHTML = `<div class="sandbox-timer-result">⚡ ${elapsed}s</div>`;
+            setTimeout(() => {
+                timerEl.classList.add('sandbox-timer-fade');
+                setTimeout(() => timerEl.remove(), 500);
+            }, 3000);
         }
 
-        this._timerInterval = setInterval(() => {
-            const elapsed = ((Date.now() - this._timerStart) / 1000).toFixed(1);
-            document.querySelectorAll('.sandbox-timer-text').forEach(el => {
-                el.textContent = elapsed + 's';
-            });
-        }, 100);
+        return elapsed;
     },
 
     _stopTimer(mode) {
+        if (mode === 'direct') {
+            if (this._timerInterval) {
+                clearInterval(this._timerInterval);
+                this._timerInterval = null;
+            }
+            const elapsed = ((Date.now() - this._timerStart) / 1000).toFixed(1);
+            const timerEl = document.getElementById('sandbox-timer-direct');
+            if (timerEl) {
+                timerEl.innerHTML = `<div class="sandbox-timer-result">⚡ ${elapsed}s</div>`;
+                setTimeout(() => {
+                    timerEl.classList.add('sandbox-timer-fade');
+                    setTimeout(() => timerEl.remove(), 500);
+                }, 3000);
+            }
+            return elapsed;
+        }
+
+        if (mode === 'sbs') {
+            // SBS'de her iki taraf da bitmezse zorla durdur
+            if (!this._sbsDoneA) this._stopSbsSideTimer('a');
+            if (!this._sbsDoneB) this._stopSbsSideTimer('b');
+            if (this._timerInterval) {
+                clearInterval(this._timerInterval);
+                this._timerInterval = null;
+            }
+        }
+    },
+
+    _removeTimerEl() {
+        document.querySelectorAll('.sandbox-timer').forEach(el => el.remove());
         if (this._timerInterval) {
             clearInterval(this._timerInterval);
             this._timerInterval = null;
         }
-
-        const elapsed = ((Date.now() - this._timerStart) / 1000).toFixed(1);
-
-        // Timer'ları sonuç badge'ine dönüştür
-        document.querySelectorAll('.sandbox-timer').forEach(el => {
-            el.innerHTML = `<div class="sandbox-timer-result">⚡ ${elapsed}s</div>`;
-            setTimeout(() => {
-                el.classList.add('sandbox-timer-fade');
-                setTimeout(() => el.remove(), 500);
-            }, 3000);
-        });
-    },
-
-    _removeTimerEl(mode) {
-        document.querySelectorAll('.sandbox-timer').forEach(el => el.remove());
     },
 };
