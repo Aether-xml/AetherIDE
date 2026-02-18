@@ -100,7 +100,7 @@ Think deeply. Quality over speed.`,
             });
 
             if (!result) {
-                Chat.addAssistantMessage('**Error:** No response received. Please try again.');
+                Chat.addAssistantMessage(Utils.formatErrorMessage('No response received from the AI.'));
                 Chat.setGenerating(false);
                 return;
             }
@@ -161,8 +161,9 @@ Think deeply. Quality over speed.`,
             if (error.name === 'AbortError') {
                 Utils.toast('Generation stopped', 'info');
             } else {
-                Chat.addAssistantMessage(`**Error:** ${error.message}`);
-                Utils.toast(error.message, 'error');
+                Chat.addAssistantMessage(Utils.formatErrorMessage(error.message));
+                const friendly = Utils.friendlyError(error.message);
+                Utils.toast(friendly.friendly, 'error');
             }
         } finally {
             Chat.setGenerating(false);
@@ -227,7 +228,7 @@ Think deeply. Quality over speed.`,
             });
 
             if (!result) {
-                Chat.addAssistantMessage('**Error:** No response received. Please try again.');
+                Chat.addAssistantMessage(Utils.formatErrorMessage('No response received from the AI.'));
                 this.phase = 'planning';
                 this.currentPlan = null;
                 Chat.setGenerating(false);
@@ -300,8 +301,9 @@ Think deeply. Quality over speed.`,
                     Utils.toast('Generation stopped', 'info');
                 }
             } else {
-                Chat.addAssistantMessage(`**Error:** ${error.message}`);
-                Utils.toast(error.message, 'error');
+                Chat.addAssistantMessage(Utils.formatErrorMessage(error.message));
+                const friendly = Utils.friendlyError(error.message);
+                Utils.toast(friendly.friendly, 'error');
             }
             this.phase = 'planning';
             this.currentPlan = null;
