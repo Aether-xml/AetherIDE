@@ -573,7 +573,7 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
         // - Dosya adında harf, rakam, nokta, tire, alt çizgi, slash olabilir
         // - ``` sonrası boşluk toleransı
         // - Satır sonu \r\n ve \n desteği
-        const regex = /```\s*(\w+?)(?:\s*:\s*([^\n\r]+?))?\s*[\r\n]+([\s\S]*?)```/g;
+        const regex = /```\s*(\w+?)(?:\s*[:\s]\s*([^\n\r]+?))?\s*[\r\n]+([\s\S]*?)```/g;
         let match;
         let fileIndex = 0;
         const seenFiles = new Map(); // Aynı dosya birden fazla gelirse son halini al
@@ -586,7 +586,7 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
             // Sondaki boşlukları temizle ama yapıyı koru
             code = code.replace(/\s+$/, '');
 
-            if (!code || code.length < 3) continue;
+            if (!code || code.trim().length === 0) continue;
 
             // Dil alias'larını normalize et
             const langAliases = {
@@ -630,6 +630,13 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
             if (!filename.includes('.')) {
                 const ext = Utils.getExtension(language);
                 filename = filename + '.' + ext;
+            }
+
+            // Sadece uzantı gelmiş olabilir (örn ".js") — düzelt
+            if (filename.startsWith('.') && !filename.includes('/')) {
+                const ext = filename.slice(1);
+                fileIndex++;
+                filename = `file${fileIndex}.${ext}`;
             }
 
             // Aynı dosya tekrar geldiyse güncelle (son hali geçerli)
