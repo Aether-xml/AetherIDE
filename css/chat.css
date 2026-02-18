@@ -804,6 +804,8 @@
     .message-content {
         max-width: calc(100% - 38px);
         overflow: hidden;
+        word-break: break-word;
+        overflow-wrap: anywhere;
     }
 
     .message-body {
@@ -812,28 +814,45 @@
         max-width: 100%;
     }
 
+    .message-body * {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
     /* Details/Spoiler mobilde */
     .message-body details {
         margin: 4px 0;
         max-width: 100%;
+        overflow: hidden;
     }
 
     .message-body details summary {
         padding: 6px 10px;
         font-size: 0.7rem;
         gap: 5px;
+        word-break: break-word;
     }
 
     .message-body details > :not(summary) {
         padding: 0 8px;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        word-break: break-word;
     }
 
     /* Team round başlıkları mobilde */
     .message-body strong {
         display: inline;
         word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    /* Bold başlıklar (--- Round 1 --- gibi) */
+    .message-body p,
+    .message-body br + strong {
+        word-break: break-word;
+        overflow-wrap: anywhere;
     }
 
     /* Kod blokları mobilde taşma fix */
@@ -842,16 +861,24 @@
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         font-size: 0.72rem;
+        word-break: normal;
     }
 
     .message-body pre code {
         font-size: 0.7rem;
         white-space: pre;
+        word-break: normal;
     }
 
     .message-body code {
         word-break: break-all;
         font-size: 0.75em;
+    }
+
+    /* Inline emoji + text taşma */
+    .message-body .md-li {
+        word-break: break-word;
+        overflow-wrap: anywhere;
     }
 
     /* Agent chip mobilde */
@@ -893,6 +920,19 @@
     .planner-btn svg.lucide {
         width: 13px;
         height: 13px;
+    }
+
+    /* File card mobilde taşma */
+    .file-card {
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    .file-card-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 180px;
     }
 }
 
