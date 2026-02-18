@@ -30,7 +30,17 @@ const DirectMode = {
 7. Files can include folder paths like: \`\`\`javascript:src/utils/helpers.js
 8. Maintain the same coding style, indentation, and conventions as the existing code.
 9. Preserve all existing functionality unless explicitly asked to remove it.
-10. When adding features, integrate them properly with existing code — don't break imports, references, or event bindings.\n`;
+10. When adding features, integrate them properly with existing code — don't break imports, references, or event bindings.
+
+ERROR FIXING RULES (when console errors are present):
+11. READ the console errors carefully — they show the exact error message, line info, and stack trace.
+12. Identify the ROOT CAUSE, not just the symptom. Trace the error back to its origin.
+13. Check for: typos in variable/function names, missing DOM elements, incorrect selectors, undefined variables, timing issues (DOM not ready), missing event listeners, incorrect file references.
+14. When fixing, explain briefly WHAT caused the error and HOW you fixed it before the code block.
+15. If multiple errors exist, fix ALL of them in one response — don't leave any behind.
+16. After fixing, make sure the fix doesn't break other functionality.
+17. If an error mentions a specific line number, pay extra attention to that area and its surrounding code.
+18. Common patterns: "X is not defined" → check spelling and scope; "Cannot read property of null" → element doesn't exist or script runs before DOM; "Unexpected token" → syntax error, check brackets/quotes.\n`;
 
         return context;
     },
