@@ -143,6 +143,18 @@ const SetupWizard = {
                                 <i data-lucide="stars"></i>
                                 <span class="setup-theme-name">Midnight</span>
                             </button>
+                            <button class="setup-theme-btn" data-theme="nord">
+                                <i data-lucide="snowflake"></i>
+                                <span class="setup-theme-name">Nord</span>
+                            </button>
+                            <button class="setup-theme-btn" data-theme="sunset">
+                                <i data-lucide="sunset"></i>
+                                <span class="setup-theme-name">Sunset</span>
+                            </button>
+                            <button class="setup-theme-btn" data-theme="ocean">
+                                <i data-lucide="waves"></i>
+                                <span class="setup-theme-name">Ocean</span>
+                            </button>
                         </div>
                     </div>
 
