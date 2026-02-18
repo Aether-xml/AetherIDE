@@ -622,6 +622,202 @@
             .btn-primary, .btn-secondary { width: 100%; justify-content: center; }
         }
 
+        /* ── Stats ── */
+        .stats-section {
+            padding: 40px 24px;
+            max-width: 900px;
+            margin: -40px auto 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px 12px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .stat-item:hover {
+            border-color: rgba(108,99,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--purple), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.72rem;
+            color: var(--text3);
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        /* ── Steps ── */
+        .steps-grid {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 0;
+            margin-top: 40px;
+        }
+
+        .step-card {
+            flex: 1;
+            max-width: 280px;
+            padding: 28px 24px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .step-card:hover {
+            border-color: rgba(108,99,255,0.2);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+        }
+
+        .step-number {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 26px;
+            height: 26px;
+            background: var(--purple);
+            color: white;
+            border-radius: 50%;
+            font-size: 0.72rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 16px rgba(108,99,255,0.4);
+        }
+
+        .step-icon {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: rgba(108,99,255,0.08);
+            color: var(--purple);
+            margin: 0 auto 14px;
+        }
+
+        .step-icon svg { width: 22px; height: 22px; }
+
+        .step-card h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .step-card p {
+            font-size: 0.82rem;
+            color: var(--text2);
+            line-height: 1.55;
+        }
+
+        .step-connector {
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            margin-top: 60px;
+            color: var(--text3);
+            opacity: 0.3;
+        }
+
+        .step-connector svg { width: 20px; height: 20px; }
+
+        /* ── Community ── */
+        .community-cta {
+            display: flex;
+            justify-content: center;
+            margin-top: 28px;
+        }
+
+        .community-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 28px;
+            border-radius: 16px;
+            transition: all 0.25s ease;
+            text-decoration: none;
+            max-width: 420px;
+            width: 100%;
+        }
+
+        .community-card svg:first-child { flex-shrink: 0; }
+
+        .community-card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .community-card-desc {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        .discord-card {
+            background: #5865F2;
+            color: white;
+        }
+
+        .discord-card:hover {
+            background: #4752C4;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(88,101,242,0.35);
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            .stat-value { font-size: 1.4rem; }
+            .stat-item { padding: 16px 10px; }
+
+            .steps-grid {
+                flex-direction: column;
+                align-items: center;
+                gap: 16px;
+            }
+            .step-connector {
+                margin-top: 0;
+                transform: rotate(90deg);
+                padding: 0;
+            }
+            .step-card { max-width: 100%; }
+
+            .community-card {
+                padding: 14px 20px;
+                gap: 12px;
+            }
+        }
+
         /* ── Animations ── */
         .fade-up {
             opacity: 0;
@@ -645,6 +841,7 @@
         </div>
         <div class="nav-links" id="nav-links">
             <a href="#modes" class="nav-link">Modes</a>
+            <a href="#how-it-works" class="nav-link">How It Works</a>
             <a href="#security" class="nav-link">Security</a>
             <a href="#features" class="nav-link">Features</a>
             <a href="https://discord.gg/7YKCvPzKEQ" target="_blank" class="nav-link">Discord</a>
@@ -662,7 +859,7 @@
 
         <div class="hero-badge">
             <i data-lucide="sparkles"></i>
-            v1.4.9 — Multi-Provider Support
+            v1.5.0 — New Themes, Smart Errors & More
         </div>
 
         <h1 class="hero-title">
@@ -690,6 +887,28 @@
         </p>
     </section>
 
+    <!-- Stats -->
+    <section class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-value">200+</div>
+                <div class="stat-label">AI Models Available</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">3</div>
+                <div class="stat-label">Powerful Modes</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">6</div>
+                <div class="stat-label">Themes & Accents</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">0</div>
+                <div class="stat-label">Data Sent to Us</div>
+            </div>
+        </div>
+    </section>
+
     <!-- Modes -->
     <section class="section" id="modes">
         <div class="fade-up">
@@ -715,6 +934,38 @@
                 <div class="mode-card-icon team"><i data-lucide="users"></i></div>
                 <h3>Team Mode <span class="mode-badge">BETA</span></h3>
                 <p>Three AI agents — Designer, PM, and Developer — discuss, debate, and collaboratively build your project. Like a real dev team.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="section" id="how-it-works">
+        <div class="fade-up" style="text-align:center;">
+            <div class="section-label"><i data-lucide="arrow-down-circle"></i> How It Works</div>
+            <h2 class="section-title">Three Steps to Start</h2>
+            <p class="section-subtitle" style="margin-left:auto;margin-right:auto;">No servers, no sign-ups. Everything runs in your browser.</p>
+        </div>
+
+        <div class="steps-grid fade-up">
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <div class="step-icon"><i data-lucide="key"></i></div>
+                <h3>Add Your API Key</h3>
+                <p>Bring your key from OpenRouter, Google Gemini, or OpenAI. It stays in your browser — always.</p>
+            </div>
+            <div class="step-connector"><i data-lucide="arrow-right"></i></div>
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <div class="step-icon"><i data-lucide="cpu"></i></div>
+                <h3>Pick a Model</h3>
+                <p>Choose from 200+ models — free or premium. Switch anytime based on your needs.</p>
+            </div>
+            <div class="step-connector"><i data-lucide="arrow-right"></i></div>
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <div class="step-icon"><i data-lucide="message-square"></i></div>
+                <h3>Describe & Build</h3>
+                <p>Tell the AI what you want. Get multi-file projects, live preview, and instant edits.</p>
             </div>
         </div>
     </section>
@@ -865,6 +1116,23 @@
                     <p>Install as an app. Static assets cached for instant loads.</p>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <!-- Social Proof -->
+    <section class="section fade-up" style="text-align:center;">
+        <div class="section-label"><i data-lucide="heart"></i> Community</div>
+        <h2 class="section-title">Join the Community</h2>
+        <p class="section-subtitle" style="margin-left:auto;margin-right:auto;">Developers worldwide are building with AetherIDE. Be part of the conversation.</p>
+        <div class="community-cta">
+            <a href="https://discord.gg/7YKCvPzKEQ" target="_blank" class="community-card discord-card">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+                <div>
+                    <div class="community-card-title">Discord Server</div>
+                    <div class="community-card-desc">Get help, share projects, request features</div>
+                </div>
+                <i data-lucide="arrow-right" style="width:18px;height:18px;opacity:0.5;"></i>
+            </a>
         </div>
     </section>
 
