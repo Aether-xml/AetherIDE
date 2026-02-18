@@ -20,6 +20,7 @@ const STATIC_ASSETS = [
     '/js/chat.js',
     '/js/sandbox.js',
     '/js/settings.js',
+    '/js/zip.js',
     '/js/app.js',
     '/js/modes/direct.js',
     '/js/modes/planner.js',
