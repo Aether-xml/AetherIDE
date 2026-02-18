@@ -2729,6 +2729,64 @@ svg.lucide {
     line-height: 1.6;
 }
 
+/* ── Sandbox Timer ── */
+.sandbox-timer {
+    display: flex;
+    justify-content: center;
+    padding: 6px 0;
+    animation: msgIn 0.2s ease;
+}
+
+.sandbox-timer-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-full);
+    font-size: 0.7rem;
+}
+
+.sandbox-timer-dots {
+    display: flex;
+    gap: 3px;
+}
+
+.sandbox-timer-dots span {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent-secondary);
+    animation: typeBounce 1.4s ease-in-out infinite;
+}
+
+.sandbox-timer-dots span:nth-child(2) { animation-delay: 0.2s; }
+.sandbox-timer-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+.sandbox-timer-text {
+    font-family: var(--font-code);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--accent-secondary);
+    min-width: 32px;
+    text-align: right;
+}
+
+.sandbox-timer-result {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--accent-success);
+    padding: 4px 12px;
+    background: rgba(0, 230, 118, 0.06);
+    border: 1px solid rgba(0, 230, 118, 0.12);
+    border-radius: var(--radius-full);
+}
+
+.sandbox-timer-fade {
+    animation: toastOut 0.5s ease forwards;
+}
+
 /* ══════════════════════════════════════════════════════════
    Planner Speed Toggle + Thinking Display
    ══════════════════════════════════════════════════════════ */
