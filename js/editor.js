@@ -192,6 +192,17 @@ const Editor = {
         this.updateStatusBar();
         this.updatePreviewButton();
 
+        // File tree açıksa güncelle
+        if (FileTree.visible) {
+            FileTree.render();
+        }
+
+        // File tree header count güncelle
+        const countEl = document.getElementById('filetree-count');
+        if (countEl) {
+            countEl.textContent = this.files.length > 0 ? `${this.files.length} file${this.files.length > 1 ? 's' : ''}` : '';
+        }
+
         const tabCode = document.getElementById('tab-code');
         if (tabCode && this.files.length > 0) {
             let badge = tabCode.querySelector('.file-count-badge');
@@ -294,6 +305,11 @@ const Editor = {
         this.renderTabs();
         this.renderCode();
         this.updateStatusBar();
+
+        // File tree highlight güncelle
+        if (FileTree.visible) {
+            FileTree._highlightActive();
+        }
 
         // Preview açıksa kapat
         if (this.previewVisible) {
