@@ -209,14 +209,20 @@ const API = {
         const config = this.getProviderConfig();
         const settings = Storage.getSettings();
 
+        const shouldStream = options.stream !== undefined ? options.stream : (settings.streamResponse !== false);
         const systemMessage = { role: 'system', content: options.systemPrompt || settings.systemPrompt };
         const body = {
             model,
             messages: [systemMessage, ...messages],
-            stream: options.stream !== undefined ? options.stream : (settings.streamResponse !== false),
+            stream: shouldStream,
             temperature: options.temperature || 0.7,
             max_tokens: options.maxTokens || 4096,
         };
+
+        // Stream için SSE format'ını zorla (bazı modeller bunu gerektirir)
+        if (shouldStream) {
+            body.stream_options = { include_usage: false };
+        }
 
         try {
             const response = await fetch(`${config.baseUrl}${config.chatEndpoint}`, {
