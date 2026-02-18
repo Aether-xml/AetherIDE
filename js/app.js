@@ -22,6 +22,7 @@ const App = {
         LayoutManager.init();
         Settings.init();
         Editor.init();
+        FileTree.init();
         Chat.init();
         Sandbox.init();
 
