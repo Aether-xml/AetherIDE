@@ -42,6 +42,7 @@
     <link rel="stylesheet" href="css/chat.css">
     <link rel="stylesheet" href="css/modal.css">
     <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/filetree.css">
     <link rel="stylesheet" href="css/setup.css">
 
     <!-- PWA -->
@@ -338,6 +339,9 @@
                             </button>
                         </div>
                         <div class="code-actions">
+                            <button class="filetree-toggle-btn" id="filetree-toggle-btn" title="File Explorer">
+                                <i data-lucide="folder-tree"></i>
+                            </button>
                             <button class="code-action-btn" id="copy-code-btn" title="Copy">
                                 <i data-lucide="copy"></i>
                             </button>
@@ -359,6 +363,26 @@
                                 <i data-lucide="eye"></i>
                             </button>
                         </div>
+                    </div>
+
+                    <!-- File Tree Panel -->
+                    <div class="filetree-panel" id="filetree-panel" style="display:none;">
+                        <div class="filetree-header">
+                            <div class="filetree-header-left">
+                                <i data-lucide="folder-tree" class="filetree-header-icon"></i>
+                                <span class="filetree-header-title">Explorer</span>
+                                <span class="filetree-header-count" id="filetree-count"></span>
+                            </div>
+                            <div class="filetree-header-actions">
+                                <button class="filetree-header-btn" onclick="FileTree.collapseAll()" title="Collapse All">
+                                    <i data-lucide="minimize-2"></i>
+                                </button>
+                                <button class="filetree-header-btn" onclick="FileTree.expandAll()" title="Expand All">
+                                    <i data-lucide="maximize-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="filetree-content" id="filetree-content"></div>
                     </div>
 
                     <div class="code-editor-wrapper" id="code-editor-wrapper">
@@ -417,7 +441,7 @@
                 </div>
                 <div class="statusbar-right">
                     <span class="statusbar-item" id="statusbar-lines">0 lines</span>
-                    <span class="statusbar-item" id="statusbar-version">v1.5.0</span>
+                    <span class="statusbar-item" id="statusbar-version">v1.5.1</span>
                 </div>
             </div>
         </main>
@@ -1004,7 +1028,7 @@
                     <div class="settings-about">
                         <img src="assets/icons/icon-192.png" alt="AetherIDE" class="about-logo-img">
                         <div class="about-name">AetherIDE</div>
-                        <div class="about-version">v1.5.0</div>
+                        <div class="about-version">v1.5.1</div>
                         <div class="about-tagline">Code at the speed of thought</div>
                         <div class="about-links">
                             <a href="https://discord.gg/7YKCvPzKEQ" target="_blank" rel="noopener" class="about-link discord-link">
@@ -1068,6 +1092,7 @@
 
     <!-- Scripts -->
     <script src="js/utils.js"></script>
+    <script src="js/filetree.js"></script>
     <script src="js/zip.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/themes.js"></script>
