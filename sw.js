@@ -21,6 +21,8 @@ const STATIC_ASSETS = [
     '/js/sandbox.js',
     '/js/settings.js',
     '/js/zip.js',
+    '/js/filetree.js',
+    '/css/filetree.css',
     '/js/app.js',
     '/js/modes/direct.js',
     '/js/modes/planner.js',
