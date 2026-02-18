@@ -83,9 +83,8 @@ const DirectMode = {
                 systemPrompt,
             });
 
-            // result kontrolü — null/undefined/aborted
             if (!result) {
-                Chat.addAssistantMessage('**Error:** No response received from AI. Please try again.');
+                Chat.addAssistantMessage(Utils.formatErrorMessage('No response received from the AI. The server may be down or the model unavailable.'));
                 return;
             }
 
@@ -173,7 +172,7 @@ const DirectMode = {
                         }
                     } catch (retryError) {
                         if (retryError.name !== 'AbortError') {
-                            Chat.addAssistantMessage(`**Error:** ${retryError.message}`);
+                            Chat.addAssistantMessage(Utils.formatErrorMessage(retryError.message));
                         }
                     }
                 }
@@ -189,7 +188,7 @@ const DirectMode = {
             // Beklenmeyen response formatı
             } else {
                 console.warn('Unexpected API result format:', result);
-                Chat.addAssistantMessage('**Error:** Unexpected response format. Please try again or switch models.');
+                Chat.addAssistantMessage(Utils.formatErrorMessage('Unexpected response format from the API.'));
             }
 
         } catch (error) {
@@ -206,8 +205,9 @@ const DirectMode = {
                 // Toast zaten _stopHandler'da gösteriliyor
             } else {
                 console.error('DirectMode error:', error);
-                Chat.addAssistantMessage(`**Error:** ${error.message}`);
-                Utils.toast(error.message, 'error');
+                Chat.addAssistantMessage(Utils.formatErrorMessage(error.message));
+                const friendly = Utils.friendlyError(error.message);
+                Utils.toast(friendly.friendly, 'error');
             }
         } finally {
             if (streamTimeout) clearTimeout(streamTimeout);
