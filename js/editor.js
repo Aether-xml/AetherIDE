@@ -24,6 +24,11 @@ const Editor = {
 
     init() {
         this.bindEvents();
+        // Başlangıçta preview butonunu gizle (dosya yok)
+        const previewBtn = document.getElementById('preview-btn');
+        if (previewBtn) previewBtn.style.display = 'none';
+        const refreshBtn = document.getElementById('refresh-preview-btn');
+        if (refreshBtn) refreshBtn.style.display = 'none';
     },
 
     bindEvents() {
@@ -185,6 +190,7 @@ const Editor = {
         this.renderTabs();
         this.renderCode();
         this.updateStatusBar();
+        this.updatePreviewButton();
 
         const tabCode = document.getElementById('tab-code');
         if (tabCode && this.files.length > 0) {
@@ -197,6 +203,28 @@ const Editor = {
                 b.textContent = this.files.length;
                 tabCode.appendChild(b);
             }
+        }
+    },
+
+    updatePreviewButton() {
+        const previewBtn = document.getElementById('preview-btn');
+        if (!previewBtn) return;
+
+        const hasHtml = this.files.some(f =>
+            f.language === 'html' || f.filename.endsWith('.html')
+        );
+
+        previewBtn.style.display = hasHtml ? 'inline-flex' : 'none';
+
+        // HTML dosyası yoksa preview'i kapat
+        if (!hasHtml && this.previewVisible) {
+            const previewContainer = document.getElementById('preview-container');
+            const editorWrapper = document.getElementById('code-editor-wrapper');
+            if (previewContainer) previewContainer.style.display = 'none';
+            if (editorWrapper) editorWrapper.style.display = 'block';
+            this.previewVisible = false;
+            const refreshBtn = document.getElementById('refresh-preview-btn');
+            if (refreshBtn) refreshBtn.style.display = 'none';
         }
     },
 
@@ -555,6 +583,18 @@ downloadAll() {
         if (this.files.length === 0) {
             Utils.toast('No code to preview', 'warning');
             this.previewVisible = false;
+            if (refreshBtn) refreshBtn.style.display = 'none';
+            return;
+        }
+
+        const hasHtml = this.files.some(f =>
+            f.language === 'html' || f.filename.endsWith('.html')
+        );
+
+        if (!hasHtml) {
+            Utils.toast('Preview requires an HTML file', 'warning');
+            this.previewVisible = false;
+            if (refreshBtn) refreshBtn.style.display = 'none';
             return;
         }
 
@@ -694,9 +734,14 @@ downloadAll() {
         const htmlContent = this._buildPreviewHTML();
 
         if (htmlContent) {
-            iframe.srcdoc = this._injectConsoleCapture(htmlContent);
+            // Eski içeriği temizle, sonra yeni yükle
+            iframe.srcdoc = '';
+            // Bir frame bekle ki browser eski srcdoc'u flush etsin
+            requestAnimationFrame(() => {
+                iframe.srcdoc = this._injectConsoleCapture(htmlContent);
+            });
         } else {
-            const escaped = Utils.escapeHtml(this.currentCode);
+            const escaped = Utils.escapeHtml(this.currentCode || '');
             iframe.srcdoc = `<pre style="font-family:'JetBrains Mono',monospace;padding:20px;background:#1e1e1e;color:#d4d4d4;margin:0;height:100vh;overflow:auto;white-space:pre-wrap;word-break:break-all;">${escaped}</pre>`;
         }
     },
