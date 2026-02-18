@@ -436,7 +436,7 @@ const Editor = {
                 this.consoleRerun();
             },
             'version': () => {
-                this.addConsoleLog('info', 'AetherIDE v1.4.3');
+                this.addConsoleLog('info', 'AetherIDE v1.4.8');
             },
         };
 
@@ -488,11 +488,28 @@ const Editor = {
         Utils.toast(`Downloaded ${this.currentFile.filename}`, 'success');
     },
 
-    downloadAll() {
-        if (this.files.length === 0) {
-            Utils.toast('No files to download', 'warning');
-            return;
+downloadAll() {
+    if (this.files.length === 0) {
+        Utils.toast('No files to download', 'warning');
+        return;
+    }
+
+    try {
+        const zip = ZipExport.create();
+
+        for (const file of this.files) {
+            zip.addFile(file.filename, file.code);
         }
+
+        const projectName = Chat.currentChat?.title
+            ? Utils.slugify(Chat.currentChat.title)
+            : 'aetheride-project';
+
+        zip.download(projectName + '.zip');
+        Utils.toast(`Downloaded ${this.files.length} files as ZIP`, 'success');
+    } catch (e) {
+        console.error('ZIP export failed:', e);
+        // Fallback: eski yöntem
         this.files.forEach((file, index) => {
             setTimeout(() => {
                 const blob = new Blob([file.code], { type: 'text/plain' });
@@ -504,8 +521,9 @@ const Editor = {
                 URL.revokeObjectURL(url);
             }, index * 500);
         });
-        Utils.toast(`Downloading ${this.files.length} files...`, 'success');
-    },
+        Utils.toast(`Downloading ${this.files.length} files individually...`, 'warning');
+    }
+},
 
     refreshPreview() {
         if (!this.previewVisible) return;
