@@ -12,6 +12,8 @@ const Sandbox = {
     sbsResponsesB: [],
     isGenerating: false,
     _betaShown: false,
+    _timerInterval: null,
+    _timerStart: 0,
 
     // Sohbet geçmişi
     directChatId: null,
@@ -889,7 +891,6 @@ const Sandbox = {
         Storage.set('sandbox_chat_list', chats);
     },
 
-    // ── Generating state ──
     setGenerating(generating, mode) {
         this.isGenerating = generating;
 
@@ -899,12 +900,17 @@ const Sandbox = {
         const input = document.getElementById(inputId);
 
         if (generating) {
+            this._timerStart = Date.now();
+            this._startTimer(mode);
+
             if (btn) {
                 btn.disabled = true;
                 btn.innerHTML = '<div class="sandbox-loading"><span></span><span></span><span></span></div>';
             }
             if (input) input.disabled = true;
         } else {
+            this._stopTimer(mode);
+
             if (btn) {
                 btn.innerHTML = '<i data-lucide="arrow-up"></i>';
                 btn.disabled = !input?.value?.trim();
@@ -920,5 +926,77 @@ const Sandbox = {
         }
 
         if (window.lucide) lucide.createIcons();
+    },
+
+    _startTimer(mode) {
+        this._removeTimerEl(mode);
+        if (this._timerInterval) clearInterval(this._timerInterval);
+
+        const containerId = mode === 'direct' ? 'sandbox-direct-messages' : null;
+        const container = containerId ? document.getElementById(containerId) : null;
+
+        // Direct modda mesaj alanına timer ekle
+        if (container) {
+            const timerEl = document.createElement('div');
+            timerEl.id = 'sandbox-timer';
+            timerEl.className = 'sandbox-timer';
+            timerEl.innerHTML = `
+                <div class="sandbox-timer-inner">
+                    <div class="sandbox-timer-dots"><span></span><span></span><span></span></div>
+                    <span class="sandbox-timer-text">0.0s</span>
+                </div>
+            `;
+            container.appendChild(timerEl);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // SBS modda her iki panele de timer ekle
+        if (mode === 'sbs') {
+            ['sandbox-sbs-messages-a', 'sandbox-sbs-messages-b'].forEach(id => {
+                const c = document.getElementById(id);
+                if (c) {
+                    const timerEl = document.createElement('div');
+                    timerEl.className = 'sandbox-timer sandbox-timer-sbs';
+                    timerEl.dataset.sbsTimer = id;
+                    timerEl.innerHTML = `
+                        <div class="sandbox-timer-inner">
+                            <div class="sandbox-timer-dots"><span></span><span></span><span></span></div>
+                            <span class="sandbox-timer-text">0.0s</span>
+                        </div>
+                    `;
+                    c.appendChild(timerEl);
+                    c.scrollTop = c.scrollHeight;
+                }
+            });
+        }
+
+        this._timerInterval = setInterval(() => {
+            const elapsed = ((Date.now() - this._timerStart) / 1000).toFixed(1);
+            document.querySelectorAll('.sandbox-timer-text').forEach(el => {
+                el.textContent = elapsed + 's';
+            });
+        }, 100);
+    },
+
+    _stopTimer(mode) {
+        if (this._timerInterval) {
+            clearInterval(this._timerInterval);
+            this._timerInterval = null;
+        }
+
+        const elapsed = ((Date.now() - this._timerStart) / 1000).toFixed(1);
+
+        // Timer'ları sonuç badge'ine dönüştür
+        document.querySelectorAll('.sandbox-timer').forEach(el => {
+            el.innerHTML = `<div class="sandbox-timer-result">⚡ ${elapsed}s</div>`;
+            setTimeout(() => {
+                el.classList.add('sandbox-timer-fade');
+                setTimeout(() => el.remove(), 500);
+            }, 3000);
+        });
+    },
+
+    _removeTimerEl(mode) {
+        document.querySelectorAll('.sandbox-timer').forEach(el => el.remove());
     },
 };
