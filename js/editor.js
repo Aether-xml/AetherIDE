@@ -57,6 +57,10 @@ const Editor = {
             this.toggleConsole();
         });
 
+        document.getElementById('console-refresh-btn')?.addEventListener('click', () => {
+            this.consoleRerun();
+        });
+
         document.getElementById('console-clear-btn')?.addEventListener('click', () => {
             this.clearConsole();
         });
@@ -76,17 +80,19 @@ const Editor = {
 
     _lastEditorUpdate: 0,
     _editorUpdatePending: null,
+    _lastPreviewUpdate: 0,
+    _previewUpdatePending: null,
 
     updateCode(aiResponse) {
         const blocks = Utils.extractCodeBlocks(aiResponse);
         if (blocks.length === 0) return;
 
         let hasChanges = false;
+        let changedFiles = [];
 
         for (const block of blocks) {
             if (!block.code || block.code.trim().length === 0) continue;
 
-            // Dosya adını normalize et (case-sensitive ama path normalize)
             const normalizedName = block.filename.replace(/^\.\//, '').replace(/^\//, '');
 
             const existingIndex = this.files.findIndex(f => {
@@ -95,7 +101,6 @@ const Editor = {
             });
 
             if (existingIndex >= 0) {
-                // Sadece içerik değiştiyse güncelle
                 const existingCode = this.files[existingIndex].code;
                 if (existingCode !== block.code) {
                     this.files[existingIndex] = {
@@ -104,6 +109,7 @@ const Editor = {
                         code: block.code,
                     };
                     hasChanges = true;
+                    changedFiles.push(normalizedName);
                 }
             } else {
                 this.files.push({
@@ -112,31 +118,67 @@ const Editor = {
                     code: block.code,
                 });
                 hasChanges = true;
-
-                // Yeni dosya eklendiğinde o dosyaya geç
+                changedFiles.push(normalizedName);
                 this.activeFileIndex = this.files.length - 1;
             }
         }
 
         if (!hasChanges) return;
 
-        // Güvenli index kontrolü
         if (this.activeFileIndex >= this.files.length) {
             this.activeFileIndex = this.files.length - 1;
         }
         if (this.activeFileIndex < 0) this.activeFileIndex = 0;
 
+        // Editör UI — throttled (300ms)
         const now = Date.now();
-        if (now - this._lastEditorUpdate < 500) {
+        if (now - this._lastEditorUpdate < 300) {
             if (this._editorUpdatePending) cancelAnimationFrame(this._editorUpdatePending);
             this._editorUpdatePending = requestAnimationFrame(() => {
                 this._renderEditorUI();
             });
-            return;
+        } else {
+            this._lastEditorUpdate = now;
+            this._renderEditorUI();
         }
 
-        this._lastEditorUpdate = now;
-        this._renderEditorUI();
+        // Live preview — throttled (600ms), sadece ilgili dosyalar değiştiyse
+        if (this.previewVisible) {
+            const hasPreviewRelevant = changedFiles.some(f =>
+                f.endsWith('.html') || f.endsWith('.css') || f.endsWith('.js')
+            );
+            if (hasPreviewRelevant) {
+                this._schedulePreviewUpdate();
+            }
+        }
+    },
+
+    _schedulePreviewUpdate() {
+        const now = Date.now();
+        if (now - this._lastPreviewUpdate < 600) {
+            if (this._previewUpdatePending) clearTimeout(this._previewUpdatePending);
+            this._previewUpdatePending = setTimeout(() => {
+                this._lastPreviewUpdate = Date.now();
+                this._liveUpdatePreview();
+            }, 600);
+        } else {
+            this._lastPreviewUpdate = now;
+            this._liveUpdatePreview();
+        }
+    },
+
+    _liveUpdatePreview() {
+        if (!this.previewVisible) return;
+        const iframe = document.getElementById('preview-iframe');
+        if (!iframe) return;
+
+        const htmlFile = this.files.find(f =>
+            f.language === 'html' || f.filename.endsWith('.html')
+        );
+        if (!htmlFile) return;
+
+        // Aynı togglePreview mantığını kullan ama sessizce
+        this._renderPreviewContent(iframe);
     },
 
     _renderEditorUI() {
@@ -292,6 +334,18 @@ const Editor = {
         if (output) output.innerHTML = '<div class="console-empty">Console cleared</div>';
     },
 
+    consoleRerun() {
+        this.clearConsole();
+        if (this.previewVisible) {
+            this.refreshPreview();
+            this.addConsoleLog('info', 'Preview re-executed', 'system');
+        } else {
+            // Preview kapalıysa aç ve çalıştır
+            this.togglePreview();
+            this.addConsoleLog('info', 'Preview started', 'system');
+        }
+    },
+
     addConsoleLog(type, message, source = '') {
         const entry = {
             type,
@@ -358,7 +412,7 @@ const Editor = {
             'clear': () => { this.clearConsole(); },
             'cls': () => { this.clearConsole(); },
             'help': () => {
-                this.addConsoleLog('info', 'Available commands:\n  clear — Clear console\n  help — Show commands\n  files — List files\n  pwd — Current directory\n  run — Run preview\n  echo <text> — Print text\n  version — Show version');
+                this.addConsoleLog('info', 'Available commands:\n  clear — Clear console\n  help — Show commands\n  files — List files\n  pwd — Current directory\n  run — Run preview\n  refresh — Clear console & re-run preview\n  echo <text> — Print text\n  cat <file> — Show file content\n  version — Show version');
             },
             'files': () => {
                 if (this.files.length === 0) {
@@ -374,6 +428,12 @@ const Editor = {
             'run': () => {
                 this.togglePreview();
                 this.addConsoleLog('info', 'Running preview...');
+            },
+            'refresh': () => {
+                this.consoleRerun();
+            },
+            'rerun': () => {
+                this.consoleRerun();
             },
             'version': () => {
                 this.addConsoleLog('info', 'AetherIDE v1.4.3');
@@ -449,8 +509,10 @@ const Editor = {
 
     refreshPreview() {
         if (!this.previewVisible) return;
-        this.previewVisible = false;
-        this.togglePreview();
+        const iframe = document.getElementById('preview-iframe');
+        if (iframe) {
+            this._renderPreviewContent(iframe);
+        }
         Utils.toast('Preview refreshed', 'info', 1500);
     },
 
@@ -482,59 +544,69 @@ const Editor = {
         editorWrapper.style.display = 'none';
 
         if (iframe) {
-            const htmlFile = this.files.find(f =>
-                f.language === 'html' || f.filename.endsWith('.html')
-            );
+            this._renderPreviewContent(iframe);
+        }
+    },
 
-            if (htmlFile) {
-                let htmlContent = htmlFile.code;
+    _buildPreviewHTML() {
+        const htmlFile = this.files.find(f =>
+            f.language === 'html' || f.filename.endsWith('.html')
+        );
 
-                // CSS dosyalarını inline et
-                this.files.forEach(f => {
-                    if (f.language === 'css' || f.filename.endsWith('.css')) {
-                        // <link> tag'ını <style> ile değiştir
-                        const escapedFilename = f.filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        const linkRegex = new RegExp(
-                            `<link[^>]*href=["'](?:\\./)?${escapedFilename}["'][^>]*/?>`, 'gi'
-                        );
-                        const replaced = htmlContent.replace(linkRegex, `<style>\n${f.code}\n</style>`);
+        if (!htmlFile) return null;
 
-                        if (replaced !== htmlContent) {
-                            htmlContent = replaced;
-                        } else {
-                            // Link tag bulunamadıysa head'e ekle
-                            if (htmlContent.includes('</head>')) {
-                                htmlContent = htmlContent.replace('</head>', `<style>\n${f.code}\n</style>\n</head>`);
-                            } else if (htmlContent.includes('<body')) {
-                                htmlContent = htmlContent.replace(/<body/i, `<style>\n${f.code}\n</style>\n<body`);
-                            }
-                        }
+        let htmlContent = htmlFile.code;
+
+        // CSS dosyalarını inline et
+        this.files.forEach(f => {
+            if (f.language === 'css' || f.filename.endsWith('.css')) {
+                const baseName = f.filename.includes('/') ? f.filename.split('/').pop() : f.filename;
+                const escapedFull = f.filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const escapedBase = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const linkRegex = new RegExp(
+                    `<link[^>]*href=["'](?:[^"']*[/])?${escapedBase}["'][^>]*/?>`, 'gi'
+                );
+                const replaced = htmlContent.replace(linkRegex, `<style>\n${f.code}\n</style>`);
+
+                if (replaced !== htmlContent) {
+                    htmlContent = replaced;
+                } else {
+                    if (htmlContent.includes('</head>')) {
+                        htmlContent = htmlContent.replace('</head>', `<style>\n${f.code}\n</style>\n</head>`);
+                    } else if (htmlContent.includes('<body')) {
+                        htmlContent = htmlContent.replace(/<body/i, `<style>\n${f.code}\n</style>\n<body`);
                     }
-                });
+                }
+            }
+        });
 
-                // JS dosyalarını inline et
-                this.files.forEach(f => {
-                    if (f.language === 'javascript' || f.language === 'js' || f.filename.endsWith('.js')) {
-                        const escapedFilename = f.filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        const scriptRegex = new RegExp(
-                            `<script[^>]*src=["'](?:\\./)?${escapedFilename}["'][^>]*>\\s*</script>`, 'gi'
-                        );
-                        const replaced = htmlContent.replace(scriptRegex, `<script>\n${f.code}\n</script>`);
+        // JS dosyalarını inline et
+        this.files.forEach(f => {
+            if (f.language === 'javascript' || f.language === 'js' || f.filename.endsWith('.js')) {
+                const baseName = f.filename.includes('/') ? f.filename.split('/').pop() : f.filename;
+                const escapedBase = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const scriptRegex = new RegExp(
+                    `<script[^>]*src=["'](?:[^"']*[/])?${escapedBase}["'][^>]*>\\s*</script>`, 'gi'
+                );
+                const replaced = htmlContent.replace(scriptRegex, `<script>\n${f.code}\n</script>`);
 
-                        if (replaced !== htmlContent) {
-                            htmlContent = replaced;
-                        } else {
-                            if (htmlContent.includes('</body>')) {
-                                htmlContent = htmlContent.replace('</body>', `<script>\n${f.code}\n</script>\n</body>`);
-                            } else {
-                                htmlContent += `\n<script>\n${f.code}\n</script>`;
-                            }
-                        }
+                if (replaced !== htmlContent) {
+                    htmlContent = replaced;
+                } else {
+                    if (htmlContent.includes('</body>')) {
+                        htmlContent = htmlContent.replace('</body>', `<script>\n${f.code}\n</script>\n</body>`);
+                    } else {
+                        htmlContent += `\n<script>\n${f.code}\n</script>`;
                     }
-                });
+                }
+            }
+        });
 
-                // Console capture script
-                const consoleCapture = `
+        return htmlContent;
+    },
+
+    _getConsoleCaptureScript() {
+        return `
 <script>
 (function() {
     var origConsole = {};
@@ -560,7 +632,6 @@ const Editor = {
             } catch(e) {}
         };
     });
-
     window.addEventListener('error', function(e) {
         try {
             window.parent.postMessage({
@@ -570,7 +641,6 @@ const Editor = {
             }, '*');
         } catch(ex) {}
     });
-
     window.addEventListener('unhandledrejection', function(e) {
         try {
             var msg = 'Unhandled Promise: ';
@@ -586,26 +656,30 @@ const Editor = {
     });
 })();
 </script>`;
+    },
 
-                // Console capture'ı <head> sonrasına ekle
-                if (htmlContent.includes('<head>')) {
-                    htmlContent = htmlContent.replace('<head>', '<head>' + consoleCapture);
-                } else if (htmlContent.includes('<head ')) {
-                    htmlContent = htmlContent.replace(/<head\s/i, '<head>' + consoleCapture + '</head><head ');
-                } else if (htmlContent.includes('<html>')) {
-                    htmlContent = htmlContent.replace('<html>', '<html><head>' + consoleCapture + '</head>');
-                } else if (htmlContent.includes('<html ')) {
-                    htmlContent = htmlContent.replace(/<html([^>]*)>/i, '<html$1><head>' + consoleCapture + '</head>');
-                } else {
-                    htmlContent = consoleCapture + htmlContent;
-                }
+    _injectConsoleCapture(htmlContent) {
+        const consoleCapture = this._getConsoleCaptureScript();
+        if (htmlContent.includes('<head>')) {
+            return htmlContent.replace('<head>', '<head>' + consoleCapture);
+        } else if (htmlContent.includes('<head ')) {
+            return htmlContent.replace(/<head\s/i, '<head>' + consoleCapture + '</head><head ');
+        } else if (htmlContent.includes('<html>')) {
+            return htmlContent.replace('<html>', '<html><head>' + consoleCapture + '</head>');
+        } else if (htmlContent.includes('<html ')) {
+            return htmlContent.replace(/<html([^>]*)>/i, '<html$1><head>' + consoleCapture + '</head>');
+        }
+        return consoleCapture + htmlContent;
+    },
 
-                iframe.srcdoc = htmlContent;
-            } else {
-                // HTML dosyası yoksa mevcut kodu göster
-                const escaped = Utils.escapeHtml(this.currentCode);
-                iframe.srcdoc = `<pre style="font-family:'JetBrains Mono',monospace;padding:20px;background:#1e1e1e;color:#d4d4d4;margin:0;height:100vh;overflow:auto;white-space:pre-wrap;word-break:break-all;">${escaped}</pre>`;
-            }
+    _renderPreviewContent(iframe) {
+        const htmlContent = this._buildPreviewHTML();
+
+        if (htmlContent) {
+            iframe.srcdoc = this._injectConsoleCapture(htmlContent);
+        } else {
+            const escaped = Utils.escapeHtml(this.currentCode);
+            iframe.srcdoc = `<pre style="font-family:'JetBrains Mono',monospace;padding:20px;background:#1e1e1e;color:#d4d4d4;margin:0;height:100vh;overflow:auto;white-space:pre-wrap;word-break:break-all;">${escaped}</pre>`;
         }
     },
 
