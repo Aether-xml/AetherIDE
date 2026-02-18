@@ -58,23 +58,13 @@
     --shadow-glow: 0 0 24px rgba(108,99,255,0.18);
 }
 
-[data-theme="aether"] {
-    --bg-primary: #0A0D14;
-    --bg-secondary: #0F1219;
-    --bg-tertiary: #141820;
-    --bg-elevated: #1A1F2A;
-    --accent-primary: #7C6AFF;
-    --accent-primary-glow: rgba(124,106,255,0.15);
-}
-
-[data-theme="midnight"] {
-    --bg-primary: #080A0E;
-    --bg-secondary: #0C0E14;
-    --bg-tertiary: #10131A;
-    --bg-elevated: #161A24;
-    --accent-primary: #5B8DEF;
-    --accent-primary-glow: rgba(91,141,239,0.12);
-}
+/* Tema renkleri artık ThemeManager tarafından JS ile uygulanıyor.
+   Bu bloklar geriye uyumluluk için kalıyor ama override edilecek. */
+[data-theme="aether"] {}
+[data-theme="midnight"] {}
+[data-theme="nord"] {}
+[data-theme="sunset"] {}
+[data-theme="ocean"] {}
 
 /* ── Reset ── */
 *, *::before, *::after {
