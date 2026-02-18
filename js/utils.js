@@ -662,4 +662,50 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
         };
         return map[language?.toLowerCase()] || 'txt';
     },
+
+    // ── Kullanıcı dostu hata mesajları ──
+    friendlyError(rawError) {
+        const msg = typeof rawError === 'string' ? rawError : (rawError?.message || String(rawError));
+
+        const patterns = [
+            { match: /no endpoints found/i, friendly: 'This model is currently unavailable. It may be restricted by your privacy settings or temporarily offline.', tip: 'Try a different model, or check your provider\'s privacy settings.' },
+            { match: /rate limit/i, friendly: 'You\'re sending requests too quickly. Please wait a moment.', tip: 'Wait 10-30 seconds and try again.' },
+            { match: /quota|insufficient.*funds|billing/i, friendly: 'Your API account has run out of credits or quota.', tip: 'Check your API provider dashboard and add credits.' },
+            { match: /invalid.*api.*key|unauthorized|401/i, friendly: 'Your API key is invalid or expired.', tip: 'Go to Settings and update your API key.' },
+            { match: /forbidden|403/i, friendly: 'Access denied. Your API key may not have permission for this model.', tip: 'Check if your API plan supports this model.' },
+            { match: /not found|404/i, friendly: 'The selected model was not found.', tip: 'The model ID may be incorrect. Try selecting a different model.' },
+            { match: /timeout|timed?\s*out|ETIMEDOUT/i, friendly: 'The request took too long and timed out.', tip: 'Try again, or use a faster model.' },
+            { match: /network|fetch|ERR_NETWORK|Failed to fetch/i, friendly: 'Network error — couldn\'t reach the API server.', tip: 'Check your internet connection and try again.' },
+            { match: /context.*length|too.*long|max.*tokens.*exceeded/i, friendly: 'The conversation is too long for this model.', tip: 'Start a new chat, or use a model with a larger context window.' },
+            { match: /content.*filter|safety|blocked/i, friendly: 'The response was blocked by the AI\'s safety filter.', tip: 'Try rephrasing your request.' },
+            { match: /overloaded|capacity|503|529/i, friendly: 'The AI server is currently overloaded.', tip: 'Wait a minute and try again, or switch to a different model.' },
+            { match: /500|internal.*server/i, friendly: 'The AI provider is experiencing internal issues.', tip: 'This is on their end. Try again in a few minutes.' },
+            { match: /model.*not.*available|does not exist/i, friendly: 'This model is not available right now.', tip: 'Try a different model from the list.' },
+            { match: /JSON|parse|unexpected token/i, friendly: 'Received an unexpected response from the API.', tip: 'Try again. If it persists, try a different model.' },
+        ];
+
+        for (const p of patterns) {
+            if (p.match.test(msg)) {
+                return { friendly: p.friendly, tip: p.tip, raw: msg };
+            }
+        }
+
+        return { friendly: 'Something went wrong while communicating with the AI.', tip: 'Try again, or switch to a different model.', raw: msg };
+    },
+
+    formatErrorMessage(rawError) {
+        const err = this.friendlyError(rawError);
+        const errorId = 'err_' + Date.now().toString(36);
+        return `**⚠️ ${err.friendly}**
+
+💡 *${err.tip}*
+
+<details><summary>🔍 Show technical details</summary>
+
+\`\`\`
+${err.raw}
+\`\`\`
+
+</details>`;
+    },
 };
