@@ -526,8 +526,12 @@ const App = {
         }
     },
 
-    // Mobil panel geçişi
+    _currentMobilePanel: 'chat',
+
     showMobilePanel(panel) {
+        if (this._currentMobilePanel === panel) return;
+        this._currentMobilePanel = panel;
+
         const chatPanel = document.getElementById('chat-panel');
         const codePanel = document.getElementById('code-panel');
         const tabChat = document.getElementById('tab-chat');
@@ -550,11 +554,9 @@ const App = {
             tabChat?.classList.remove('active');
             tabCode?.classList.add('active');
 
-            // Kod paneline geçince editörü yeniden render et
             Editor.renderCode();
         }
 
-        // Animasyonu temizle
         setTimeout(() => {
             chatPanel.classList.remove('panel-enter');
             codePanel.classList.remove('panel-enter');
