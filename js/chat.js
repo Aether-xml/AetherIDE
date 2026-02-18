@@ -507,9 +507,11 @@ const Chat = {
         let streamMsg = document.getElementById('stream-message');
 
         if (!streamMsg) {
+            // Typing indicator'ı kaldır
             const typing = document.getElementById('typing-message');
             if (typing) typing.remove();
 
+            const userName = Storage.getUserName() || 'You';
             const div = document.createElement('div');
             div.className = 'message';
             div.id = 'stream-message';
@@ -527,10 +529,16 @@ const Chat = {
             `;
             container.appendChild(div);
             if (window.lucide) lucide.createIcons({ nodes: [div] });
+
+            // İlk chunk geldiğinde hemen render et — gecikme olmasın
+            this._renderStreamBody(content);
+            this._lastStreamUpdate = Date.now();
+            this.scrollToBottom(false);
+            return;
         }
 
         const now = Date.now();
-        if (now - this._lastStreamUpdate < 100) {
+        if (now - this._lastStreamUpdate < 80) {
             if (this._streamUpdatePending) cancelAnimationFrame(this._streamUpdatePending);
             this._streamUpdatePending = requestAnimationFrame(() => {
                 this._renderStreamBody(content);
@@ -572,6 +580,9 @@ const Chat = {
 
         if (generating) {
             this.userScrolledUp = false;
+            // Typing indicator'ı hemen göster
+            this.showTypingIndicator();
+
             if (sendBtn) {
                 sendBtn.innerHTML = '<i data-lucide="square"></i>';
                 sendBtn.disabled = false;
@@ -592,8 +603,6 @@ const Chat = {
             }
             if (input) input.disabled = true;
             if (indicator) indicator.style.display = 'flex';
-
-            this.showTypingIndicator();
         } else {
             if (sendBtn) {
                 sendBtn.innerHTML = '<i data-lucide="arrow-up"></i>';
