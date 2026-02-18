@@ -360,6 +360,15 @@ const Editor = {
         Storage.clearConsoleLogs();
         const output = document.getElementById('console-output');
         if (output) output.innerHTML = '<div class="console-empty">Console cleared</div>';
+
+        // Auto-fix banner'ı kaldır
+        const banner = document.getElementById('auto-fix-banner');
+        if (banner) banner.remove();
+
+        if (this._autoFixTimeout) {
+            clearTimeout(this._autoFixTimeout);
+            this._autoFixTimeout = null;
+        }
     },
 
     consoleRerun() {
@@ -382,6 +391,16 @@ const Editor = {
             timestamp: new Date().toISOString(),
         };
 
+        // Duplicate kontrolü — aynı hata mesajı 1sn içinde tekrar gelmesin
+        if (type === 'error' || type === 'warn') {
+            const isDupe = this.consoleLogs.some(l =>
+                l.type === type &&
+                l.message === entry.message &&
+                (new Date(entry.timestamp) - new Date(l.timestamp)) < 1000
+            );
+            if (isDupe) return;
+        }
+
         this.consoleLogs.push(entry);
 
         if (this.consoleLogs.length > 200) {
@@ -391,6 +410,128 @@ const Editor = {
         // Sadece console görünürse render et
         if (this.consoleVisible) {
             this.renderConsole();
+        }
+
+        // Hata geldiğinde auto-fix butonu göster
+        if (type === 'error' && this.files.length > 0) {
+            this._showAutoFixHint();
+        }
+    },
+
+    _autoFixTimeout: null,
+
+    _showAutoFixHint() {
+        // Zaten generating ise gösterme
+        if (Chat.isGenerating) return;
+
+        // Debounce — birden fazla hata gelirse tek sefer göster
+        if (this._autoFixTimeout) clearTimeout(this._autoFixTimeout);
+        this._autoFixTimeout = setTimeout(() => {
+            const errorCount = this.consoleLogs.filter(l => l.type === 'error').length;
+            if (errorCount > 0) {
+                this._renderAutoFixButton(errorCount);
+            }
+        }, 1500);
+    },
+
+    _renderAutoFixButton(errorCount) {
+        // Mevcut butonu kaldır
+        const existing = document.getElementById('auto-fix-banner');
+        if (existing) existing.remove();
+
+        const container = document.getElementById('input-area');
+        if (!container) return;
+
+        const banner = document.createElement('div');
+        banner.id = 'auto-fix-banner';
+        banner.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            background: rgba(255, 82, 82, 0.08);
+            border: 1px solid rgba(255, 82, 82, 0.2);
+            border-radius: 10px;
+            font-size: 0.78rem;
+            color: var(--accent-error);
+            animation: msgIn 0.25s ease;
+        `;
+
+        banner.innerHTML = `
+            <i data-lucide="alert-circle" style="width:16px;height:16px;flex-shrink:0;"></i>
+            <span style="flex:1;color:var(--text-secondary);">
+                ${errorCount} console error${errorCount > 1 ? 's' : ''} detected
+            </span>
+            <button id="auto-fix-btn" style="
+                padding: 5px 14px;
+                background: rgba(255, 82, 82, 0.12);
+                border: 1px solid rgba(255, 82, 82, 0.25);
+                border-radius: 6px;
+                color: var(--accent-error);
+                font-size: 0.72rem;
+                font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                white-space: nowrap;
+            ">
+                <i data-lucide="wrench" style="width:12px;height:12px;"></i>
+                Auto Fix
+            </button>
+            <button id="auto-fix-dismiss" style="
+                width: 22px;
+                height: 22px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 4px;
+                color: var(--text-tertiary);
+                cursor: pointer;
+                flex-shrink: 0;
+                background: none;
+                border: none;
+            ">
+                <i data-lucide="x" style="width:12px;height:12px;"></i>
+            </button>
+        `;
+
+        container.insertBefore(banner, container.firstChild);
+        if (window.lucide) lucide.createIcons({ nodes: [banner] });
+
+        // Auto Fix tıklama
+        document.getElementById('auto-fix-btn')?.addEventListener('click', () => {
+            banner.remove();
+            this._triggerAutoFix();
+        });
+
+        // Dismiss
+        document.getElementById('auto-fix-dismiss')?.addEventListener('click', () => {
+            banner.remove();
+        });
+    },
+
+    _triggerAutoFix() {
+        const errors = this.consoleLogs.filter(l => l.type === 'error');
+        if (errors.length === 0) return;
+
+        const errorSummary = errors
+            .slice(-5)
+            .map(e => `• ${e.message}`)
+            .join('\n');
+
+        const fixPrompt = `Fix the following console errors in my code:\n\n${errorSummary}\n\nAnalyze the errors, find the root cause, and fix all of them. Output the complete fixed file(s).`;
+
+        const input = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        if (input) {
+            input.value = fixPrompt;
+            Utils.autoResize(input);
+            if (sendBtn) sendBtn.disabled = false;
+
+            // Otomatik gönder
+            setTimeout(() => Chat.sendMessage(), 100);
         }
     },
 
@@ -422,13 +563,89 @@ const Editor = {
     getConsoleContext() {
         if (this.consoleLogs.length === 0) return '';
 
-        const recent = this.consoleLogs.slice(-20);
-        let context = '\n\n--- CONSOLE OUTPUT ---\n';
-        for (const log of recent) {
-            context += `[${log.type.toUpperCase()}] ${log.message}\n`;
+        const errors = this.consoleLogs.filter(l => l.type === 'error');
+        const warnings = this.consoleLogs.filter(l => l.type === 'warn');
+        const recent = this.consoleLogs.slice(-30);
+
+        let context = '\n\n--- CONSOLE OUTPUT (Auto-captured from Live Preview) ---\n';
+        context += `Summary: ${errors.length} error(s), ${warnings.length} warning(s), ${this.consoleLogs.length} total log(s)\n\n`;
+
+        // Hataları önce ve ayrı göster
+        if (errors.length > 0) {
+            context += '🔴 ERRORS:\n';
+            for (const err of errors) {
+                context += `  [ERROR] ${err.message}`;
+                if (err.source) context += ` (source: ${err.source})`;
+                context += '\n';
+
+                // Hatanın ilgili olduğu dosyayı bulmaya çalış
+                const relatedFile = this._findRelatedFile(err.message);
+                if (relatedFile) {
+                    context += `  → Likely related to: ${relatedFile}\n`;
+                }
+            }
+            context += '\n';
         }
+
+        // Uyarıları göster
+        if (warnings.length > 0) {
+            context += '🟡 WARNINGS:\n';
+            for (const warn of warnings.slice(-5)) {
+                context += `  [WARN] ${warn.message}\n`;
+            }
+            context += '\n';
+        }
+
+        // Son logları göster (hata ve uyarı hariç, tekrarları kaldır)
+        const infoLogs = recent.filter(l => l.type !== 'error' && l.type !== 'warn');
+        if (infoLogs.length > 0) {
+            context += 'RECENT LOGS:\n';
+            const seen = new Set();
+            for (const log of infoLogs.slice(-10)) {
+                const key = `${log.type}:${log.message}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                context += `  [${log.type.toUpperCase()}] ${log.message}\n`;
+            }
+            context += '\n';
+        }
+
         context += '--- END CONSOLE ---\n';
+        context += '\nIMPORTANT: When fixing errors, analyze the error message carefully, find the root cause in the relevant file, and output the COMPLETE fixed file.\n';
+
         return context;
+    },
+
+    _findRelatedFile(errorMessage) {
+        if (!errorMessage || this.files.length === 0) return null;
+
+        const msg = errorMessage.toLowerCase();
+
+        // Dosya adı geçiyor mu kontrol et
+        for (const file of this.files) {
+            const baseName = file.filename.split('/').pop().toLowerCase();
+            if (msg.includes(baseName)) return file.filename;
+        }
+
+        // Hata türüne göre dosya tahmin et
+        if (msg.includes('syntaxerror') || msg.includes('unexpected token')) {
+            // Genelde JS hatası
+            const jsFile = this.files.find(f => f.language === 'javascript' || f.filename.endsWith('.js'));
+            if (jsFile) return jsFile.filename;
+        }
+
+        if (msg.includes('is not defined') || msg.includes('is not a function') || msg.includes('cannot read prop')) {
+            const jsFile = this.files.find(f => f.language === 'javascript' || f.filename.endsWith('.js'));
+            if (jsFile) return jsFile.filename;
+        }
+
+        if (msg.includes('queryselector') || msg.includes('getelementby') || msg.includes('null')) {
+            // DOM hatası — HTML veya JS olabilir
+            const jsFile = this.files.find(f => f.language === 'javascript' || f.filename.endsWith('.js'));
+            if (jsFile) return jsFile.filename + ' (DOM selector issue — check HTML element IDs/classes too)';
+        }
+
+        return null;
     },
 
     // ── Terminal ──
@@ -440,7 +657,7 @@ const Editor = {
             'clear': () => { this.clearConsole(); },
             'cls': () => { this.clearConsole(); },
             'help': () => {
-                this.addConsoleLog('info', 'Available commands:\n  clear — Clear console\n  help — Show commands\n  files — List files\n  pwd — Current directory\n  run — Run preview\n  refresh — Clear console & re-run preview\n  echo <text> — Print text\n  cat <file> — Show file content\n  version — Show version');
+                this.addConsoleLog('info', 'Available commands:\n  clear — Clear console\n  help — Show commands\n  files — List files\n  pwd — Current directory\n  run — Run preview\n  refresh — Clear console & re-run preview\n  errors — Show all errors\n  fix — Auto-fix errors with AI\n  echo <text> — Print text\n  cat <file> — Show file content\n  version — Show version');
             },
             'files': () => {
                 if (this.files.length === 0) {
@@ -465,6 +682,23 @@ const Editor = {
             },
             'version': () => {
                 this.addConsoleLog('info', 'AetherIDE v1.4.8');
+            },
+            'errors': () => {
+                const errors = this.consoleLogs.filter(l => l.type === 'error');
+                if (errors.length === 0) {
+                    this.addConsoleLog('info', '✅ No errors detected');
+                } else {
+                    this.addConsoleLog('info', `🔴 ${errors.length} error(s):\n${errors.map(e => '  • ' + e.message).join('\n')}`);
+                }
+            },
+            'fix': () => {
+                const errors = this.consoleLogs.filter(l => l.type === 'error');
+                if (errors.length === 0) {
+                    this.addConsoleLog('info', '✅ No errors to fix');
+                } else {
+                    this.addConsoleLog('info', `🔧 Sending ${errors.length} error(s) to AI for fixing...`);
+                    this._triggerAutoFix();
+                }
             },
         };
 
@@ -668,49 +902,139 @@ downloadAll() {
 <script>
 (function() {
     var origConsole = {};
-    ['log', 'error', 'warn', 'info'].forEach(function(type) {
+    var msgCount = 0;
+    var MAX_MESSAGES = 200;
+
+    function formatArg(a, depth) {
+        depth = depth || 0;
+        if (depth > 3) return '[...]';
+        if (a === null) return 'null';
+        if (a === undefined) return 'undefined';
+        if (typeof a === 'string') return a;
+        if (typeof a === 'number' || typeof a === 'boolean') return String(a);
+        if (a instanceof Error) return a.name + ': ' + a.message + (a.stack ? '\\n' + a.stack.split('\\n').slice(0, 3).join('\\n') : '');
+        if (Array.isArray(a)) {
+            if (a.length > 20) return '[Array(' + a.length + ') ' + a.slice(0, 5).map(function(x) { return formatArg(x, depth + 1); }).join(', ') + ', ...]';
+            return '[' + a.map(function(x) { return formatArg(x, depth + 1); }).join(', ') + ']';
+        }
+        if (a instanceof HTMLElement) return '<' + a.tagName.toLowerCase() + (a.id ? '#' + a.id : '') + (a.className ? '.' + String(a.className).split(' ').join('.') : '') + '>';
+        if (typeof a === 'object') {
+            try {
+                var keys = Object.keys(a);
+                if (keys.length > 10) return '{Object with ' + keys.length + ' keys: ' + keys.slice(0, 5).join(', ') + ', ...}';
+                return JSON.stringify(a, null, 0);
+            } catch(e) { return String(a); }
+        }
+        if (typeof a === 'function') return '[Function: ' + (a.name || 'anonymous') + ']';
+        return String(a);
+    }
+
+    function sendToParent(logType, message, source) {
+        if (msgCount >= MAX_MESSAGES) return;
+        msgCount++;
+        try {
+            window.parent.postMessage({
+                type: 'aetheride-console',
+                logType: logType,
+                message: String(message).substring(0, 2000),
+                source: source || ''
+            }, '*');
+        } catch(e) {}
+    }
+
+    ['log', 'error', 'warn', 'info', 'debug'].forEach(function(type) {
         origConsole[type] = console[type];
         console[type] = function() {
             var args = Array.prototype.slice.call(arguments);
-            var msg = args.map(function(a) {
-                if (a === null) return 'null';
-                if (a === undefined) return 'undefined';
-                if (typeof a === 'object') {
-                    try { return JSON.stringify(a); } catch(e) { return String(a); }
-                }
-                return String(a);
-            }).join(' ');
+            var msg = args.map(function(a) { return formatArg(a); }).join(' ');
             origConsole[type].apply(console, arguments);
-            try {
-                window.parent.postMessage({
-                    type: 'aetheride-console',
-                    logType: type,
-                    message: msg
-                }, '*');
-            } catch(e) {}
+            sendToParent(type === 'debug' ? 'log' : type, msg);
         };
     });
+
+    // console.assert
+    var origAssert = console.assert;
+    console.assert = function(condition) {
+        if (!condition) {
+            var args = Array.prototype.slice.call(arguments, 1);
+            var msg = 'Assertion failed: ' + (args.length > 0 ? args.map(function(a) { return formatArg(a); }).join(' ') : '(no message)');
+            sendToParent('error', msg);
+        }
+        if (origAssert) origAssert.apply(console, arguments);
+    };
+
+    // console.table
+    var origTable = console.table;
+    console.table = function(data) {
+        if (Array.isArray(data)) {
+            sendToParent('log', '[Table] ' + JSON.stringify(data.slice(0, 10)));
+        } else {
+            sendToParent('log', '[Table] ' + formatArg(data));
+        }
+        if (origTable) origTable.apply(console, arguments);
+    };
+
+    // Global error handler — gelişmiş stack trace
     window.addEventListener('error', function(e) {
-        try {
-            window.parent.postMessage({
-                type: 'aetheride-console',
-                logType: 'error',
-                message: (e.message || 'Unknown error') + ' at ' + (e.filename || '') + ':' + (e.lineno || '')
-            }, '*');
-        } catch(ex) {}
+        var msg = (e.message || 'Unknown error');
+        var location = '';
+        if (e.filename) {
+            var fname = e.filename;
+            // Inline script için dosya adı temizle
+            if (fname.includes('srcdoc')) fname = 'inline-script';
+            location = ' at ' + fname;
+            if (e.lineno) location += ':' + e.lineno;
+            if (e.colno) location += ':' + e.colno;
+        }
+
+        var stack = '';
+        if (e.error && e.error.stack) {
+            var stackLines = e.error.stack.split('\\n').slice(0, 4);
+            stack = '\\nStack: ' + stackLines.join('\\n  ');
+        }
+
+        sendToParent('error', msg + location + stack, 'runtime');
     });
+
+    // Unhandled promise rejection — gelişmiş
     window.addEventListener('unhandledrejection', function(e) {
-        try {
-            var msg = 'Unhandled Promise: ';
-            if (e.reason && e.reason.message) msg += e.reason.message;
-            else if (typeof e.reason === 'string') msg += e.reason;
-            else msg += 'Unknown';
-            window.parent.postMessage({
-                type: 'aetheride-console',
-                logType: 'error',
-                message: msg
-            }, '*');
-        } catch(ex) {}
+        var msg = 'Unhandled Promise Rejection: ';
+        if (e.reason instanceof Error) {
+            msg += e.reason.message;
+            if (e.reason.stack) {
+                msg += '\\nStack: ' + e.reason.stack.split('\\n').slice(0, 3).join('\\n  ');
+            }
+        } else if (typeof e.reason === 'string') {
+            msg += e.reason;
+        } else if (e.reason) {
+            try { msg += JSON.stringify(e.reason); } catch(ex) { msg += String(e.reason); }
+        } else {
+            msg += 'Unknown reason';
+        }
+        sendToParent('error', msg, 'promise');
+    });
+
+    // Resource loading errors (CSS, JS, images)
+    window.addEventListener('error', function(e) {
+        if (e.target && e.target !== window) {
+            var tag = e.target.tagName;
+            var src = e.target.src || e.target.href || '';
+            if (tag && src) {
+                sendToParent('error', 'Failed to load ' + tag.toLowerCase() + ': ' + src, 'resource');
+            }
+        }
+    }, true);
+
+    // Performance — sayfa yüklenme süresi
+    window.addEventListener('load', function() {
+        setTimeout(function() {
+            if (window.performance && performance.timing) {
+                var loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
+                if (loadTime > 0) {
+                    sendToParent('info', 'Page loaded in ' + loadTime + 'ms', 'performance');
+                }
+            }
+        }, 100);
     });
 })();
 </script>`;
