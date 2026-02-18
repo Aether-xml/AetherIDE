@@ -404,10 +404,13 @@ const Chat = {
             this.newChat();
         }
 
-        // Console context'i mesaja ekle (hata varsa)
-        const hasErrors = Editor.consoleLogs.some(l => l.type === 'error');
+        // Console context'i mesaja ekle
         let enrichedText = text;
-        if (hasErrors) {
+        const hasErrors = Editor.consoleLogs.some(l => l.type === 'error');
+        const hasWarnings = Editor.consoleLogs.some(l => l.type === 'warn');
+        const isFixRequest = /\b(fix|error|bug|broken|crash|not working|doesn'?t work|issue|problem|wrong|fail)\b/i.test(text);
+
+        if (hasErrors || (hasWarnings && isFixRequest) || isFixRequest) {
             const consoleContext = Editor.getConsoleContext();
             if (consoleContext) {
                 enrichedText = text + '\n\n' + consoleContext;
