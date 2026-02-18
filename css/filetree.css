@@ -1,0 +1,340 @@
+/* ══════════════════════════════════════════════════════════
+   AetherIDE — File Tree Styles
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Panel ── */
+.filetree-panel {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    max-height: 260px;
+    border-top: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.filetree-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-primary);
+    flex-shrink: 0;
+}
+
+.filetree-header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filetree-header-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--accent-primary);
+}
+
+.filetree-header-title {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.filetree-header-count {
+    font-size: 0.6rem;
+    color: var(--text-tertiary);
+    font-family: var(--font-code);
+}
+
+.filetree-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.filetree-header-btn {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+.filetree-header-btn svg.lucide {
+    width: 13px;
+    height: 13px;
+}
+
+.filetree-header-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+/* ── Content ── */
+.filetree-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 4px 0;
+}
+
+.filetree-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 24px 16px;
+    color: var(--text-tertiary);
+    font-size: 0.72rem;
+}
+
+/* ── Folder ── */
+.filetree-folder {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    user-select: none;
+    transition: background var(--transition-fast);
+    min-height: 28px;
+}
+
+.filetree-folder:hover {
+    background: var(--bg-hover);
+}
+
+.filetree-arrow {
+    width: 12px;
+    height: 12px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+    transition: transform var(--transition-fast);
+}
+
+.filetree-folder-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--accent-warning);
+    flex-shrink: 0;
+}
+
+.filetree-name {
+    font-size: 0.74rem;
+    color: var(--text-secondary);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.filetree-count {
+    font-size: 0.58rem;
+    color: var(--text-tertiary);
+    font-family: var(--font-code);
+    flex-shrink: 0;
+    padding: 0 4px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-full);
+    line-height: 1.6;
+}
+
+.filetree-folder-content {
+    /* indent handled by padding-left */
+}
+
+/* ── File ── */
+.filetree-file {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+    user-select: none;
+    transition: all var(--transition-fast);
+    min-height: 28px;
+    position: relative;
+}
+
+.filetree-file:hover {
+    background: var(--bg-hover);
+}
+
+.filetree-file.active {
+    background: var(--accent-primary-glow);
+}
+
+.filetree-file.active .filetree-name {
+    color: var(--accent-primary);
+    font-weight: 600;
+}
+
+.filetree-file.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--accent-primary);
+    border-radius: 0 2px 2px 0;
+}
+
+.filetree-file-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+.filetree-file.active .filetree-file-icon {
+    color: var(--accent-primary);
+}
+
+.filetree-meta {
+    font-size: 0.55rem;
+    color: var(--text-tertiary);
+    font-family: var(--font-code);
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.filetree-file:hover .filetree-meta {
+    opacity: 1;
+}
+
+/* ── Toggle Button (Code Header) ── */
+.filetree-toggle-btn {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    transition: all var(--transition-fast);
+}
+
+.filetree-toggle-btn svg.lucide {
+    width: 15px;
+    height: 15px;
+}
+
+.filetree-toggle-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.filetree-toggle-btn.active {
+    color: var(--accent-primary);
+    background: var(--accent-primary-glow);
+}
+
+/* ── Context Menu ── */
+.filetree-context-menu {
+    min-width: 160px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    padding: 4px;
+    animation: ddIn 0.12s ease;
+    z-index: 9999;
+}
+
+.filetree-ctx-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.filetree-ctx-item svg.lucide {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.filetree-ctx-item:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.filetree-ctx-item.danger:hover {
+    background: rgba(255, 82, 82, 0.1);
+    color: var(--accent-error);
+}
+
+.filetree-ctx-separator {
+    height: 1px;
+    background: var(--border-primary);
+    margin: 4px 0;
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+    .filetree-panel {
+        max-height: 200px;
+    }
+
+    .filetree-folder,
+    .filetree-file {
+        min-height: 32px;
+        padding: 5px 8px;
+    }
+
+    .filetree-name {
+        font-size: 0.72rem;
+    }
+
+    .filetree-meta {
+        display: none;
+    }
+
+    .filetree-context-menu {
+        min-width: 140px;
+    }
+
+    .filetree-ctx-item {
+        padding: 9px 10px;
+        font-size: 0.76rem;
+    }
+}
+
+/* ── Desktop hover ── */
+@media (hover: hover) {
+    .filetree-file {
+        transition: all 0.15s ease;
+    }
+
+    .filetree-file:hover {
+        padding-left: calc(var(--depth-padding, 12px) + 3px);
+    }
+
+    .filetree-folder:hover .filetree-folder-icon {
+        color: var(--accent-primary);
+    }
+}
