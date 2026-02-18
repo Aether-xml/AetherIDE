@@ -146,9 +146,31 @@ const SyntaxHighlighter = {
 
 const Utils = {
 
+    _toastHistory: [],
+    _toastMaxVisible: 4,
+
     toast(message, type = 'info', duration = 3000) {
         const container = document.getElementById('toast-container');
         if (!container) return;
+
+        // Duplicate kontrolü — aynı mesaj 2 saniye içinde tekrar gelmesin
+        const now = Date.now();
+        const recentDupe = this._toastHistory.find(t =>
+            t.message === message && t.type === type && (now - t.time) < 2000
+        );
+        if (recentDupe) return;
+
+        // History temizle (5 sn'den eski olanları sil)
+        this._toastHistory = this._toastHistory.filter(t => (now - t.time) < 5000);
+        this._toastHistory.push({ message, type, time: now });
+
+        // Çok fazla toast varsa eskilerini kaldır
+        const existing = container.querySelectorAll('.toast:not(.toast-out)');
+        if (existing.length >= this._toastMaxVisible) {
+            const oldest = existing[0];
+            oldest.classList.add('toast-out');
+            setTimeout(() => oldest.remove(), 250);
+        }
 
         const icons = {
             success: 'check-circle',
@@ -238,26 +260,47 @@ const Utils = {
 - Include edge cases and requirements
 - Maintain the original intent
 
-IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no prefixes like "Enhanced prompt:".`;
+CRITICAL RULES:
+1. Return ONLY the enhanced prompt text, nothing else.
+2. Do NOT add any prefixes like "Enhanced prompt:", "Here's the improved version:", etc.
+3. Do NOT add any explanations, notes, or commentary.
+4. Do NOT wrap the prompt in quotes or markdown.
+5. Do NOT truncate or cut off the prompt — write it COMPLETELY.
+6. The enhanced prompt should be a single, complete, ready-to-use prompt.`;
 
         try {
             const result = await API.sendMessage(
-                [{ role: 'user', content: `Enhance this prompt:\n\n${text}` }],
+                [{ role: 'user', content: `Enhance this prompt. Return ONLY the enhanced version, nothing else:\n\n${text}` }],
                 model,
                 {
                     systemPrompt: enhanceSystemPrompt,
-                    maxTokens: 500,
-                    temperature: 0.7,
+                    maxTokens: 1024,
+                    temperature: 0.6,
                     stream: false,
                 }
             );
 
-            if (result?.content) return result.content.trim();
-            if (result && typeof result[Symbol.asyncIterator] === 'function') {
-                let content = '';
-                for await (const chunk of result) { content += chunk; }
-                return content.trim() || text;
+            let enhanced = '';
+
+            if (result?.content) {
+                enhanced = result.content.trim();
+            } else if (result && typeof result[Symbol.asyncIterator] === 'function') {
+                for await (const chunk of result) { enhanced += chunk; }
+                enhanced = enhanced.trim();
             }
+
+            if (!enhanced || enhanced.length < text.length * 0.5) {
+                // Çok kısa veya boş geldiyse orijinali koru
+                return text;
+            }
+
+            // Yaygın prefix'leri temizle
+            enhanced = enhanced
+                .replace(/^(Enhanced prompt|Here'?s?( the)?( improved| enhanced)?( version| prompt)?)\s*[:：\-]\s*/i, '')
+                .replace(/^["'`]+|["'`]+$/g, '')
+                .trim();
+
+            return enhanced || text;
         } catch (e) {
             Utils.toast('Prompt enhancement failed: ' + e.message, 'error');
         }
