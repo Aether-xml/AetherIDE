@@ -122,9 +122,9 @@ const DirectMode = {
 
                         Chat.updateStreamMessage(fullContent);
 
-                        // Editörü throttled güncelle
+                        // Editörü throttled güncelle — daha hızlı
                         const now = Date.now();
-                        if (fullContent.includes('```') && now - lastCodeUpdate > 800) {
+                        if (fullContent.includes('```') && now - lastCodeUpdate > 400) {
                             Editor.updateCode(fullContent);
                             lastCodeUpdate = now;
                         }
