@@ -57,6 +57,14 @@ const Settings = {
             });
         });
 
+        document.querySelectorAll('.accent-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.accent-option').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                ThemeManager.applyAccent(btn.dataset.accent);
+            });
+        });
+
         // Provider seçimi
         document.querySelectorAll('.provider-option').forEach(btn => {
             btn.addEventListener('click', () => this.switchProvider(btn.dataset.provider));
@@ -162,6 +170,10 @@ const Settings = {
 
         document.querySelectorAll('.theme-option').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.theme === (settings.theme || 'dark'));
+        });
+
+        document.querySelectorAll('.accent-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.accent === (settings.accentColor || 'purple'));
         });
 
         const currentKey = settings.apiKeys?.[this.currentProvider] || settings.apiKey || '';
@@ -304,6 +316,7 @@ const Settings = {
             defaultModel: document.getElementById('default-model-select')?.value || '',
             systemPrompt: document.getElementById('system-prompt-input')?.value || oldSettings.systemPrompt || '',
             theme: document.querySelector('.theme-option.active')?.dataset.theme || 'dark',
+            accentColor: document.querySelector('.accent-option.active')?.dataset.accent || 'purple',
             fontSize: parseInt(document.getElementById('font-size-range')?.value) || 14,
             autoSave: document.getElementById('auto-save-toggle')?.checked !== false,
             streamResponse: document.getElementById('stream-toggle')?.checked !== false,
@@ -322,6 +335,7 @@ const Settings = {
 
         Storage.saveSettings(settings);
         ThemeManager.apply(settings.theme);
+        ThemeManager.applyAccent(settings.accentColor || 'purple');
         LayoutManager.apply(settings.layout);
 
         // Font size uygula
