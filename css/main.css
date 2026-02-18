@@ -2787,6 +2787,12 @@ svg.lucide {
     animation: toastOut 0.5s ease forwards;
 }
 
+.sandbox-time-badge {
+    background: rgba(0, 230, 118, 0.06) !important;
+    border-color: rgba(0, 230, 118, 0.12) !important;
+    color: var(--accent-success) !important;
+}
+
 /* ══════════════════════════════════════════════════════════
    Planner Speed Toggle + Thinking Display
    ══════════════════════════════════════════════════════════ */
