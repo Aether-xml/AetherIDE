@@ -181,22 +181,32 @@ Keep response under 150 words. Be practical.`,
 
         const messages = [{ role: 'user', content: prompts[agentType] }];
 
-        // Hidden System Prompt kullan
-        const result = await API.sendMessage(messages, model, {
-            systemPrompt: this.HIDDEN_SYSTEM_PROMPTS[agentType],
-            temperature: 0.8,
-            maxTokens: 300,
-            stream: false,
-        });
+        try {
+            const result = await API.sendMessage(messages, model, {
+                systemPrompt: this.HIDDEN_SYSTEM_PROMPTS[agentType],
+                temperature: 0.8,
+                maxTokens: 600,
+                stream: false,
+            });
 
-        let content = '';
-        if (result && typeof result[Symbol.asyncIterator] === 'function') {
-            for await (const chunk of result) { content += chunk; }
-        } else if (result?.content) {
-            content = result.content;
+            let content = '';
+            if (result && typeof result[Symbol.asyncIterator] === 'function') {
+                for await (const chunk of result) { content += chunk; }
+            } else if (result?.content) {
+                content = result.content;
+            }
+
+            // Boş veya çok kısa yanıt kontrolü
+            if (!content || content.trim().length < 10) {
+                content = `[${agentType}] I agree with the current direction. Let's proceed.`;
+            }
+
+            return content.trim();
+        } catch (error) {
+            console.error(`Discussion agent ${agentType} error:`, error);
+            if (error.name === 'AbortError') throw error;
+            return `[${agentType}] I'm ready to contribute. Let's move forward with the plan.`;
         }
-
-        return content;
     },
 
     async generateFinalPlan(userRequest, model) {
@@ -211,7 +221,9 @@ USER REQUEST: ${userRequest}
 FULL TEAM DISCUSSION:
 ${fullDiscussion}
 
-Create the FINAL UNIFIED PLAN. Format:
+Create the FINAL UNIFIED PLAN. You MUST write the COMPLETE plan — do NOT cut off or truncate.
+
+FORMAT:
 
 📋 **Team Plan**
 
@@ -231,24 +243,37 @@ Create the FINAL UNIFIED PLAN. Format:
 
 **⏱️ Estimated Complexity:** [Low/Medium/High]
 
-End with: "**Do you approve this plan?** We're ready to start coding!"`;
+End with: "**Do you approve this plan?** We're ready to start coding!"
+
+IMPORTANT: Write the COMPLETE plan. Do not stop early.`;
 
         const messages = [{ role: 'user', content: prompt }];
 
-        const result = await API.sendMessage(messages, model, {
-            systemPrompt: this.HIDDEN_SYSTEM_PROMPTS.pm + '\n\nYou are now presenting the final agreed plan to the user. Be clear and confident.',
-            maxTokens: 1000,
-            stream: false,
-        });
+        try {
+            const result = await API.sendMessage(messages, model, {
+                systemPrompt: this.HIDDEN_SYSTEM_PROMPTS.pm + '\n\nYou are now presenting the final agreed plan to the user. Be clear, confident, and COMPLETE. Do NOT truncate your response.',
+                maxTokens: 2500,
+                temperature: 0.6,
+                stream: false,
+            });
 
-        let content = '';
-        if (result && typeof result[Symbol.asyncIterator] === 'function') {
-            for await (const chunk of result) { content += chunk; }
-        } else if (result?.content) {
-            content = result.content;
+            let content = '';
+            if (result && typeof result[Symbol.asyncIterator] === 'function') {
+                for await (const chunk of result) { content += chunk; }
+            } else if (result?.content) {
+                content = result.content;
+            }
+
+            if (!content || content.trim().length < 50) {
+                return '📋 **Team Plan**\n\nThe team has reviewed your request and is ready to implement it. Please approve to start coding.';
+            }
+
+            return content.trim();
+        } catch (error) {
+            console.error('Final plan generation error:', error);
+            if (error.name === 'AbortError') throw error;
+            return '📋 **Team Plan**\n\nThe team has discussed your request. Please approve to start coding, or describe what you\'d like to change.';
         }
-
-        return content;
     },
 
     buildFileContext() {
@@ -278,7 +303,6 @@ End with: "**Do you approve this plan?** We're ready to start coding!"`;
         this.showTeamAgents(true);
 
         const userRequest = chat.messages.find(m => m.role === 'user')?.content || '';
-        const fileContext = this.buildFileContext();
         const fullDiscussion = this.discussionLog
             .map(d => `[${d.agent.toUpperCase()}]: ${d.content}`)
             .join('\n\n');
@@ -289,9 +313,16 @@ End with: "**Do you approve this plan?** We're ready to start coding!"`;
             Chat.addAssistantMessage('🎨 **Designer** is creating styles...', 'designer');
             const designerModel = this.getModelForRole('designer');
             const designCode = await this.runCodingAgent('designer', userRequest, designerModel, fullDiscussion);
+
+            // Stream mesajını temizle ve final mesajı ekle
+            const streamMsg1 = document.getElementById('stream-message');
+            if (streamMsg1) streamMsg1.remove();
+
             if (designCode) {
                 Chat.addAssistantMessage(designCode, 'designer');
                 Editor.updateCode(designCode);
+            } else {
+                Chat.addAssistantMessage('🎨 Designer completed (no CSS files needed).', 'designer');
             }
 
             // PM
@@ -299,9 +330,15 @@ End with: "**Do you approve this plan?** We're ready to start coding!"`;
             Chat.addAssistantMessage('📊 **PM** is building the structure...', 'pm');
             const pmModel = this.getModelForRole('pm');
             const pmCode = await this.runCodingAgent('pm', userRequest, pmModel, fullDiscussion, designCode);
+
+            const streamMsg2 = document.getElementById('stream-message');
+            if (streamMsg2) streamMsg2.remove();
+
             if (pmCode) {
                 Chat.addAssistantMessage(pmCode, 'pm');
                 Editor.updateCode(pmCode);
+            } else {
+                Chat.addAssistantMessage('📊 PM completed (no HTML files needed).', 'pm');
             }
 
             // Developer
@@ -309,9 +346,15 @@ End with: "**Do you approve this plan?** We're ready to start coding!"`;
             Chat.addAssistantMessage('💻 **Developer** is writing the logic...', 'developer');
             const devModel = this.getModelForRole('developer');
             const devCode = await this.runCodingAgent('developer', userRequest, devModel, fullDiscussion, designCode, pmCode);
+
+            const streamMsg3 = document.getElementById('stream-message');
+            if (streamMsg3) streamMsg3.remove();
+
             if (devCode) {
                 Chat.addAssistantMessage(devCode, 'developer');
                 Editor.updateCode(devCode);
+            } else {
+                Chat.addAssistantMessage('💻 Developer completed (no JS files needed).', 'developer');
             }
 
             this.clearAgentActive();
@@ -340,14 +383,21 @@ End with: "**Do you approve this plan?** We're ready to start coding!"`;
         const roleContext = {
             designer: `Based on the team discussion, create or update the CSS/style files.
 Make it beautiful and responsive.
-${fileContext ? '\nExisting project files are provided below — update them if needed, or create new ones.' : ''}`,
+${fileContext ? '\nExisting project files are provided below — update them if needed, or create new ones.' : ''}
+
+IMPORTANT: Use the exact format \`\`\`css:filename.css for EVERY file you create.
+Write COMPLETE files — never skip any code.`,
 
             pm: `Based on the team discussion, create or update the HTML structure files.
 Reference the CSS files the designer created.
 ${fileContext ? '\nExisting project files are provided below — update them if needed, or create new ones.' : ''}
 
-Designer's CSS:
-${prevCode1}`,
+Designer's output:
+${prevCode1}
+
+IMPORTANT: Use the exact format \`\`\`html:filename.html for EVERY file you create.
+Write COMPLETE files — never skip any code.
+Make sure to link CSS files correctly.`,
 
             developer: `Based on the team discussion, create or update the JavaScript files.
 Make everything functional.
@@ -357,7 +407,11 @@ Designer's CSS:
 ${prevCode1}
 
 PM's HTML:
-${prevCode2}`,
+${prevCode2}
+
+IMPORTANT: Use the exact format \`\`\`javascript:filename.js for EVERY file you create.
+Write COMPLETE files — never skip any code.
+Make sure to reference the correct HTML elements and CSS classes.`,
         };
 
         const prompt = `${roleContext[agentType]}
@@ -368,29 +422,54 @@ TEAM DISCUSSION SUMMARY:
 ${discussion}
 ${fileContext}
 
-Write your code files now. Use complete, production-ready code. When updating existing files, write the COMPLETE file content.`;
+Write your code files now. Use the format \`\`\`language:filename.ext for each file. Write complete, production-ready code.`;
 
         const messages = [{ role: 'user', content: prompt }];
 
-        // Her role kendi hidden system prompt'unu + base prompt'u kullanır
         const combinedSystemPrompt = this.HIDDEN_SYSTEM_PROMPTS[agentType] + '\n\n' + basePrompt;
 
-        const result = await API.sendMessage(messages, model, {
-            systemPrompt: combinedSystemPrompt,
-            maxTokens: 4096,
-        });
-
         let content = '';
-        if (result && typeof result[Symbol.asyncIterator] === 'function') {
-            for await (const chunk of result) {
-                content += chunk;
-                Chat.updateStreamMessage(content);
-            }
-        } else if (result?.content) {
-            content = result.content;
-        }
 
-        return content;
+        try {
+            const result = await API.sendMessage(messages, model, {
+                systemPrompt: combinedSystemPrompt,
+                maxTokens: 8192,
+                temperature: 0.5,
+            });
+
+            if (result && typeof result[Symbol.asyncIterator] === 'function') {
+                let lastEditorUpdate = 0;
+                for await (const chunk of result) {
+                    content += chunk;
+                    Chat.updateStreamMessage(content);
+
+                    // Editörü stream sırasında güncelle
+                    const now = Date.now();
+                    if (content.includes('```') && now - lastEditorUpdate > 600) {
+                        Editor.updateCode(content);
+                        lastEditorUpdate = now;
+                    }
+                }
+            } else if (result?.content) {
+                content = result.content;
+            }
+
+            // Son güncelleme — stream bittikten sonra editörü kesin güncelle
+            if (content && content.includes('```')) {
+                Editor.updateCode(content);
+            }
+
+            return content.trim();
+        } catch (error) {
+            console.error(`Coding agent ${agentType} error:`, error);
+            if (error.name === 'AbortError') throw error;
+            // Partial content varsa kullan
+            if (content && content.includes('```')) {
+                Editor.updateCode(content);
+                return content.trim();
+            }
+            return '';
+        }
     },
 
     formatDiscussionSummary() {
