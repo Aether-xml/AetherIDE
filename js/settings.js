@@ -192,8 +192,75 @@ const Settings = {
             modal.style.display = 'flex';
             this.loadSettings();
             this.populateDefaultModel();
+            this.renderChangelog();
             if (window.lucide) lucide.createIcons();
         }
+    },
+
+    CHANGELOG: [
+        {
+            version: 'v1.4.5',
+            date: '2025-07-15',
+            changes: [
+                { type: 'new', text: 'Setup wizard for first-time users' },
+                { type: 'new', text: 'User display name & avatar color' },
+                { type: 'new', text: 'Folder structure support for files' },
+                { type: 'new', text: 'Sandbox response timer' },
+                { type: 'new', text: 'Console re-run button' },
+                { type: 'new', text: 'Changelog in settings' },
+                { type: 'improved', text: 'Live preview updates in real-time during code generation' },
+                { type: 'improved', text: 'Friendly error messages with technical details toggle' },
+                { type: 'improved', text: 'Stronger file modification prompts — AI writes complete files' },
+                { type: 'fixed', text: 'File cards stuck on "Creating..." after completion' },
+                { type: 'fixed', text: 'Mobile tab switching causing page refresh' },
+                { type: 'fixed', text: 'Typing indicator sometimes not showing' },
+            ],
+        },
+        {
+            version: 'v1.4.4',
+            date: '2025-07-14',
+            changes: [
+                { type: 'new', text: 'Multi-provider support (OpenRouter, Gemini, OpenAI)' },
+                { type: 'new', text: 'Prompt enhancer with custom model/prompt' },
+                { type: 'new', text: 'Planner mode with Flash & Pro speeds' },
+                { type: 'new', text: 'Team mode with Designer, PM, Developer agents' },
+                { type: 'new', text: 'Sandbox with side-by-side model comparison' },
+                { type: 'new', text: 'Layout system (Default, VSCode, Cursor)' },
+                { type: 'improved', text: 'Mobile-first responsive design' },
+                { type: 'improved', text: 'Stream response handling' },
+            ],
+        },
+    ],
+
+    renderChangelog() {
+        const container = document.getElementById('changelog-list');
+        if (!container) return;
+
+        const typeIcons = { new: '✨', improved: '⚡', fixed: '🔧' };
+        const typeColors = { new: 'var(--accent-success)', improved: 'var(--accent-secondary)', fixed: 'var(--accent-warning)' };
+
+        let html = '';
+        for (const release of this.CHANGELOG) {
+            html += `<div class="changelog-release">
+                <div class="changelog-version-row">
+                    <span class="changelog-version">${release.version}</span>
+                    <span class="changelog-date">${release.date}</span>
+                </div>
+                <div class="changelog-items">`;
+
+            for (const change of release.changes) {
+                html += `<div class="changelog-item">
+                    <span class="changelog-type" style="color:${typeColors[change.type] || 'var(--text-tertiary)'}">
+                        ${typeIcons[change.type] || '•'}
+                    </span>
+                    <span class="changelog-text">${change.text}</span>
+                </div>`;
+            }
+
+            html += `</div></div>`;
+        }
+
+        container.innerHTML = html;
     },
 
     close() {
