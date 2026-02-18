@@ -127,8 +127,9 @@ When writing code, ONLY write JS/logic files using the format: \`\`\`javascript:
             this.phase = 'idle';
             this.clearAgentActive();
             this.removeDiscussionStatus();
-            Chat.addAssistantMessage(`**Team Error:** ${error.message}`);
-            Utils.toast(error.message, 'error');
+            Chat.addAssistantMessage(Utils.formatErrorMessage(error.message));
+            const friendly = Utils.friendlyError(error.message);
+            Utils.toast(friendly.friendly, 'error');
         } finally {
             Chat.setGenerating(false);
         }
@@ -323,8 +324,9 @@ End with: "**Do you approve this plan?** We're ready to start coding!"`;
 
         } catch (error) {
             this.clearAgentActive();
-            Chat.addAssistantMessage(`**Error during coding:** ${error.message}`);
-            Utils.toast(error.message, 'error');
+            Chat.addAssistantMessage(Utils.formatErrorMessage(error.message));
+            const friendly = Utils.friendlyError(error.message);
+            Utils.toast(friendly.friendly, 'error');
             this.phase = 'idle';
         } finally {
             Chat.setGenerating(false);
