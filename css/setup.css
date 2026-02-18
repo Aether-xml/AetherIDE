@@ -433,6 +433,7 @@
 .setup-themes {
     display: flex;
     gap: 6px;
+    flex-wrap: wrap;
 }
 
 .setup-theme-btn {
