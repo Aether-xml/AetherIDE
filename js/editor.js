@@ -9,6 +9,11 @@ const Editor = {
     previewVisible: false,
     consoleVisible: false,
     consoleLogs: [],
+    searchVisible: false,
+    searchMatches: [],
+    searchCurrentIndex: -1,
+    diffMode: false,
+    previousVersions: {},
 
     get currentFile() {
         return this.files[this.activeFileIndex] || null;
@@ -71,16 +76,41 @@ const Editor = {
         });
 
         document.getElementById('terminal-input')?.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const input = e.target;
-                const command = input.value.trim();
-                if (command) {
-                    this.executeTerminalCommand(command);
-                    input.value = '';
-                }
-            }
-        });
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const input = e.target;
+        const command = input.value.trim();
+        if (command) {
+            this.executeTerminalCommand(command);
+            input.value = '';
+        }
+    }
+});
+
+document.getElementById('diff-btn')?.addEventListener('click', () => {
+    this.toggleDiff();
+});
+
+// Search shortcut (Ctrl+F)
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        const codePanel = document.getElementById('code-panel');
+        if (codePanel && (codePanel.contains(document.activeElement) || this.files.length > 0)) {
+            e.preventDefault();
+            this.toggleSearch(true);
+        }
+    }
+    if (e.key === 'Escape' && this.searchVisible) {
+        this.toggleSearch(false);
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+        const codePanel = document.getElementById('code-panel');
+        if (codePanel && this.files.length > 0) {
+            e.preventDefault();
+            this.toggleSearch(true, true);
+        }
+    }
+});
     },
 
     _lastEditorUpdate: 0,
@@ -106,9 +136,10 @@ const Editor = {
             });
 
             if (existingIndex >= 0) {
-                const existingCode = this.files[existingIndex].code;
-                if (existingCode !== block.code) {
-                    this.files[existingIndex] = {
+    const existingCode = this.files[existingIndex].code;
+    if (existingCode !== block.code) {
+        this.previousVersions[normalizedName] = existingCode;
+        this.files[existingIndex] = {
                         filename: normalizedName,
                         language: block.language || this.files[existingIndex].language,
                         code: block.code,
@@ -1094,5 +1125,389 @@ downloadAll() {
         } else if (linesEl) {
             linesEl.textContent = '0 lines';
         }
+    },
+
+    // ══════════════════════════════════════════════════════════
+    // Search & Replace
+    // ══════════════════════════════════════════════════════════
+
+    toggleSearch(show, showReplace = false) {
+        this.searchVisible = show;
+
+        let bar = document.getElementById('editor-search-bar');
+        let replaceRow = document.getElementById('editor-replace-row');
+
+        if (!bar) {
+            const wrapper = document.getElementById('code-editor-wrapper');
+            if (!wrapper) return;
+
+            const searchHTML = `
+                <div id="editor-search-bar" class="editor-search-bar">
+                    <input type="text" id="search-input" placeholder="Search... (Ctrl+F)" spellcheck="false" />
+                    <span id="search-info" class="search-info"></span>
+                    <button class="search-btn" id="search-prev-btn" title="Previous (Shift+Enter)">
+                        <i data-lucide="chevron-up" style="width:14px;height:14px;"></i>
+                    </button>
+                    <button class="search-btn" id="search-next-btn" title="Next (Enter)">
+                        <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+                    </button>
+                    <button class="search-btn" id="search-replace-toggle" title="Toggle Replace (Ctrl+H)">
+                        <i data-lucide="replace" style="width:14px;height:14px;"></i>
+                    </button>
+                    <button class="search-btn" id="search-close-btn" title="Close (Esc)">
+                        <i data-lucide="x" style="width:14px;height:14px;"></i>
+                    </button>
+                </div>
+                <div id="editor-replace-row" class="editor-replace-row">
+                    <input type="text" id="replace-input" placeholder="Replace with..." spellcheck="false" />
+                    <button class="replace-btn" id="replace-one-btn">Replace</button>
+                    <button class="replace-btn" id="replace-all-btn">Replace All</button>
+                </div>
+            `;
+
+            wrapper.insertAdjacentHTML('afterbegin', searchHTML);
+            bar = document.getElementById('editor-search-bar');
+            replaceRow = document.getElementById('editor-replace-row');
+
+            if (window.lucide) lucide.createIcons({ nodes: [bar] });
+
+            const searchInput = document.getElementById('search-input');
+            searchInput.addEventListener('input', () => this._performSearch());
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.shiftKey ? this._searchNav(-1) : this._searchNav(1);
+                }
+            });
+
+            document.getElementById('search-prev-btn').addEventListener('click', () => this._searchNav(-1));
+            document.getElementById('search-next-btn').addEventListener('click', () => this._searchNav(1));
+            document.getElementById('search-close-btn').addEventListener('click', () => this.toggleSearch(false));
+            document.getElementById('search-replace-toggle').addEventListener('click', () => {
+                replaceRow.classList.toggle('active');
+            });
+            document.getElementById('replace-one-btn').addEventListener('click', () => this._replaceOne());
+            document.getElementById('replace-all-btn').addEventListener('click', () => this._replaceAll());
+        }
+
+        if (show) {
+            bar.classList.add('active');
+            if (showReplace) replaceRow.classList.add('active');
+            const input = document.getElementById('search-input');
+            input.focus();
+            input.select();
+            this._performSearch();
+        } else {
+            bar.classList.remove('active');
+            replaceRow.classList.remove('active');
+            this.searchMatches = [];
+            this.searchCurrentIndex = -1;
+            this.renderCode();
+        }
+    },
+
+    _performSearch() {
+        const query = document.getElementById('search-input')?.value || '';
+        const info = document.getElementById('search-info');
+
+        if (!query || !this.currentCode) {
+            this.searchMatches = [];
+            this.searchCurrentIndex = -1;
+            if (info) info.textContent = '';
+            this.renderCode();
+            return;
+        }
+
+        const code = this.currentCode;
+        const lowerCode = code.toLowerCase();
+        const lowerQuery = query.toLowerCase();
+        this.searchMatches = [];
+
+        let idx = 0;
+        while (idx < lowerCode.length) {
+            const found = lowerCode.indexOf(lowerQuery, idx);
+            if (found === -1) break;
+            this.searchMatches.push({ start: found, end: found + query.length });
+            idx = found + 1;
+        }
+
+        this.searchCurrentIndex = this.searchMatches.length > 0 ? 0 : -1;
+
+        if (info) {
+            info.textContent = this.searchMatches.length > 0
+                ? `${this.searchCurrentIndex + 1}/${this.searchMatches.length}`
+                : 'No results';
+        }
+
+        this._renderCodeWithSearch();
+    },
+
+    _searchNav(direction) {
+        if (this.searchMatches.length === 0) return;
+        this.searchCurrentIndex += direction;
+        if (this.searchCurrentIndex >= this.searchMatches.length) this.searchCurrentIndex = 0;
+        if (this.searchCurrentIndex < 0) this.searchCurrentIndex = this.searchMatches.length - 1;
+
+        const info = document.getElementById('search-info');
+        if (info) info.textContent = `${this.searchCurrentIndex + 1}/${this.searchMatches.length}`;
+
+        this._renderCodeWithSearch();
+        this._scrollToMatch();
+    },
+
+    _scrollToMatch() {
+        const active = document.querySelector('.search-highlight-active');
+        if (active) {
+            active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    },
+
+    _renderCodeWithSearch() {
+        const editor = document.getElementById('code-editor');
+        if (!editor || !this.currentCode) return;
+
+        const settings = Storage.getSettings();
+        const fontSize = settings.fontSize || 14;
+        const code = this.currentCode;
+        const lines = code.split('\n');
+
+        let lineOffsets = [];
+        let offset = 0;
+        for (const line of lines) {
+            lineOffsets.push(offset);
+            offset += line.length + 1;
+        }
+
+        let html = `<div class="code-display" style="font-size: ${fontSize}px;">`;
+
+        lines.forEach((line, i) => {
+            const lineStart = lineOffsets[i];
+            const lineEnd = lineStart + line.length;
+
+            let highlightedLine = Utils.escapeHtml(line) || ' ';
+
+            if (this.searchMatches.length > 0) {
+                const lineMatches = this.searchMatches
+                    .map((m, idx) => ({ ...m, idx }))
+                    .filter(m => m.start < lineEnd && m.end > lineStart);
+
+                if (lineMatches.length > 0) {
+                    let segments = [];
+                    let lastEnd = 0;
+                    const rawLine = line;
+
+                    for (const m of lineMatches) {
+                        const relStart = Math.max(0, m.start - lineStart);
+                        const relEnd = Math.min(rawLine.length, m.end - lineStart);
+
+                        if (relStart > lastEnd) {
+                            segments.push({ text: rawLine.slice(lastEnd, relStart), highlight: false });
+                        }
+                        segments.push({
+                            text: rawLine.slice(relStart, relEnd),
+                            highlight: true,
+                            active: m.idx === this.searchCurrentIndex
+                        });
+                        lastEnd = relEnd;
+                    }
+                    if (lastEnd < rawLine.length) {
+                        segments.push({ text: rawLine.slice(lastEnd), highlight: false });
+                    }
+
+                    highlightedLine = segments.map(s => {
+                        const escaped = Utils.escapeHtml(s.text);
+                        if (s.highlight) {
+                            const cls = s.active ? 'search-highlight-active' : 'search-highlight';
+                            return `<span class="${cls}">${escaped}</span>`;
+                        }
+                        return escaped;
+                    }).join('') || ' ';
+                }
+            }
+
+            html += `<div class="line">
+                <span class="line-number">${i + 1}</span>
+                <span class="line-content">${highlightedLine}</span>
+            </div>`;
+        });
+
+        html += '</div>';
+        editor.innerHTML = html;
+    },
+
+    _replaceOne() {
+        if (this.searchMatches.length === 0 || this.searchCurrentIndex < 0) return;
+        if (!this.currentFile) return;
+
+        const replaceWith = document.getElementById('replace-input')?.value || '';
+        const match = this.searchMatches[this.searchCurrentIndex];
+        const code = this.currentCode;
+
+        this.previousVersions[this.currentFile.filename] = code;
+
+        const newCode = code.slice(0, match.start) + replaceWith + code.slice(match.end);
+        this.files[this.activeFileIndex].code = newCode;
+
+        this._performSearch();
+        this.updateStatusBar();
+        Utils.toast('Replaced 1 occurrence', 'success');
+    },
+
+    _replaceAll() {
+        if (this.searchMatches.length === 0) return;
+        if (!this.currentFile) return;
+
+        const query = document.getElementById('search-input')?.value || '';
+        const replaceWith = document.getElementById('replace-input')?.value || '';
+        if (!query) return;
+
+        this.previousVersions[this.currentFile.filename] = this.currentCode;
+
+        const count = this.searchMatches.length;
+        const newCode = this.currentCode.split(query).join(replaceWith);
+        this.files[this.activeFileIndex].code = newCode;
+
+        this._performSearch();
+        this.updateStatusBar();
+        Utils.toast(`Replaced ${count} occurrences`, 'success');
+    },
+
+    // ══════════════════════════════════════════════════════════
+    // Diff View
+    // ══════════════════════════════════════════════════════════
+
+    toggleDiff() {
+        if (!this.currentFile) {
+            Utils.toast('No file selected', 'warning');
+            return;
+        }
+
+        const prevCode = this.previousVersions[this.currentFile.filename];
+        if (!prevCode) {
+            Utils.toast('No previous version available', 'info');
+            return;
+        }
+
+        this.diffMode = !this.diffMode;
+        const editor = document.getElementById('code-editor');
+        if (!editor) return;
+
+        if (this.diffMode) {
+            this._renderDiff(editor, prevCode, this.currentCode);
+        } else {
+            this.renderCode();
+        }
+
+        const diffBtn = document.getElementById('diff-btn');
+        if (diffBtn) {
+            diffBtn.classList.toggle('active', this.diffMode);
+        }
+    },
+
+    _renderDiff(container, oldCode, newCode) {
+        const oldLines = oldCode.split('\n');
+        const newLines = newCode.split('\n');
+        const diff = this._computeDiff(oldLines, newLines);
+
+        let addedCount = diff.filter(d => d.type === 'added').length;
+        let removedCount = diff.filter(d => d.type === 'removed').length;
+
+        let html = `
+            <div class="diff-container">
+                <div class="diff-header">
+                    <span class="diff-header-title">
+                        <i data-lucide="git-compare" style="width:14px;height:14px;"></i>
+                        ${Utils.escapeHtml(this.currentFile.filename)} — Changes
+                    </span>
+                    <div class="diff-stats">
+                        <span class="diff-stat-added">+${addedCount} added</span>
+                        <span class="diff-stat-removed">-${removedCount} removed</span>
+                    </div>
+                </div>
+        `;
+
+        let lineNum = 0;
+        for (const entry of diff) {
+            if (entry.type === 'unchanged') {
+                lineNum++;
+                html += `<div class="diff-line unchanged">
+                    <span class="diff-line-number">${lineNum}</span>
+                    <span class="diff-line-content">${Utils.escapeHtml(entry.value)}</span>
+                </div>`;
+            } else if (entry.type === 'removed') {
+                html += `<div class="diff-line removed">
+                    <span class="diff-line-number"></span>
+                    <span class="diff-line-content">${Utils.escapeHtml(entry.value)}</span>
+                </div>`;
+            } else if (entry.type === 'added') {
+                lineNum++;
+                html += `<div class="diff-line added">
+                    <span class="diff-line-number">${lineNum}</span>
+                    <span class="diff-line-content">${Utils.escapeHtml(entry.value)}</span>
+                </div>`;
+            }
+        }
+
+        html += '</div>';
+        container.innerHTML = html;
+        if (window.lucide) lucide.createIcons({ nodes: [container] });
+    },
+
+    _computeDiff(oldLines, newLines) {
+        const m = oldLines.length;
+        const n = newLines.length;
+
+        if (m + n > 5000) {
+            return this._simpleDiff(oldLines, newLines);
+        }
+
+        const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+
+        for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+                if (oldLines[i - 1] === newLines[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1;
+                } else {
+                    dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                }
+            }
+        }
+
+        const result = [];
+        let i = m, j = n;
+        while (i > 0 || j > 0) {
+            if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
+                result.unshift({ type: 'unchanged', value: oldLines[i - 1] });
+                i--;
+                j--;
+            } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+                result.unshift({ type: 'added', value: newLines[j - 1] });
+                j--;
+            } else {
+                result.unshift({ type: 'removed', value: oldLines[i - 1] });
+                i--;
+            }
+        }
+
+        return result;
+    },
+
+    _simpleDiff(oldLines, newLines) {
+        const result = [];
+        const maxLen = Math.max(oldLines.length, newLines.length);
+
+        for (let i = 0; i < maxLen; i++) {
+            const oldLine = i < oldLines.length ? oldLines[i] : null;
+            const newLine = i < newLines.length ? newLines[i] : null;
+
+            if (oldLine === newLine) {
+                result.push({ type: 'unchanged', value: newLine });
+            } else {
+                if (oldLine !== null) result.push({ type: 'removed', value: oldLine });
+                if (newLine !== null) result.push({ type: 'added', value: newLine });
+            }
+        }
+
+        return result;
     },
 };
