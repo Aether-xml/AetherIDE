@@ -700,6 +700,14 @@ IMPORTANT: Return ONLY the enhanced prompt, nothing else. No explanations, no pr
         return { friendly: 'Something went wrong while communicating with the AI.', tip: 'Try again, or switch to a different model.', raw: msg };
     },
 
+    slugify(text) {
+        return (text || 'project')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '')
+            .substring(0, 40) || 'project';
+    },
+
     formatErrorMessage(rawError) {
         const err = this.friendlyError(rawError);
         const errorId = 'err_' + Date.now().toString(36);
