@@ -114,6 +114,9 @@ const Chat = {
         const refreshBtn = document.getElementById('refresh-preview-btn');
         if (refreshBtn) refreshBtn.style.display = 'none';
 
+        const previewBtn = document.getElementById('preview-btn');
+        if (previewBtn) previewBtn.style.display = 'none';
+
         const iframe = document.getElementById('preview-iframe');
         if (iframe) iframe.srcdoc = '';
 
@@ -201,6 +204,48 @@ const Chat = {
             const chat = Storage.getChat(lastId);
             if (chat) {
                 this.currentChat = chat;
+
+                // Dosyaları sohbetten geri yükle
+                Editor.files = [];
+                Editor.activeFileIndex = 0;
+
+                if (chat.messages && chat.messages.length > 0) {
+                    for (const msg of chat.messages) {
+                        if (msg.role === 'assistant' && msg.content) {
+                            const blocks = Utils.extractCodeBlocks(msg.content);
+                            for (const block of blocks) {
+                                const existingIndex = Editor.files.findIndex(f => f.filename === block.filename);
+                                if (existingIndex >= 0) {
+                                    Editor.files[existingIndex] = block;
+                                } else {
+                                    Editor.files.push(block);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Editor.renderTabs();
+                Editor.renderCode();
+                Editor.updateStatusBar();
+                Editor.updatePreviewButton();
+
+                // Mobil file badge güncelle
+                const tabCode = document.getElementById('tab-code');
+                if (tabCode) {
+                    let badge = tabCode.querySelector('.file-count-badge');
+                    if (Editor.files.length > 0) {
+                        if (!badge) {
+                            badge = document.createElement('span');
+                            badge.className = 'file-count-badge';
+                            tabCode.appendChild(badge);
+                        }
+                        badge.textContent = Editor.files.length;
+                    } else if (badge) {
+                        badge.remove();
+                    }
+                }
+
                 this.renderMessages();
                 this.renderHistory();
                 return;
@@ -280,6 +325,7 @@ const Chat = {
         Editor.renderTabs();
         Editor.renderCode();
         Editor.updateStatusBar();
+        Editor.updatePreviewButton();
 
         // Preview kapat
         const previewContainer = document.getElementById('preview-container');
@@ -412,6 +458,14 @@ const Chat = {
             timestamp: new Date().toISOString(),
             completed: true,
         });
+
+        // Kod blokları varsa editörü güncelle
+        if (content && content.includes('```')) {
+            const blocks = Utils.extractCodeBlocks(content);
+            if (blocks.length > 0) {
+                Editor.updateCode(content);
+            }
+        }
 
         Storage.saveChat(this.currentChat);
         this.renderMessages();
