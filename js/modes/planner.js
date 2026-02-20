@@ -282,9 +282,10 @@ Write code that would impress a senior engineer during code review.`,
             if (error.name === 'AbortError') {
                 Utils.toast('Generation stopped', 'info');
             } else {
-                Chat.addAssistantMessage(Utils.formatErrorMessage(error.message));
-                const friendly = Utils.friendlyError(error.message);
-                Utils.toast(friendly.friendly, 'error');
+                const errorMsg = error.message || String(error);
+                Chat.addAssistantMessage(Utils.formatErrorMessage(errorMsg));
+                const friendlyErr = Utils.friendlyError(errorMsg);
+                Utils.toast(friendlyErr.friendly, 'error');
             }
         } finally {
             Chat.setGenerating(false);
@@ -422,12 +423,15 @@ Write code that would impress a senior engineer during code review.`,
                     Utils.toast('Generation stopped', 'info');
                 }
             } else {
-                Chat.addAssistantMessage(Utils.formatErrorMessage(error.message));
-                const friendly = Utils.friendlyError(error.message);
-                Utils.toast(friendly.friendly, 'error');
+                const errorMsg = error.message || String(error);
+                Chat.addAssistantMessage(Utils.formatErrorMessage(errorMsg));
+                const friendlyErr = Utils.friendlyError(errorMsg);
+                Utils.toast(friendlyErr.friendly, 'error');
             }
             this.phase = 'planning';
             this.currentPlan = null;
+            this.thinkingContent = '';
+            this.showThinkingDisplay(false);
         } finally {
             Chat.setGenerating(false);
         }
