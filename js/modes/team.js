@@ -292,9 +292,10 @@ Reference the exact CSS classes and HTML element IDs from Designer and PM.
             if (error.name === 'AbortError') {
                 Utils.toast('Team discussion stopped', 'info');
             } else {
-                Chat.addAssistantMessage(Utils.formatErrorMessage(error.message));
-                const friendly = Utils.friendlyError(error.message);
-                Utils.toast(friendly.friendly, 'error');
+                const errorMsg = error.message || String(error);
+                Chat.addAssistantMessage(Utils.formatErrorMessage(errorMsg));
+                const friendlyErr = Utils.friendlyError(errorMsg);
+                Utils.toast(friendlyErr.friendly, 'error');
             }
         } finally {
             Chat.setGenerating(false);
@@ -338,6 +339,14 @@ Keep response under 250 words but make every word count.`;
                 maxTokens: 1000,
                 stream: false,
             });
+
+            if (!result) {
+                return `Ready to contribute my ${agentType} expertise. Let's proceed with the plan.`;
+            }
+
+            if (result.aborted) {
+                throw new DOMException('Aborted', 'AbortError');
+            }
 
             let content = '';
             if (result && typeof result[Symbol.asyncIterator] === 'function') {
@@ -430,6 +439,14 @@ CRITICAL: Write the COMPLETE plan. Do NOT truncate or cut off. Every section mus
                 temperature: 0.5,
                 stream: false,
             });
+
+            if (!result) {
+                return '📋 **Team Plan**\n\nThe team has discussed your request. Please approve to start coding, or describe what you\'d like to change.';
+            }
+
+            if (result.aborted) {
+                throw new DOMException('Aborted', 'AbortError');
+            }
 
             let content = '';
             if (result && typeof result[Symbol.asyncIterator] === 'function') {
@@ -567,9 +584,10 @@ CRITICAL: Write the COMPLETE plan. Do NOT truncate or cut off. Every section mus
             if (error.name === 'AbortError') {
                 Utils.toast('Team coding stopped — partial progress saved', 'warning');
             } else {
-                Chat.addAssistantMessage(Utils.formatErrorMessage(error.message));
-                const friendly = Utils.friendlyError(error.message);
-                Utils.toast(friendly.friendly, 'error');
+                const errorMsg = error.message || String(error);
+                Chat.addAssistantMessage(Utils.formatErrorMessage(errorMsg));
+                const friendlyErr = Utils.friendlyError(errorMsg);
+                Utils.toast(friendlyErr.friendly, 'error');
             }
             this.phase = 'idle';
         } finally {
@@ -803,6 +821,8 @@ Write your code now. Make it production-ready and impressive.`;
             document.getElementById('plan-modify-btn').onclick = () => {
                 this.showApprovalActions(false);
                 this.phase = 'idle';
+                // Tartışma logunu koru ama planı sıfırla — yeni turda context olarak kullanılacak
+                this.agreedPlan = '';
                 const input = document.getElementById('message-input');
                 if (input) {
                     input.placeholder = 'Tell the team what to change...';
