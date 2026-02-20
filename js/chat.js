@@ -38,6 +38,9 @@ const Chat = {
             }
             Utils.autoResize(input);
             if (sendBtn) sendBtn.disabled = !input.value.trim();
+
+            // Karakter sayacı güncelle
+            Utils.updateCharCounter('main-char-counter', input.value.length, MAX_LENGTH);
         });
 
         document.getElementById('new-chat-btn')?.addEventListener('click', () => {
