@@ -69,6 +69,12 @@ const Settings = {
         document.querySelectorAll('.provider-option').forEach(btn => {
             btn.addEventListener('click', () => this.switchProvider(btn.dataset.provider));
         });
+
+        // Typing efekti toggle
+        document.getElementById('typing-effect-toggle')?.addEventListener('change', (e) => {
+            const speedRow = document.getElementById('typing-speed-row');
+            if (speedRow) speedRow.style.display = e.target.checked ? 'flex' : 'none';
+        });
     },
 
     switchProvider(providerId) {
@@ -166,6 +172,17 @@ const Settings = {
         if (enhancerModel) enhancerModel.value = settings.promptEnhancer?.customModel || '';
         const enhancerPrompt = document.getElementById('enhancer-prompt-input');
         if (enhancerPrompt) enhancerPrompt.value = settings.promptEnhancer?.customPrompt || '';
+
+        // Typing efekti
+        const typingToggle = document.getElementById('typing-effect-toggle');
+        if (typingToggle) typingToggle.checked = settings.typingEffect?.enabled === true;
+
+        const typingSpeed = document.getElementById('typing-speed-select');
+        if (typingSpeed) typingSpeed.value = settings.typingEffect?.speed || 'normal';
+
+        // Speed select'i toggle'a göre gizle/göster
+        const typingSpeedRow = document.getElementById('typing-speed-row');
+        if (typingSpeedRow) typingSpeedRow.style.display = settings.typingEffect?.enabled ? 'flex' : 'none';
 
         document.querySelectorAll('.layout-option').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.layout === (settings.layout || 'default'));
@@ -442,6 +459,10 @@ const Settings = {
                 customModel: document.getElementById('enhancer-model-input')?.value?.trim() || '',
                 customPrompt: document.getElementById('enhancer-prompt-input')?.value?.trim() || '',
             },
+            typingEffect: {
+                enabled: document.getElementById('typing-effect-toggle')?.checked === true,
+                speed: document.getElementById('typing-speed-select')?.value || 'normal',
+            },
         };
 
         Storage.saveSettings(settings);
@@ -491,6 +512,14 @@ const Settings = {
 
         // Font size sıfırla
         document.documentElement.style.setProperty('--editor-font-size', '14px');
+
+        // Typing efekti sıfırla
+        const typingToggle = document.getElementById('typing-effect-toggle');
+        if (typingToggle) typingToggle.checked = false;
+        const typingSpeedRow = document.getElementById('typing-speed-row');
+        if (typingSpeedRow) typingSpeedRow.style.display = 'none';
+        const typingSpeed = document.getElementById('typing-speed-select');
+        if (typingSpeed) typingSpeed.value = 'normal';
 
         Utils.toast('Settings reset to default', 'info');
     },
