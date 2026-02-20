@@ -211,6 +211,23 @@ const Utils = {
         return str.length > maxLen ? str.substring(0, maxLen) + '...' : str;
     },
 
+    sanitizeFilename(filename) {
+        if (!filename || typeof filename !== 'string') return 'untitled.txt';
+        let safe = filename
+            .replace(/['"<>&`]/g, '')                // XSS vektörleri
+            .replace(/javascript\s*:/gi, '')          // javascript: protocol
+            .replace(/on\w+\s*=/gi, '')               // onerror=, onclick= vb.
+            .replace(/data\s*:/gi, '')                // data: protocol
+            .replace(/vbscript\s*:/gi, '')            // vbscript: protocol
+            .replace(/[\x00-\x1f\x7f]/g, '')         // kontrol karakterleri
+            .replace(/\.\.+/g, '.')                   // path traversal (.. → .)
+            .replace(/\/{2,}/g, '/')                  // çift slash
+            .trim();
+        if (!safe || safe === '.' || safe === '/') safe = 'untitled.txt';
+        if (safe.length > 255) safe = safe.substring(0, 255);
+        return safe;
+    },
+
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
@@ -700,16 +717,17 @@ CRITICAL RULES:
         // - Dosya adı: : veya boşluk sonrası, satır sonuna kadar
         // - Kod: ``` kapanışına kadar
         // - Dosya adı opsiyonel
-        const regex = /```\s*(\w+?)(?:\s*[:]\s*([^\n\r]+?)|\s+([^\n\r]*?))?\s*[\r\n]+([\s\S]*?)```/g;
+        // match[2] = :ile gelen dosya adı (güvenilir)
+        // match[3] kaldırıldı — boşlukla gelen metin genelde dosya adı değil, açıklama metni
+        const regex = /```\s*(\w+?)(?:\s*[:]\s*([^\n\r]+?))?\s*[\r\n]+([\s\S]*?)```/g;
         let match;
         let fileIndex = 0;
         const seenFiles = new Map(); // Aynı dosya birden fazla gelirse son halini al
 
         while ((match = regex.exec(text)) !== null) {
             let language = (match[1] || '').trim().toLowerCase();
-            // match[2] = :ile gelen dosya adı, match[3] = boşlukla gelen dosya adı
-            let filename = (match[2] || match[3] || '').trim();
-            let code = match[4] || '';
+            let filename = (match[2] || '').trim();
+            let code = match[3] || '';
 
             // Sondaki boşlukları temizle ama yapıyı koru
             code = code.replace(/\s+$/, '');
@@ -775,8 +793,9 @@ CRITICAL RULES:
             });
         }
 
-        // Map'ten array'e çevir (sırayı koru)
+        // Map'ten array'e çevir (sırayı koru) + dosya adı sanitization
         for (const [, block] of seenFiles) {
+            block.filename = Utils.sanitizeFilename(block.filename);
             blocks.push(block);
         }
 
