@@ -338,6 +338,12 @@ const Settings = {
         ThemeManager.applyAccent(settings.accentColor || 'purple');
         LayoutManager.apply(settings.layout);
 
+        // Prompt enhancer butonu gizle/göster
+        const enhanceBtn = document.getElementById('enhance-btn');
+        if (enhanceBtn) {
+            enhanceBtn.style.display = settings.promptEnhancer?.enabled !== false ? 'inline-flex' : 'none';
+        }
+
         // Font size uygula
         document.documentElement.style.setProperty('--editor-font-size', settings.fontSize + 'px');
 
@@ -364,7 +370,17 @@ const Settings = {
         this.currentProvider = 'openrouter';
         this.loadSettings();
         ThemeManager.apply('dark');
+        ThemeManager.applyAccent('purple');
         LayoutManager.apply('default');
+
+        // Accent butonlarını güncelle
+        document.querySelectorAll('.accent-option').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.accent === 'purple');
+        });
+
+        // Font size sıfırla
+        document.documentElement.style.setProperty('--editor-font-size', '14px');
+
         Utils.toast('Settings reset to default', 'info');
     },
 };
