@@ -57,6 +57,16 @@
     filter: drop-shadow(0 0 12px var(--accent-primary));
 }
 
+.welcome-logo-img {
+    width: 64px;
+    height: 64px;
+    position: relative;
+    z-index: 1;
+    border-radius: 16px;
+    filter: drop-shadow(0 0 12px var(--accent-primary));
+    object-fit: contain;
+}
+
 .welcome-title {
     font-size: 1.6rem;
     font-weight: 800;
@@ -553,7 +563,7 @@
     align-items: center;
     gap: 6px;
     padding: 4px 10px 4px 6px;
-    margin: 8px auto;
+    margin: 4px 0;
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-sm);
@@ -561,6 +571,8 @@
     transition: all var(--transition-fast);
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .file-card:hover {
@@ -1179,16 +1191,15 @@
 }
 
 /* Input wrapper içindeki sayaç */
-.input-wrapper .char-counter {
-    position: absolute;
-    bottom: -16px;
-    right: 8px;
-    padding: 0;
-}
-
 .input-area {
     position: relative;
-    padding-bottom: 20px;
+}
+
+.input-area .char-counter {
+    position: absolute;
+    bottom: 2px;
+    right: 16px;
+    padding: 0;
 }
 
 /* Settings içindeki sayaç */
