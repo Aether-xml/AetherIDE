@@ -37,7 +37,7 @@
 
     --sidebar-width: 272px;
     --topbar-height: 48px;
-    --statusbar-height: 28px;
+    --statusbar-height: 0px;
     --mobile-tab-height: 48px;
 
     --transition-fast: 120ms ease;
@@ -520,40 +520,9 @@ svg.lucide {
 }
 
 
-/* ── Status Bar ── */
+/* ── Status Bar (Removed) ── */
 .statusbar {
-    height: var(--statusbar-height);
-    background: var(--accent-primary);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 10px;
-    flex-shrink: 0;
-    font-size: 0.65rem;
-    color: rgba(255,255,255,0.85);
-    font-weight: 500;
-}
-
-.statusbar-left, .statusbar-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.statusbar-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    white-space: nowrap;
-    height: 100%;
-    line-height: 1;
-}
-
-.statusbar-icon,
-.statusbar-item svg.lucide {
-    width: 11px;
-    height: 11px;
-    flex-shrink: 0;
+    display: none !important;
 }
 
 
