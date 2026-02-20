@@ -1065,25 +1065,80 @@
         window.addEventListener('load', initIcons);
     </script>
 
-    <!-- Service Worker -->
+    <!-- Service Worker — Aggressive Update -->
     <script>
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').then(reg => {
-            // Yeni versiyon varsa hemen aktive et
-            reg.addEventListener('updatefound', () => {
-                const newWorker = reg.installing;
-                newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'activated') {
-                        window.location.reload();
-                    }
+    (function() {
+        var APP_VERSION = '1.5.2';
+        var STORED_VERSION = localStorage.getItem('aetheride_app_version');
+
+        // Versiyon değiştiyse tüm cache'leri temizle
+        if (STORED_VERSION && STORED_VERSION !== APP_VERSION) {
+            console.log('[AetherIDE] Version changed: ' + STORED_VERSION + ' → ' + APP_VERSION + '. Clearing caches...');
+            
+            // Tüm cache'leri sil
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    names.forEach(function(name) {
+                        caches.delete(name);
+                        console.log('[AetherIDE] Cache deleted:', name);
+                    });
                 });
-            });
-            // Bekleyen worker varsa aktive et
-            if (reg.waiting) {
-                reg.waiting.postMessage('skipWaiting');
             }
-        }).catch(() => {});
-    }
+
+            // Eski SW'yi kaldır ve yenisini kaydet
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    registrations.forEach(function(reg) {
+                        reg.unregister();
+                        console.log('[AetherIDE] Old SW unregistered');
+                    });
+                });
+            }
+
+            localStorage.setItem('aetheride_app_version', APP_VERSION);
+
+            // Sayfayı yenile (cache'siz)
+            setTimeout(function() {
+                window.location.reload(true);
+            }, 500);
+            return;
+        }
+
+        // İlk ziyaret veya aynı versiyon
+        localStorage.setItem('aetheride_app_version', APP_VERSION);
+
+        // SW kaydet
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                // Her sayfa yüklemesinde güncelleme kontrol et
+                reg.update();
+
+                reg.addEventListener('updatefound', function() {
+                    var newWorker = reg.installing;
+                    newWorker.addEventListener('statechange', function() {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // Yeni versiyon hazır — hemen aktive et
+                            newWorker.postMessage({ type: 'SKIP_WAITING' });
+                        }
+                    });
+                });
+
+                // Bekleyen worker varsa aktive et
+                if (reg.waiting) {
+                    reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+            }).catch(function() {});
+
+            // SW kontrol değiştiğinde sayfayı yenile
+            var refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', function() {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
+        }
+    })();
     </script>
 
     <!-- Source Protection -->
