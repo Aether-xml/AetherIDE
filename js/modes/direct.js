@@ -85,6 +85,7 @@ ERROR FIXING RULES (when console errors are present):
             streamTimeout = setTimeout(() => {
                 console.warn('Stream timeout — aborting');
                 API.abort();
+                Utils.toast('Response timed out — try again or use a faster model', 'warning');
             }, STREAM_TIMEOUT_MS);
         };
 
@@ -218,9 +219,10 @@ ERROR FIXING RULES (when console errors are present):
                 // Toast zaten _stopHandler'da gösteriliyor
             } else {
                 console.error('DirectMode error:', error);
-                Chat.addAssistantMessage(Utils.formatErrorMessage(error.message));
-                const friendly = Utils.friendlyError(error.message);
-                Utils.toast(friendly.friendly, 'error');
+                const errorMsg = error.message || String(error);
+                Chat.addAssistantMessage(Utils.formatErrorMessage(errorMsg));
+                const friendlyErr = Utils.friendlyError(errorMsg);
+                Utils.toast(friendlyErr.friendly, 'error');
             }
         } finally {
             if (streamTimeout) clearTimeout(streamTimeout);
