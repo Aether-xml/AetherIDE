@@ -367,7 +367,7 @@
     font-size: 0.9rem;
     color: var(--text-primary);
     line-height: 1.5;
-    max-height: 140px;
+    max-height: 140px !important;
     min-height: 28px;
     padding: 6px 0;
     font-family: var(--font-ui);
@@ -375,6 +375,7 @@
     background: transparent;
     border: none;
     outline: none;
+    overflow-y: auto;
 }
 
 .message-input::placeholder {
@@ -552,7 +553,7 @@
     align-items: center;
     gap: 6px;
     padding: 4px 10px 4px 6px;
-    margin: 3px 0;
+    margin: 8px auto;
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-sm);
@@ -1110,3 +1111,39 @@
 .sandbox-msg-text .md-li { display: flex; gap: 6px; padding: 2px 0; margin-left: 6px; list-style: none; }
 .sandbox-msg-text .md-li::before { content: '•'; color: var(--accent-primary); font-weight: 700; }
 .sandbox-msg-text .md-blockquote { border-left: 3px solid var(--accent-primary); padding: 6px 12px; margin: 6px 0; background: rgba(108, 99, 255, 0.04); color: var(--text-secondary); font-style: italic; }
+
+/* ══════════════════════════════════════════════════════════
+   Textarea Global Size Protection
+   ══════════════════════════════════════════════════════════ */
+
+/* Tüm textarea'ların DevTools ile büyütülmesini engelle */
+#app textarea {
+    max-height: 200px !important;
+    resize: none;
+    overflow-y: auto;
+}
+
+#app textarea.message-input {
+    max-height: 140px !important;
+}
+
+#app textarea.sandbox-input {
+    max-height: 120px !important;
+}
+
+#app textarea.settings-textarea {
+    max-height: 250px !important;
+    resize: vertical;
+}
+
+#app textarea.settings-textarea-sm {
+    max-height: 200px !important;
+    resize: vertical;
+}
+
+/* Input wrapper'ın da taşmasını engelle */
+.input-wrapper,
+.sandbox-input-wrapper {
+    max-height: 180px;
+    overflow: hidden;
+}
