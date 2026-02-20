@@ -90,7 +90,11 @@ const Editor = {
 
     updateCode(aiResponse) {
         const blocks = Utils.extractCodeBlocks(aiResponse);
-        if (blocks.length === 0) return;
+        if (blocks.length === 0) {
+            console.log('[Editor] No code blocks extracted from response');
+            return;
+        }
+        console.log('[Editor] Extracted blocks:', blocks.map(b => b.filename));
 
         let hasChanges = false;
         let changedFiles = [];
@@ -1087,12 +1091,6 @@ downloadAll() {
     },
 
     updateStatusBar() {
-        const linesEl = document.getElementById('statusbar-lines');
-        if (linesEl && this.currentCode) {
-            const lines = this.currentCode.split('\n').length;
-            linesEl.textContent = `${lines} lines`;
-        } else if (linesEl) {
-            linesEl.textContent = '0 lines';
-        }
+        // Status bar removed — no-op
     },
 };
