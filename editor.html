@@ -1082,6 +1082,32 @@
     }
     </script>
 
+    <!-- Source Protection -->
+    <script>
+    (function(){
+        // Console uyarısı
+        const w = '%c⚠️ STOP!';
+        const s = 'color:#FF5252;font-size:32px;font-weight:bold;';
+        const m = '%cThis is a browser feature for developers.\nIf someone told you to paste something here, it\'s likely a scam.\n\nAetherIDE source code is protected.';
+        const ms = 'color:#9DA5B4;font-size:14px;';
+        try { console.log(w,s); console.log(m,ms); } catch(e){}
+
+        // DevTools açık mı kontrol (basit)
+        let dt = false;
+        const el = new Image();
+        Object.defineProperty(el, 'id', { get: function(){ dt = true; } });
+        setInterval(function(){
+            dt = false;
+            console.debug(el);
+            if(dt){
+                document.title = 'AetherIDE — 🔒';
+            } else {
+                if(document.title.includes('🔒')) document.title = 'AetherIDE';
+            }
+        }, 2000);
+    })();
+    </script>
+
     <!-- Scripts -->
     <script src="js/utils.js"></script>
     <script src="js/filetree.js"></script>
