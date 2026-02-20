@@ -53,6 +53,12 @@ const App = {
     initConsoleListener() {
         window.addEventListener('message', (event) => {
             if (event.data?.type === 'aetheride-console') {
+                // Origin kontrolü — sadece kendi preview iframe'imizden kabul et
+                const previewFrame = document.getElementById('preview-iframe');
+                if (previewFrame && event.source !== previewFrame.contentWindow) {
+                    return; // Dış kaynaktan gelen mesajı reddet
+                }
+
                 Editor.addConsoleLog(
                     event.data.logType || 'log',
                     event.data.message || '',
