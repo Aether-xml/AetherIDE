@@ -30,6 +30,12 @@ const Chat = {
         });
 
         input?.addEventListener('input', () => {
+            // Karakter sınırı kontrolü
+            const MAX_LENGTH = 50000;
+            if (input.value.length > MAX_LENGTH) {
+                input.value = input.value.substring(0, MAX_LENGTH);
+                Utils.toast(`Maximum ${(MAX_LENGTH / 1000).toFixed(0)}K characters allowed`, 'warning', 2000);
+            }
             Utils.autoResize(input);
             if (sendBtn) sendBtn.disabled = !input.value.trim();
         });
@@ -287,11 +293,7 @@ const Chat = {
                 if (window.lucide) lucide.createIcons({ nodes: [modeDisplay] });
             }
 
-            const statusMode = document.getElementById('statusbar-mode');
-            if (statusMode) {
-                statusMode.innerHTML = `<i data-lucide="${modeIcons[chat.mode]}" class="statusbar-icon"></i> ${modeNames[chat.mode]}`;
-                if (window.lucide) lucide.createIcons({ nodes: [statusMode] });
-            }
+            // Status bar removed — skip statusbar-mode update
 
             // Planner/Team UI
             const plannerEl = document.getElementById('planner-actions');
@@ -384,6 +386,13 @@ const Chat = {
 
         if (!text || this.isGenerating) return;
 
+        // Input boyut sınırı (50K karakter — maxlength backup)
+        const MAX_INPUT_LENGTH = 50000;
+        if (text.length > MAX_INPUT_LENGTH) {
+            text = text.substring(0, MAX_INPUT_LENGTH);
+            Utils.toast(`Message truncated to ${(MAX_INPUT_LENGTH / 1000).toFixed(0)}K characters`, 'warning', 3000);
+        }
+
         if (text.replace(/[^\w]/g, '').length === 0) {
             Utils.toast('Please type a meaningful message', 'warning', 2000);
             return;
@@ -463,9 +472,9 @@ const Chat = {
         });
 
         // Kod blokları varsa editörü güncelle
-        if (content && content.includes('```')) {
-            const blocks = Utils.extractCodeBlocks(content);
-            if (blocks.length > 0) {
+        if (content) {
+            // ``` içeren her yanıtı dene — extractCodeBlocks zaten boş dönerse updateCode skip eder
+            if (content.includes('```')) {
                 Editor.updateCode(content);
             }
         }
@@ -609,14 +618,33 @@ const Chat = {
 
     _renderStreamBody(content) {
         const body = document.getElementById('stream-body');
-        if (body) {
-            body.innerHTML = Utils.parseMarkdownWithFileCards(content, true);
-            const newCards = body.querySelectorAll('.file-card:not([data-icons-init])');
-            if (newCards.length > 0) {
-                newCards.forEach(c => c.setAttribute('data-icons-init', '1'));
-                if (window.lucide) lucide.createIcons({ nodes: Array.from(newCards) });
+        if (!body) return;
+
+        const newHtml = Utils.parseMarkdownWithFileCards(content, true);
+
+        // Mevcut kartların durumunu kaydet (animasyon tekrarını önle)
+        const existingCards = new Set();
+        body.querySelectorAll('.file-card').forEach(card => {
+            const name = card.querySelector('.file-card-name');
+            if (name) existingCards.add(name.textContent.trim());
+        });
+
+        body.innerHTML = newHtml;
+
+        // Daha önce var olan kartların animasyonunu kaldır
+        body.querySelectorAll('.file-card').forEach(card => {
+            const name = card.querySelector('.file-card-name');
+            if (name && existingCards.has(name.textContent.trim())) {
+                card.style.animation = 'none';
             }
+        });
+
+        const newCards = body.querySelectorAll('.file-card:not([data-icons-init])');
+        if (newCards.length > 0) {
+            newCards.forEach(c => c.setAttribute('data-icons-init', '1'));
+            if (window.lucide) lucide.createIcons({ nodes: Array.from(newCards) });
         }
+
         this.scrollToBottom(false);
     },
 
