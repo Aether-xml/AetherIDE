@@ -241,6 +241,56 @@ const Utils = {
         textarea.style.overflowY = textarea.scrollHeight > maxH ? 'auto' : 'hidden';
     },
 
+    updateCharCounter(counterId, current, max) {
+        const counter = document.getElementById(counterId);
+        if (!counter) return;
+
+        const ratio = current / max;
+
+        if (current === 0) {
+            counter.classList.remove('visible', 'warning', 'danger');
+            return;
+        }
+
+        // %60'tan sonra göster
+        if (ratio < 0.6) {
+            counter.classList.remove('visible', 'warning', 'danger');
+            return;
+        }
+
+        counter.classList.add('visible');
+        counter.textContent = `${current.toLocaleString()} / ${max.toLocaleString()}`;
+
+        if (ratio >= 0.95) {
+            counter.classList.remove('warning');
+            counter.classList.add('danger');
+        } else if (ratio >= 0.8) {
+            counter.classList.remove('danger');
+            counter.classList.add('warning');
+        } else {
+            counter.classList.remove('warning', 'danger');
+        }
+    },
+
+    initCharCounters() {
+        const counters = [
+            { inputId: 'system-prompt-input', counterId: 'system-prompt-counter', max: 10000 },
+            { inputId: 'enhancer-prompt-input', counterId: 'enhancer-prompt-counter', max: 5000 },
+            { inputId: 'sandbox-direct-system-prompt', counterId: 'sandbox-direct-sp-counter', max: 10000 },
+            { inputId: 'sandbox-sbs-system-prompt', counterId: 'sandbox-sbs-sp-counter', max: 10000 },
+        ];
+
+        for (const c of counters) {
+            const input = document.getElementById(c.inputId);
+            if (input) {
+                input.addEventListener('input', () => {
+                    Utils.updateCharCounter(c.counterId, input.value.length, c.max);
+                });
+                Utils.updateCharCounter(c.counterId, input.value.length, c.max);
+            }
+        }
+    },
+
     // Token tahmini (~4 karakter = 1 token)
     estimateTokens(text) {
         if (!text) return 0;
