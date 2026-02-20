@@ -32,6 +32,13 @@ const App = {
         this.initConsoleListener();
         Utils.initCharCounters();
 
+        // Prompt enhancer butonunu ayarlara göre gizle/göster
+        const enhancerSettings = Storage.getSettings();
+        const enhanceBtn = document.getElementById('enhance-btn');
+        if (enhanceBtn && enhancerSettings.promptEnhancer?.enabled === false) {
+            enhanceBtn.style.display = 'none';
+        }
+
         if (API.hasApiKey()) {
             API.updateConnectionStatus('online');
         }
