@@ -149,9 +149,12 @@ ERROR FIXING RULES (when console errors are present):
                     } else {
                         console.error('Stream iteration error:', streamError);
                         if (!fullContent.trim()) {
-                            Chat.addAssistantMessage(`**Error:** Stream failed: ${streamError.message}`);
+                            Chat.addAssistantMessage(Utils.formatErrorMessage(`Stream failed: ${streamError.message}`));
+                            if (streamTimeout) clearTimeout(streamTimeout);
+                            if (stuckCheckInterval) clearInterval(stuckCheckInterval);
                             return;
                         }
+                        // fullContent varsa aşağıda kaydedilecek
                     }
                 }
 
