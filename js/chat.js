@@ -7,6 +7,9 @@ const Chat = {
 
     currentChat: null,
     isGenerating: false,
+    _lastSendTime: 0,
+    SEND_COOLDOWN: 1000,
+    MAX_MESSAGES_PER_CHAT: 200,
 
     init() {
         this.bindEvents();
@@ -47,17 +50,8 @@ const Chat = {
             this.newChat();
         });
 
-        document.querySelectorAll('.welcome-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const prompt = card.dataset.prompt;
-                if (prompt && input) {
-                    input.value = prompt;
-                    Utils.autoResize(input);
-                    if (sendBtn) sendBtn.disabled = false;
-                    input.focus();
-                }
-            });
-        });
+        // Welcome kartları showWelcome() içinde dinamik oluşturulur ve
+        // orada event listener eklenir — burada duplicate binding yapmıyoruz
     },
 
     newChat() {
@@ -223,10 +217,16 @@ const Chat = {
                         if (msg.role === 'assistant' && msg.content) {
                             const blocks = Utils.extractCodeBlocks(msg.content);
                             for (const block of blocks) {
+                                // Dosya boyutu limiti
+                                if (block.code && block.code.length > Editor.MAX_FILE_SIZE) {
+                                    block.code = block.code.substring(0, Editor.MAX_FILE_SIZE);
+                                }
                                 const existingIndex = Editor.files.findIndex(f => f.filename === block.filename);
                                 if (existingIndex >= 0) {
                                     Editor.files[existingIndex] = block;
                                 } else {
+                                    // Dosya sayısı limiti
+                                    if (Editor.files.length >= Editor.MAX_FILES) continue;
                                     Editor.files.push(block);
                                 }
                             }
@@ -316,10 +316,16 @@ const Chat = {
                 if (msg.role === 'assistant' && msg.content) {
                     const blocks = Utils.extractCodeBlocks(msg.content);
                     for (const block of blocks) {
+                        // Dosya boyutu limiti
+                        if (block.code && block.code.length > Editor.MAX_FILE_SIZE) {
+                            block.code = block.code.substring(0, Editor.MAX_FILE_SIZE);
+                        }
                         const existingIndex = Editor.files.findIndex(f => f.filename === block.filename);
                         if (existingIndex >= 0) {
                             Editor.files[existingIndex] = block;
                         } else {
+                            // Dosya sayısı limiti
+                            if (Editor.files.length >= Editor.MAX_FILES) continue;
                             Editor.files.push(block);
                         }
                     }
@@ -376,6 +382,24 @@ const Chat = {
             Editor.renderTabs();
             Editor.renderCode();
             Editor.updateStatusBar();
+
+            // Preview kapat
+            const previewContainer = document.getElementById('preview-container');
+            const editorWrapper = document.getElementById('code-editor-wrapper');
+            if (previewContainer) previewContainer.style.display = 'none';
+            if (editorWrapper) editorWrapper.style.display = 'block';
+            Editor.previewVisible = false;
+            const refreshBtn = document.getElementById('refresh-preview-btn');
+            if (refreshBtn) refreshBtn.style.display = 'none';
+            const previewBtn = document.getElementById('preview-btn');
+            if (previewBtn) previewBtn.style.display = 'none';
+
+            // Mobil file count badge temizle
+            const tabCode = document.getElementById('tab-code');
+            if (tabCode) {
+                const badge = tabCode.querySelector('.file-count-badge');
+                if (badge) badge.remove();
+            }
         }
 
         this.renderHistory();
@@ -388,6 +412,20 @@ const Chat = {
         let text = input?.value?.trim();
 
         if (!text || this.isGenerating) return;
+
+        // Rate limit kontrolü (1 saniye)
+        const now = Date.now();
+        if (now - this._lastSendTime < this.SEND_COOLDOWN) {
+            Utils.toast('⏳ Please wait before sending another message', 'warning', 1500);
+            return;
+        }
+        this._lastSendTime = now;
+
+        // Chat mesaj limiti kontrolü (200)
+        if (this.currentChat && this.currentChat.messages && this.currentChat.messages.length >= this.MAX_MESSAGES_PER_CHAT) {
+            Utils.toast('⚠️ Chat message limit reached (200). Please start a new chat.', 'warning');
+            return;
+        }
 
         // Input boyut sınırı (50K karakter — maxlength backup)
         const MAX_INPUT_LENGTH = 50000;
@@ -697,7 +735,8 @@ const Chat = {
                 sendBtn.disabled = !input?.value?.trim();
                 sendBtn.onclick = null;
 
-                // Send handler'ı geri koy
+                // Send handler'ı geri koy — önce kaldır, sonra ekle (duplicate önleme)
+                sendBtn.removeEventListener('click', Chat._sendClickHandler);
                 sendBtn.addEventListener('click', Chat._sendClickHandler);
             }
             if (input) {
