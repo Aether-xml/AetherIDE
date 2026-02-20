@@ -441,7 +441,7 @@ CRITICAL RULES:
                 const exists = Editor.files.some(f => f.filename === displayName);
                 const writingLabel = exists ? 'Updating...' : 'Creating...';
                 const writingClass = exists ? 'file-card-updating' : 'file-card-creating';
-                return `<div class="file-card writing ${writingClass}">
+                return `<div class="file-card writing ${writingClass}" data-file="${Utils.escapeHtml(displayName)}">
                             <div class="file-card-icon"><i data-lucide="${iconName}"></i></div>
                             <div class="file-card-info">
                                 <span class="file-card-status">${writingLabel}</span>
@@ -547,13 +547,31 @@ CRITICAL RULES:
     },
 
     openFileInEditor(filename) {
-        const fileIndex = Editor.files.findIndex(f => f.filename === filename);
+        // Normalize: ./ ve / prefix temizle
+        const normalizedTarget = filename.replace(/^\.\//, '').replace(/^\//, '');
+
+        let fileIndex = Editor.files.findIndex(f => {
+            const norm = f.filename.replace(/^\.\//, '').replace(/^\//, '');
+            return norm === normalizedTarget;
+        });
+
+        // Fuzzy match: sadece dosya adıyla eşleştir (klasör yolu farklı olabilir)
+        if (fileIndex < 0) {
+            const targetBase = normalizedTarget.includes('/') ? normalizedTarget.split('/').pop() : normalizedTarget;
+            fileIndex = Editor.files.findIndex(f => {
+                const fBase = f.filename.includes('/') ? f.filename.split('/').pop() : f.filename;
+                return fBase === targetBase;
+            });
+        }
+
         if (fileIndex >= 0) {
             Editor.switchTab(fileIndex);
             if (window.innerWidth <= 768) {
                 App.showMobilePanel('code');
             }
-            Utils.toast(`Opened ${filename}`, 'info', 1500);
+            Utils.toast(`Opened ${Editor.files[fileIndex].filename}`, 'info', 1500);
+        } else {
+            Utils.toast(`File "${filename}" not found in editor`, 'warning', 2000);
         }
     },
 
@@ -616,15 +634,21 @@ CRITICAL RULES:
         // - Dosya adında harf, rakam, nokta, tire, alt çizgi, slash olabilir
         // - ``` sonrası boşluk toleransı
         // - Satır sonu \r\n ve \n desteği
-        const regex = /```\s*(\w+?)(?:\s*[:\s]\s*([^\n\r]+?))?\s*[\r\n]+([\s\S]*?)```/g;
+        // Daha toleranslı regex:
+        // - Dil: 1+ word char
+        // - Dosya adı: : veya boşluk sonrası, satır sonuna kadar
+        // - Kod: ``` kapanışına kadar
+        // - Dosya adı opsiyonel
+        const regex = /```\s*(\w+?)(?:\s*[:]\s*([^\n\r]+?)|\s+([^\n\r]*?))?\s*[\r\n]+([\s\S]*?)```/g;
         let match;
         let fileIndex = 0;
         const seenFiles = new Map(); // Aynı dosya birden fazla gelirse son halini al
 
         while ((match = regex.exec(text)) !== null) {
             let language = (match[1] || '').trim().toLowerCase();
-            let filename = (match[2] || '').trim();
-            let code = match[3] || '';
+            // match[2] = :ile gelen dosya adı, match[3] = boşlukla gelen dosya adı
+            let filename = (match[2] || match[3] || '').trim();
+            let code = match[4] || '';
 
             // Sondaki boşlukları temizle ama yapıyı koru
             code = code.replace(/\s+$/, '');
