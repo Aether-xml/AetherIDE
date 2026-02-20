@@ -311,6 +311,7 @@
                                 class="message-input"
                                 placeholder="What do you want to build?"
                                 rows="1"
+                                maxlength="50000"
                             ></textarea>
                             <div class="input-actions">
                                 <button class="input-icon-btn" id="attach-btn" title="Attach">
@@ -422,28 +423,14 @@
                         </div>
                         <div class="terminal-input-wrapper">
                             <span class="terminal-prompt">$</span>
-                            <input type="text" id="terminal-input" class="terminal-input" placeholder="Type a command..." autocomplete="off" spellcheck="false">
+                            <input type="text" id="terminal-input" class="terminal-input" placeholder="Type a command..." autocomplete="off" spellcheck="false" maxlength="1000">
                         </div>
                     </div>
                 </div>
 
             </div>
 
-            <!-- Status Bar -->
-            <div class="statusbar" id="statusbar">
-                <div class="statusbar-left">
-                    <span class="statusbar-item" id="statusbar-mode">
-                        <i data-lucide="zap" class="statusbar-icon"></i> Direct
-                    </span>
-                    <span class="statusbar-item" id="statusbar-thinking">
-                        <i data-lucide="brain" class="statusbar-icon"></i> Off
-                    </span>
-                </div>
-                <div class="statusbar-right">
-                    <span class="statusbar-item" id="statusbar-lines">0 lines</span>
-                    <span class="statusbar-item" id="statusbar-version">v1.5.1</span>
-                </div>
-            </div>
+            <!-- Status Bar (removed — info shown in topbar) -->
         </main>
         
         <!-- ═══════════════════════════════════════ -->
@@ -508,7 +495,7 @@
 
                         <div class="sandbox-input-area">
                             <div class="sandbox-input-wrapper">
-                                <textarea id="sandbox-direct-input" class="sandbox-input" placeholder="Type anything..." rows="1"></textarea>
+                                <textarea id="sandbox-direct-input" class="sandbox-input" placeholder="Type anything..." rows="1" maxlength="30000"></textarea>
                                 <button class="sandbox-send-btn" id="sandbox-direct-send" disabled>
                                     <i data-lucide="arrow-up"></i>
                                 </button>
@@ -598,7 +585,7 @@
 
                                     <div class="settings-group">
                                         <label class="settings-label">System Prompt</label>
-                                        <textarea id="sandbox-direct-system-prompt" class="settings-textarea" rows="3" placeholder="You are a helpful AI assistant..."></textarea>
+                                        <textarea id="sandbox-direct-system-prompt" class="settings-textarea" rows="3" placeholder="You are a helpful AI assistant..." maxlength="10000"></textarea>
                                     </div>
 
                                     <div class="settings-group">
@@ -643,7 +630,7 @@
 
                                     <div class="settings-group">
                                         <label class="settings-label">System Prompt</label>
-                                        <textarea id="sandbox-sbs-system-prompt" class="settings-textarea" rows="3" placeholder="You are a helpful AI assistant..."></textarea>
+                                        <textarea id="sandbox-sbs-system-prompt" class="settings-textarea" rows="3" placeholder="You are a helpful AI assistant..." maxlength="10000"></textarea>
                                     </div>
 
                                     <div class="settings-group">
@@ -816,7 +803,7 @@
                             <i data-lucide="file-text" class="settings-label-icon"></i>
                             System Prompt
                         </label>
-                        <textarea id="system-prompt-input" class="settings-textarea" rows="3" placeholder="You are an expert programmer..."></textarea>
+                        <textarea id="system-prompt-input" class="settings-textarea" rows="3" placeholder="You are an expert programmer..." maxlength="10000"></textarea>
                     </div>
 
                     <!-- ── Team Mode Models ── -->
@@ -875,7 +862,7 @@
 
                         <div class="settings-sub-group">
                             <label class="settings-sublabel">Custom Enhancement Prompt (optional)</label>
-                            <textarea id="enhancer-prompt-input" class="settings-textarea settings-textarea-sm" rows="2" placeholder="Leave empty for default enhancement"></textarea>
+                            <textarea id="enhancer-prompt-input" class="settings-textarea settings-textarea-sm" rows="2" placeholder="Leave empty for default enhancement" maxlength="5000"></textarea>
                         </div>
                     </div>
 
