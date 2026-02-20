@@ -1006,6 +1006,37 @@
                         </div>
                     </div>
 
+                    <div class="settings-group">
+                        <div class="settings-toggle-row">
+                            <div class="settings-toggle-info">
+                                <i data-lucide="type" class="settings-label-icon"></i>
+                                <div>
+                                    <label class="settings-label">Typing Effect ✨</label>
+                                    <p class="settings-desc">Typewriter animation on AI responses</p>
+                                </div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="typing-effect-toggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="settings-toggle-row" id="typing-speed-row" style="display:none;margin-top:8px;">
+                            <div class="settings-toggle-info">
+                                <i data-lucide="gauge" class="settings-label-icon"></i>
+                                <div>
+                                    <label class="settings-label">Typing Speed</label>
+                                    <p class="settings-desc">How fast the typewriter runs</p>
+                                </div>
+                            </div>
+                            <select id="typing-speed-select" class="settings-select" style="width:auto;min-width:120px;">
+                                <option value="slow">🐢 Slow</option>
+                                <option value="normal" selected>⚡ Normal</option>
+                                <option value="fast">🚀 Fast</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <!-- Changelog -->
                     <div class="settings-group">
                         <label class="settings-label">
