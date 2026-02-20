@@ -827,8 +827,8 @@
 .setup-agree-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
+    gap: 12px;
+    padding: 12px 14px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-md);
@@ -839,6 +839,7 @@
 
 .setup-agree-row:hover {
     border-color: var(--border-secondary);
+    background: var(--bg-hover);
 }
 
 .setup-agree-row.checked {
@@ -847,38 +848,36 @@
 }
 
 .setup-agree-row input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--accent-success);
-    cursor: pointer;
-    flex-shrink: 0;
+    display: none;
 }
 
 .setup-agree-row label {
-    font-size: 0.78rem;
-    color: var(--text-secondary);
-    cursor: pointer;
-    line-height: 1.4;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 12px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    line-height: 1.5;
     flex: 1;
 }
 
 .setup-agree-row label svg.lucide {
-    width: 14px;
-    height: 14px;
+    width: 20px;
+    height: 20px;
     flex-shrink: 0;
     color: var(--text-tertiary);
-    transition: color 0.2s ease;
+    transition: all 0.25s ease;
 }
 
 .setup-agree-row.checked label svg.lucide {
     color: var(--accent-success);
+    filter: drop-shadow(0 0 6px rgba(0, 230, 118, 0.4));
 }
 
 .setup-agree-row.checked label {
     color: var(--text-primary);
+    font-weight: 500;
 }
 
 /* ── Footer ── */
