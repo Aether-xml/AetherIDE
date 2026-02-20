@@ -48,6 +48,7 @@
     .chat-panel {
         flex: 1;
         border-left: none;
+        display: flex;
     }
 
     .code-panel {
@@ -55,6 +56,16 @@
         border-left: none;
         border-top: 1px solid var(--border-primary);
         flex: 1;
+    }
+
+    /* Mobile panel transitions */
+    .panel-enter {
+        animation: panelSlideIn 0.25s ease;
+    }
+
+    @keyframes panelSlideIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
     /* Topbar */
