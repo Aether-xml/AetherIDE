@@ -110,6 +110,9 @@ const Settings = {
             input.value = savedKey;
             this.checkApiKey(savedKey, providerId);
         }
+
+        // Default model listesini provider'a göre güncelle
+        this.populateDefaultModel();
     },
 
     loadSettings() {
@@ -373,18 +376,38 @@ const Settings = {
         const select = document.getElementById('default-model-select');
         if (!select) return;
 
-        const models = API.getModelsForCurrentProvider();
+        // Aktif provider'a göre modelleri al
+        const models = API.PROVIDER_MODELS[this.currentProvider] || API.PROVIDER_MODELS.openrouter;
         const settings = Storage.getSettings();
 
         // Mevcut seçenekleri temizle (ilk option hariç)
         while (select.options.length > 1) select.remove(1);
 
+        // Kategoriye göre grupla
+        const categories = {};
         models.forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m.id;
-            opt.textContent = m.name;
-            select.appendChild(opt);
+            const cat = m.category || 'other';
+            if (!categories[cat]) categories[cat] = [];
+            categories[cat].push(m);
         });
+
+        const categoryLabels = {
+            free: '🆓 Free', thinking: '🧠 Thinking', premium: '⭐ Premium',
+            latest: '🔥 Latest', stable: '✅ Stable', flagship: '🏆 Flagship',
+            reasoning: '🧠 Reasoning', legacy: '📦 Legacy', available: '📋 Available',
+        };
+
+        for (const [cat, catModels] of Object.entries(categories)) {
+            const group = document.createElement('optgroup');
+            group.label = categoryLabels[cat] || cat;
+            catModels.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = `${m.name} ${m.price ? '(' + m.price + ')' : ''}`;
+                group.appendChild(opt);
+            });
+            select.appendChild(group);
+        }
 
         if (settings.defaultModel) {
             select.value = settings.defaultModel;
