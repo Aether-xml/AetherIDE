@@ -293,12 +293,26 @@ const API = {
 
             this.updateConnectionStatus('online');
 
-            if (body.stream && response.body) {
+            if (shouldStream && response.body) {
+                // Content-Type kontrolü — bazı API'ler stream beklenmedik şekilde text/event-stream dönebilir
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('text/event-stream') || contentType.includes('stream')) {
+                    return this.handleStream(response);
+                }
+                // Body stream olarak gelmiş olabilir
                 return this.handleStream(response);
             }
 
             const data = await response.json();
-            return { content: data.choices?.[0]?.message?.content || '', model: data.model, usage: data.usage, stream: false };
+            let content = data.choices?.[0]?.message?.content || '';
+
+            // Non-stream yanıt boyut limiti (500KB)
+            if (content.length > 512000) {
+                console.warn(`[AetherIDE] Response content truncated from ${(content.length / 1024).toFixed(1)}KB to 500KB`);
+                content = content.substring(0, 512000) + '\n\n⚠️ *Response truncated — exceeded 500KB limit.*';
+            }
+
+            return { content, model: data.model, usage: data.usage, stream: false };
         } catch (error) {
             if (error.name === 'AbortError') {
                 return { content: '', aborted: true, stream: false };
@@ -346,7 +360,15 @@ const API = {
             if (stream && response.body) return this._handleGeminiStream(response);
 
             const data = await response.json();
-            return { content: data.candidates?.[0]?.content?.parts?.[0]?.text || '', model, stream: false };
+            let content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+            // Non-stream yanıt boyut limiti (500KB)
+            if (content.length > 512000) {
+                console.warn(`[AetherIDE] Gemini response content truncated from ${(content.length / 1024).toFixed(1)}KB to 500KB`);
+                content = content.substring(0, 512000) + '\n\n⚠️ *Response truncated — exceeded 500KB limit.*';
+            }
+
+            return { content, model, stream: false };
         } catch (error) {
             if (error.name === 'AbortError') return { content: '', aborted: true, stream: false };
             this.updateConnectionStatus('error');
@@ -358,11 +380,22 @@ const API = {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
+        const MAX_STREAM_SIZE = 512000; // 500KB
+        let totalStreamSize = 0;
 
         try {
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
+
+                // Stream boyut limiti kontrolü
+                totalStreamSize += value.length;
+                if (totalStreamSize > MAX_STREAM_SIZE) {
+                    console.warn('[AetherIDE] Gemini stream response truncated at 500KB');
+                    yield '\n\n⚠️ *Response truncated — exceeded 500KB stream limit.*';
+                    try { reader.cancel(); } catch(e) {}
+                    return;
+                }
 
                 buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split('\n');
@@ -414,6 +447,8 @@ const API = {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
+        const MAX_STREAM_SIZE = 512000; // 500KB
+        let totalStreamSize = 0;
 
         try {
             while (true) {
@@ -421,6 +456,15 @@ const API = {
                 if (done) break;
 
                 if (!value || value.length === 0) continue;
+
+                // Stream boyut limiti kontrolü
+                totalStreamSize += value.length;
+                if (totalStreamSize > MAX_STREAM_SIZE) {
+                    console.warn('[AetherIDE] Stream response truncated at 500KB');
+                    yield '\n\n⚠️ *Response truncated — exceeded 500KB stream limit.*';
+                    try { reader.cancel(); } catch(e) {}
+                    return;
+                }
 
                 buffer += decoder.decode(value, { stream: true });
 
