@@ -280,8 +280,8 @@ const SetupWizard = {
                         <div class="setup-agree-row" id="setup-agree-row">
                             <input type="checkbox" id="setup-privacy-agree">
                             <label for="setup-privacy-agree">
-                                <i data-lucide="check-circle" style="width:14px;height:14px;flex-shrink:0;"></i>
-                                I have read and agree to the Privacy Policy & Terms
+                                <i data-lucide="circle" id="setup-agree-icon"></i>
+                                <span>I have read and agree to the Privacy Policy & Terms</span>
                             </label>
                         </div>
                     </div>
@@ -362,11 +362,13 @@ const SetupWizard = {
                 agreeCheckbox.checked = !agreeCheckbox.checked;
             }
             agreeRow.classList.toggle('checked', agreeCheckbox.checked);
+            this.updateAgreeIcon(agreeCheckbox.checked);
             this.updateNextButton();
         });
 
         agreeCheckbox?.addEventListener('change', () => {
             agreeRow?.classList.toggle('checked', agreeCheckbox.checked);
+            this.updateAgreeIcon(agreeCheckbox.checked);
             this.updateNextButton();
         });
     },
@@ -461,6 +463,14 @@ const SetupWizard = {
         // Re-init icons
         const overlay = document.getElementById('setup-overlay');
         if (overlay && window.lucide) lucide.createIcons({ nodes: [overlay] });
+    },
+
+    updateAgreeIcon(checked) {
+        const icon = document.getElementById('setup-agree-icon');
+        if (icon) {
+            icon.setAttribute('data-lucide', checked ? 'check-circle' : 'circle');
+            if (window.lucide) lucide.createIcons({ nodes: [icon.parentElement] });
+        }
     },
 
     updateNextButton() {
