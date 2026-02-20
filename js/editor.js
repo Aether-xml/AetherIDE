@@ -165,17 +165,11 @@ const Editor = {
         }
         if (this.activeFileIndex < 0) this.activeFileIndex = 0;
 
-        // Editör UI — throttled (300ms)
-        const now = Date.now();
-        if (now - this._lastEditorUpdate < 300) {
-            if (this._editorUpdatePending) cancelAnimationFrame(this._editorUpdatePending);
-            this._editorUpdatePending = requestAnimationFrame(() => {
-                this._renderEditorUI();
-            });
-        } else {
-            this._lastEditorUpdate = now;
-            this._renderEditorUI();
-        }
+        // Editör UI — dosya değişikliği olduysa hemen render et (throttle kaldırıldı)
+        // Throttle sadece preview için kalıyor, UI güncellemesi anında olmalı
+        // yoksa dosya kartları "Created" gösteriyor ama dosya henüz listede yok
+        this._lastEditorUpdate = Date.now();
+        this._renderEditorUI();
 
         // Live preview — throttled (600ms), sadece ilgili dosyalar değiştiyse
         if (this.previewVisible) {
