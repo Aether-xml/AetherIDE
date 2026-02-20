@@ -11,6 +11,13 @@ const Chat = {
     SEND_COOLDOWN: 1000,
     MAX_MESSAGES_PER_CHAT: 200,
 
+    // Typewriter state
+    _typewriterQueue: '',
+    _typewriterRendered: '',
+    _typewriterTimer: null,
+    _typewriterActive: false,
+    TYPING_SPEEDS: { slow: 18, normal: 8, fast: 2 },
+
     init() {
         this.bindEvents();
         this.loadLastChat();
@@ -55,6 +62,9 @@ const Chat = {
     },
 
     newChat() {
+        // Aktif typewriter'ı durdur
+        this._stopTypewriter();
+
         // Zaten boş sohbet varsa sadece odaklan
         if (this.currentChat && this.currentChat.messages.length === 0) {
             const input = document.getElementById('message-input');
@@ -514,15 +524,69 @@ const Chat = {
 
         // Kod blokları varsa editörü güncelle
         if (content) {
-            // ``` içeren her yanıtı dene — extractCodeBlocks zaten boş dönerse updateCode skip eder
             if (content.includes('```')) {
                 Editor.updateCode(content);
             }
         }
 
         Storage.saveChat(this.currentChat);
-        this.renderMessages();
-        this.scrollToBottom(false);
+
+        // Typewriter efekti: stream bittikten sonra son mesajı efektli göster
+        // Sadece stream response'larda çalışır (non-stream zaten anında gelir)
+        // Stream sırasında zaten updateStreamMessage gösteriyor, typewriter sadece
+        // non-stream veya stream-sonrası final render için kullanılır
+        if (this._isTypingEnabled() && !this._typewriterWasStreaming && agentType === 'assistant') {
+            // Önceki mesajları normal render et (son mesaj hariç)
+            this._renderMessagesExceptLast();
+            this._startTypewriter(content);
+        } else {
+            this._typewriterWasStreaming = false;
+            this.renderMessages();
+            this.scrollToBottom(false);
+        }
+    },
+
+    _renderMessagesExceptLast() {
+        const container = document.getElementById('messages-container');
+        if (!container || !this.currentChat) return;
+
+        const messages = this.currentChat.messages;
+        if (messages.length === 0) return;
+
+        const allButLast = messages.slice(0, -1);
+        const welcome = document.getElementById('welcome-message');
+        if (welcome) welcome.style.display = 'none';
+
+        let html = '';
+        for (const msg of allButLast) {
+            const isUser = msg.role === 'user';
+            const at = msg.agentType || (isUser ? 'user' : 'assistant');
+            const avatarIcons = { user: 'user', assistant: 'bot', designer: 'palette', pm: 'kanban', developer: 'code-2' };
+            const userName = Storage.getUserName() || 'You';
+            const userColor = Storage.getUserAvatarColor() || 'purple';
+            const avatarNames = { user: userName, assistant: 'AetherIDE', designer: 'Designer', pm: 'Project Manager', developer: 'Developer' };
+            const displayText = msg.displayContent || msg.content;
+            const bodyContent = !isUser ? Utils.parseMarkdownWithFileCards(displayText, false) : Utils.parseMarkdown(displayText);
+            const avatarStyle = (isUser && userColor !== 'purple') ? ` data-avatar-color="${userColor}"` : '';
+
+            html += `
+                <div class="message">
+                    <div class="message-avatar ${at}"${avatarStyle}>
+                        <i data-lucide="${avatarIcons[at] || 'bot'}"></i>
+                    </div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-author">${avatarNames[at] || 'AI'}</span>
+                            <span class="message-time">${Utils.formatTime(msg.timestamp)}</span>
+                        </div>
+                        <div class="message-body">${bodyContent}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
+        if (window.lucide) lucide.createIcons({ nodes: [container] });
     },
 
     renderMessages() {
@@ -608,6 +672,9 @@ const Chat = {
     _streamUpdatePending: null,
 
     updateStreamMessage(content) {
+        // Stream aktif — typewriter'ı devre dışı bırak (stream zaten kendi efektini yapıyor)
+        this._typewriterWasStreaming = true;
+
         const container = document.getElementById('messages-container');
         if (!container) return;
 
@@ -755,6 +822,11 @@ const Chat = {
                 Chat._streamUpdatePending = null;
             }
             Chat._lastStreamUpdate = 0;
+
+            // Typewriter temizliği
+            if (Chat._typewriterActive) {
+                Chat._skipTypewriter();
+            }
         }
 
         if (window.lucide && sendBtn) lucide.createIcons({ nodes: [sendBtn] });
@@ -853,5 +925,153 @@ const Chat = {
 
         historyEl.innerHTML = html;
         if (window.lucide) lucide.createIcons({ nodes: [historyEl] });
+    },
+
+    // ═══ Typewriter Engine ═══
+
+    _isTypingEnabled() {
+        const settings = Storage.getSettings();
+        return settings.typingEffect?.enabled === true;
+    },
+
+    _getTypingSpeed() {
+        const settings = Storage.getSettings();
+        const speed = settings.typingEffect?.speed || 'normal';
+        return this.TYPING_SPEEDS[speed] || this.TYPING_SPEEDS.normal;
+    },
+
+    _startTypewriter(fullContent) {
+        this._stopTypewriter();
+
+        this._typewriterQueue = fullContent;
+        this._typewriterRendered = '';
+        this._typewriterActive = true;
+
+        const container = document.getElementById('messages-container');
+        if (!container) return;
+
+        // Typing indicator kaldır
+        const typing = document.getElementById('typing-message');
+        if (typing) typing.remove();
+
+        // Stream mesaj elementi oluştur
+        let streamMsg = document.getElementById('stream-message');
+        if (!streamMsg) {
+            const div = document.createElement('div');
+            div.className = 'message';
+            div.id = 'stream-message';
+            div.innerHTML = `
+                <div class="message-avatar assistant">
+                    <i data-lucide="bot"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-author">AetherIDE</span>
+                        <span class="message-time">${Utils.formatTime(new Date())}</span>
+                    </div>
+                    <div class="message-body" id="stream-body"></div>
+                </div>
+            `;
+            container.appendChild(div);
+            if (window.lucide) lucide.createIcons({ nodes: [div] });
+        }
+
+        this._typewriterTick();
+    },
+
+    _typewriterTick() {
+        if (!this._typewriterActive) return;
+
+        const remaining = this._typewriterQueue.substring(this._typewriterRendered.length);
+        if (remaining.length === 0) {
+            this._typewriterActive = false;
+            return;
+        }
+
+        // Akıllı chunk boyutu — kod bloğu/tag içindeyse daha büyük parçalar al
+        let chunkSize = 1;
+        const nextChar = remaining[0];
+
+        // Markdown/HTML tag'inin ortasındaysa tamamını al
+        if (nextChar === '<') {
+            const tagEnd = remaining.indexOf('>');
+            if (tagEnd > 0) chunkSize = tagEnd + 1;
+        }
+        // Kod bloğu açılış/kapanış — ``` satırını komple al
+        else if (remaining.startsWith('```')) {
+            const lineEnd = remaining.indexOf('\n');
+            chunkSize = lineEnd > 0 ? lineEnd + 1 : remaining.length;
+        }
+        // Escape sequence
+        else if (nextChar === '&') {
+            const semiEnd = remaining.indexOf(';');
+            if (semiEnd > 0 && semiEnd < 8) chunkSize = semiEnd + 1;
+        }
+        // Boşluk/newline — hızlı geç
+        else if (nextChar === ' ' || nextChar === '\n' || nextChar === '\r' || nextChar === '\t') {
+            // Ardışık boşlukları tek seferde al
+            let i = 0;
+            while (i < remaining.length && (remaining[i] === ' ' || remaining[i] === '\n' || remaining[i] === '\r' || remaining[i] === '\t')) i++;
+            chunkSize = Math.max(1, i);
+        }
+
+        this._typewriterRendered += remaining.substring(0, chunkSize);
+
+        // Body'yi güncelle
+        const body = document.getElementById('stream-body');
+        if (body) {
+            const parsed = Utils.parseMarkdownWithFileCards(this._typewriterRendered, true);
+            body.innerHTML = parsed;
+
+            // Yeni file card ikonlarını init et
+            const newCards = body.querySelectorAll('.file-card:not([data-icons-init])');
+            if (newCards.length > 0) {
+                newCards.forEach(c => c.setAttribute('data-icons-init', '1'));
+                if (window.lucide) lucide.createIcons({ nodes: Array.from(newCards) });
+            }
+        }
+
+        this.scrollToBottom(false);
+
+        const delay = this._getTypingSpeed();
+        this._typewriterTimer = setTimeout(() => this._typewriterTick(), delay);
+    },
+
+    _stopTypewriter() {
+        this._typewriterActive = false;
+        if (this._typewriterTimer) {
+            clearTimeout(this._typewriterTimer);
+            this._typewriterTimer = null;
+        }
+        this._typewriterQueue = '';
+        this._typewriterRendered = '';
+    },
+
+    _skipTypewriter() {
+        // Kalan içeriği anında göster
+        if (!this._typewriterActive) return;
+
+        this._typewriterActive = false;
+        if (this._typewriterTimer) {
+            clearTimeout(this._typewriterTimer);
+            this._typewriterTimer = null;
+        }
+
+        // Tamamını render et
+        const body = document.getElementById('stream-body');
+        if (body && this._typewriterQueue) {
+            const parsed = Utils.parseMarkdownWithFileCards(this._typewriterQueue, false);
+            body.innerHTML = parsed;
+
+            const newCards = body.querySelectorAll('.file-card:not([data-icons-init])');
+            if (newCards.length > 0) {
+                newCards.forEach(c => c.setAttribute('data-icons-init', '1'));
+                if (window.lucide) lucide.createIcons({ nodes: Array.from(newCards) });
+            }
+        }
+
+        this._typewriterQueue = '';
+        this._typewriterRendered = '';
+        this.scrollToBottom(false);
     },
 };
