@@ -465,9 +465,15 @@ CRITICAL RULES:
 
             if (filename?.trim()) {
                 let fname = filename.trim().replace(/^\.\//, '').replace(/^\//, '');
+                // Dosya adını Editor.files ile aynı şekilde normalize et
+                fname = Utils.sanitizeFilename ? Utils.sanitizeFilename(fname) : fname;
                 const iconName = fname.includes('/') ? 'folder' : Utils.getFileIcon(langLabel);
                 const displayFname = fname.includes('/') ? `<span style="color:var(--text-tertiary);font-size:0.65rem;">${Utils.escapeHtml(fname.substring(0, fname.lastIndexOf('/') + 1))}</span>${Utils.escapeHtml(fname.split('/').pop())}` : Utils.escapeHtml(fname);
-                const exists = Editor.files.some(f => f.filename === fname);
+                const existingFile = Editor.files.find(f => {
+                    const normF = f.filename.replace(/^\.\//, '').replace(/^\//, '');
+                    return normF === fname || normF.split('/').pop() === fname.split('/').pop();
+                });
+                const exists = !!existingFile;
                 const statusLabel = exists ? 'Updated' : 'Created';
                 const statusClass = exists ? 'file-card-updated' : 'file-card-created';
                 return `<div class="file-card ${statusClass}" onclick="Utils.openFileInEditor('${Utils.escapeHtml(fname)}')">
@@ -491,7 +497,11 @@ CRITICAL RULES:
                 } else {
                     const autoName = `output.${Utils.getExtension(langLabel)}`;
                     const iconName = Utils.getFileIcon(langLabel);
-                    const exists = Editor.files.some(f => f.filename === autoName);
+                    const existingFile = Editor.files.find(f => {
+                        const normF = f.filename.replace(/^\.\//, '').replace(/^\//, '');
+                        return normF === autoName || normF.split('/').pop() === autoName.split('/').pop();
+                    });
+                    const exists = !!existingFile;
                     const statusLabel = exists ? 'Updated' : 'Created';
                     const statusClass = exists ? 'file-card-updated' : 'file-card-created';
                     return `<div class="file-card ${statusClass}" onclick="Utils.openFileInEditor('${autoName}')">
@@ -514,9 +524,14 @@ CRITICAL RULES:
                 let displayName = fname || `output.${Utils.getExtension(langLabel)}`;
                 if (displayName.startsWith('./')) displayName = displayName.slice(2);
                 if (displayName.startsWith('/')) displayName = displayName.slice(1);
+                displayName = Utils.sanitizeFilename ? Utils.sanitizeFilename(displayName) : displayName;
                 const iconName = Utils.getFileIcon(langLabel);
 
-                const exists = Editor.files.some(f => f.filename === displayName);
+                const existingFile = Editor.files.find(f => {
+                    const normF = f.filename.replace(/^\.\//, '').replace(/^\//, '');
+                    return normF === displayName || normF.split('/').pop() === displayName.split('/').pop();
+                });
+                const exists = !!existingFile;
                 const writingLabel = exists ? 'Updating...' : 'Creating...';
                 const writingClass = exists ? 'file-card-updating' : 'file-card-creating';
                 return `<div class="file-card writing ${writingClass}" data-file="${Utils.escapeHtml(displayName)}">
@@ -540,8 +555,13 @@ CRITICAL RULES:
                 let displayName = fname || `output.${Utils.getExtension(langLabel)}`;
                 if (displayName.startsWith('./')) displayName = displayName.slice(2);
                 if (displayName.startsWith('/')) displayName = displayName.slice(1);
+                displayName = Utils.sanitizeFilename ? Utils.sanitizeFilename(displayName) : displayName;
                 const iconName = Utils.getFileIcon(langLabel);
-                const exists = Editor.files.some(f => f.filename === displayName);
+                const existingFile = Editor.files.find(f => {
+                    const normF = f.filename.replace(/^\.\//, '').replace(/^\//, '');
+                    return normF === displayName || normF.split('/').pop() === displayName.split('/').pop();
+                });
+                const exists = !!existingFile;
                 const statusLabel = exists ? 'Updated' : 'Created';
                 const statusClass = exists ? 'file-card-updated' : 'file-card-created';
                 return `<div class="file-card ${statusClass}" onclick="Utils.openFileInEditor('${Utils.escapeHtml(displayName)}')">
