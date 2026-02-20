@@ -10,6 +10,12 @@ const Editor = {
     consoleVisible: false,
     consoleLogs: [],
 
+    // Güvenlik limitleri
+    MAX_FILES: 50,
+    MAX_FILE_SIZE: 512000,        // 500KB
+    MAX_CONSOLE_RATE: 30,         // saniyede max log
+    _consoleLogTimestamps: [],
+
     get currentFile() {
         return this.files[this.activeFileIndex] || null;
     },
@@ -99,8 +105,19 @@ const Editor = {
         let hasChanges = false;
         let changedFiles = [];
 
+        let fileLimitWarned = false;
+
         for (const block of blocks) {
             if (!block.code || block.code.trim().length === 0) continue;
+
+            // Dosya boyutu kontrolü (500KB)
+            if (block.code.length > this.MAX_FILE_SIZE) {
+                const originalKB = (block.code.length / 1024).toFixed(1);
+                console.warn(`[AetherIDE] File "${block.filename}" truncated from ${originalKB}KB to 500KB`);
+                block.code = block.code.substring(0, this.MAX_FILE_SIZE) +
+                    `\n/* ⚠️ AetherIDE: Content truncated at 500KB (original: ${originalKB}KB) */`;
+                Utils.toast(`⚠️ ${block.filename} truncated (${originalKB}KB exceeds 500KB limit)`, 'warning');
+            }
 
             const normalizedName = block.filename.replace(/^\.\//, '').replace(/^\//, '');
 
@@ -121,6 +138,15 @@ const Editor = {
                     changedFiles.push(normalizedName);
                 }
             } else {
+                // Maksimum dosya limiti kontrolü (50)
+                if (this.files.length >= this.MAX_FILES) {
+                    if (!fileLimitWarned) {
+                        fileLimitWarned = true;
+                        console.warn(`[AetherIDE] File limit reached (${this.MAX_FILES}). Extra files skipped.`);
+                        Utils.toast(`⚠️ Maximum ${this.MAX_FILES} file limit reached. Extra files skipped.`, 'warning');
+                    }
+                    continue;
+                }
                 this.files.push({
                     filename: normalizedName,
                     language: block.language,
@@ -377,6 +403,7 @@ const Editor = {
 
     clearConsole() {
         this.consoleLogs = [];
+        this._consoleLogTimestamps = [];
         Storage.clearConsoleLogs();
         const output = document.getElementById('console-output');
         if (output) output.innerHTML = '<div class="console-empty">Console cleared</div>';
@@ -404,6 +431,23 @@ const Editor = {
     },
 
     addConsoleLog(type, message, source = '') {
+        // Rate limiting: saniyede max 30 log
+        const now = Date.now();
+        this._consoleLogTimestamps = this._consoleLogTimestamps.filter(t => now - t < 1000);
+        if (this._consoleLogTimestamps.length >= this.MAX_CONSOLE_RATE) {
+            if (this._consoleLogTimestamps.length === this.MAX_CONSOLE_RATE) {
+                this.consoleLogs.push({
+                    type: 'warn',
+                    message: '[AetherIDE] Console output rate limited (30 logs/sec). Some logs may be dropped.',
+                    source: 'system',
+                    timestamp: new Date().toISOString(),
+                });
+                if (this.consoleVisible) this.renderConsole();
+            }
+            return;
+        }
+        this._consoleLogTimestamps.push(now);
+
         const entry = {
             type,
             message: typeof message === 'object' ? JSON.stringify(message, null, 2) : String(message),
@@ -873,11 +917,24 @@ downloadAll() {
         this.files.forEach(f => {
             if (f.language === 'css' || f.filename.endsWith('.css')) {
                 const baseName = f.filename.includes('/') ? f.filename.split('/').pop() : f.filename;
-                const escapedFull = f.filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const escapedBase = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const linkRegex = new RegExp(
-                    `<link[^>]*href=["'](?:[^"']*[/])?${escapedBase}["'][^>]*/?>`, 'gi'
-                );
+                let escapedBase;
+                try {
+                    escapedBase = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                } catch(e) {
+                    escapedBase = baseName.replace(/[^a-zA-Z0-9._-]/g, '');
+                }
+                let linkRegex;
+                try {
+                    linkRegex = new RegExp(
+                        `<link[^>]*href=["'](?:[^"']*[/])?${escapedBase}["'][^>]*/?>`, 'gi'
+                    );
+                } catch(e) {
+                    // Regex oluşturulamazsa fallback: </head> öncesine ekle
+                    if (htmlContent.includes('</head>')) {
+                        htmlContent = htmlContent.replace('</head>', `<style>\n${f.code}\n</style>\n</head>`);
+                    }
+                    return;
+                }
                 const replaced = htmlContent.replace(linkRegex, `<style>\n${f.code}\n</style>`);
 
                 if (replaced !== htmlContent) {
@@ -896,10 +953,25 @@ downloadAll() {
         this.files.forEach(f => {
             if (f.language === 'javascript' || f.language === 'js' || f.filename.endsWith('.js')) {
                 const baseName = f.filename.includes('/') ? f.filename.split('/').pop() : f.filename;
-                const escapedBase = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const scriptRegex = new RegExp(
-                    `<script[^>]*src=["'](?:[^"']*[/])?${escapedBase}["'][^>]*>\\s*</script>`, 'gi'
-                );
+                let escapedBase;
+                try {
+                    escapedBase = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                } catch(e) {
+                    escapedBase = baseName.replace(/[^a-zA-Z0-9._-]/g, '');
+                }
+                let scriptRegex;
+                try {
+                    scriptRegex = new RegExp(
+                        `<script[^>]*src=["'](?:[^"']*[/])?${escapedBase}["'][^>]*>\\s*</script>`, 'gi'
+                    );
+                } catch(e) {
+                    if (htmlContent.includes('</body>')) {
+                        htmlContent = htmlContent.replace('</body>', `<script>\n${f.code}\n</script>\n</body>`);
+                    } else {
+                        htmlContent += `\n<script>\n${f.code}\n</script>`;
+                    }
+                    return;
+                }
                 const replaced = htmlContent.replace(scriptRegex, `<script>\n${f.code}\n</script>`);
 
                 if (replaced !== htmlContent) {
@@ -921,6 +993,65 @@ downloadAll() {
         return `
 <script>
 (function() {
+    // ═══ AetherIDE Preview Safety Guards ═══
+
+    // setInterval koruması — max 50 aktif interval
+    var _origSetInterval = window.setInterval;
+    var _intervalCount = 0;
+    var _maxIntervals = 50;
+    window.setInterval = function() {
+        if (_intervalCount >= _maxIntervals) {
+            console.warn('[AetherIDE Guard] Too many setInterval calls (' + _maxIntervals + ' limit). Blocked.');
+            return -1;
+        }
+        _intervalCount++;
+        var args = Array.prototype.slice.call(arguments);
+        if (args.length >= 2 && typeof args[1] === 'number' && args[1] < 10) {
+            args[1] = 10;
+        }
+        return _origSetInterval.apply(window, args);
+    };
+    var _origClearInterval = window.clearInterval;
+    window.clearInterval = function(id) {
+        if (id !== -1) _intervalCount = Math.max(0, _intervalCount - 1);
+        return _origClearInterval.call(window, id);
+    };
+
+    // setTimeout flood koruması — saniyede max 200
+    var _origSetTimeout = window.setTimeout;
+    var _timeoutBurst = 0;
+    var _maxTimeoutBurst = 200;
+    _origSetInterval(function() { _timeoutBurst = 0; }, 1000);
+    window.setTimeout = function() {
+        _timeoutBurst++;
+        if (_timeoutBurst > _maxTimeoutBurst) {
+            if (_timeoutBurst === _maxTimeoutBurst + 1) {
+                console.warn('[AetherIDE Guard] setTimeout flood detected (' + _maxTimeoutBurst + '/sec limit). Blocking excess calls.');
+            }
+            return -1;
+        }
+        return _origSetTimeout.apply(window, arguments);
+    };
+
+    // requestAnimationFrame flood koruması — saniyede max 120
+    var _origRAF = window.requestAnimationFrame;
+    var _rafCount = 0;
+    var _rafLimit = 120;
+    _origSetInterval(function() { _rafCount = 0; }, 1000);
+    if (_origRAF) {
+        window.requestAnimationFrame = function(cb) {
+            _rafCount++;
+            if (_rafCount > _rafLimit) {
+                if (_rafCount % 120 === 1) {
+                    console.warn('[AetherIDE Guard] requestAnimationFrame flood detected. Throttling.');
+                }
+                return -1;
+            }
+            return _origRAF.call(window, cb);
+        };
+    }
+
+    // ═══ Console Capture ═══
     var origConsole = {};
     var msgCount = 0;
     var MAX_MESSAGES = 200;
