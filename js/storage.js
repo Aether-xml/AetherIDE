@@ -88,8 +88,14 @@ console.log("hello");
             // Prompt Enhancer
             promptEnhancer: {
                 enabled: true,
-                customModel: '',  // boş = aktif model kullanılır
-                customPrompt: '', // boş = varsayılan prompt kullanılır
+                customModel: '',
+                customPrompt: '',
+            },
+
+            // Typing efekti (AI yanıtı karakter karakter)
+            typingEffect: {
+                enabled: false,
+                speed: 'normal',  // 'slow' | 'normal' | 'fast'
             },
         });
     },
