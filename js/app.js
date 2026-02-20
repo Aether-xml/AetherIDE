@@ -30,6 +30,7 @@ const App = {
         this.loadState();
         this.initModelSelector();
         this.initConsoleListener();
+        Utils.initCharCounters();
 
         if (API.hasApiKey()) {
             API.updateConnectionStatus('online');
