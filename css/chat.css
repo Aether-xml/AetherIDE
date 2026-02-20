@@ -1147,3 +1147,72 @@
     max-height: 180px;
     overflow: hidden;
 }
+
+/* ══════════════════════════════════════════════════════════
+   Character Counter
+   ══════════════════════════════════════════════════════════ */
+
+.char-counter {
+    display: none;
+    font-size: 0.6rem;
+    font-family: var(--font-code);
+    color: var(--text-tertiary);
+    text-align: right;
+    padding: 2px 8px 0;
+    line-height: 1;
+    user-select: none;
+    pointer-events: none;
+    transition: color 0.2s ease;
+}
+
+.char-counter.visible {
+    display: block;
+}
+
+.char-counter.warning {
+    color: var(--accent-warning);
+}
+
+.char-counter.danger {
+    color: var(--accent-error);
+    font-weight: 600;
+}
+
+/* Input wrapper içindeki sayaç */
+.input-wrapper .char-counter {
+    position: absolute;
+    bottom: -16px;
+    right: 8px;
+    padding: 0;
+}
+
+.input-area {
+    position: relative;
+    padding-bottom: 20px;
+}
+
+/* Settings içindeki sayaç */
+.settings-char-counter {
+    display: none;
+    font-size: 0.6rem;
+    font-family: var(--font-code);
+    color: var(--text-tertiary);
+    text-align: right;
+    padding: 3px 2px 0;
+    line-height: 1;
+    user-select: none;
+    transition: color 0.2s ease;
+}
+
+.settings-char-counter.visible {
+    display: block;
+}
+
+.settings-char-counter.warning {
+    color: var(--accent-warning);
+}
+
+.settings-char-counter.danger {
+    color: var(--accent-error);
+    font-weight: 600;
+}
