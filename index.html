@@ -1546,18 +1546,41 @@
         });
     </script>
 
-    <!-- Force SW update -->
+    <!-- Force SW update + Cache clear -->
     <script>
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-            registrations.forEach(reg => {
-                reg.update();
-                if (reg.waiting) {
-                    reg.waiting.postMessage('skipWaiting');
-                }
+    (function() {
+        var APP_VERSION = '1.5.2';
+        var STORED_VERSION = localStorage.getItem('aetheride_app_version');
+
+        if (STORED_VERSION && STORED_VERSION !== APP_VERSION) {
+            // Tüm cache'leri sil
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    names.forEach(function(name) { caches.delete(name); });
+                });
+            }
+            // Tüm SW'leri kaldır
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(regs) {
+                    regs.forEach(function(r) { r.unregister(); });
+                });
+            }
+            localStorage.setItem('aetheride_app_version', APP_VERSION);
+            setTimeout(function() { window.location.reload(true); }, 500);
+            return;
+        }
+
+        localStorage.setItem('aetheride_app_version', APP_VERSION);
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+                regs.forEach(function(reg) {
+                    reg.update();
+                    if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                });
             });
-        });
-    }
+        }
+    })();
     </script>
 
 </body>
