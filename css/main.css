@@ -955,8 +955,11 @@ svg.lucide {
 
 .settings-textarea-sm {
     min-height: 50px;
+    max-height: 200px !important;
     font-size: 0.78rem;
     padding: 8px 10px;
+    overflow-y: auto;
+    resize: vertical;
 }
 
 /* ── Team Model Rows ── */
@@ -2267,13 +2270,14 @@ svg.lucide {
     font-size: 0.88rem;
     color: var(--text-primary);
     line-height: 1.5;
-    max-height: 120px;
+    max-height: 120px !important;
     min-height: 24px;
     padding: 6px 0;
     font-family: var(--font-ui);
     background: transparent;
     border: none;
     outline: none;
+    overflow-y: auto;
 }
 
 .sandbox-input::placeholder { color: var(--text-tertiary); }
