@@ -279,7 +279,10 @@ const SetupWizard = {
 
                         <div class="setup-agree-row" id="setup-agree-row">
                             <input type="checkbox" id="setup-privacy-agree">
-                            <label for="setup-privacy-agree">I have read and agree to the Privacy Policy & Terms</label>
+                            <label for="setup-privacy-agree">
+                                <i data-lucide="check-circle" style="width:14px;height:14px;flex-shrink:0;"></i>
+                                I have read and agree to the Privacy Policy & Terms
+                            </label>
                         </div>
                     </div>
                 </div>
