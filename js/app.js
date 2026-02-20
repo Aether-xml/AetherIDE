@@ -203,6 +203,25 @@ const App = {
                 this.showShortcutsHelp();
                 return;
             }
+
+            // DevTools caydırıcı — F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+            if (
+                e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) ||
+                (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j')) ||
+                (e.ctrlKey && (e.key === 'U' || e.key === 'u'))
+            ) {
+                e.preventDefault();
+                e.stopPropagation();
+                Utils.toast('🔒 Developer tools are disabled', 'warning', 2000);
+                return;
+            }
+        });
+
+        // Sağ tık engeli
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            Utils.toast('🔒 Right-click is disabled', 'warning', 1500);
         });
     },
 
