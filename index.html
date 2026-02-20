@@ -829,6 +829,255 @@
             opacity: 1;
             transform: translateY(0);
         }
+
+        /* ── Roadmap ── */
+        .roadmap-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-top: 40px;
+        }
+
+        .roadmap-card {
+            padding: 24px 20px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+
+        .roadmap-card:hover {
+            border-color: rgba(108,99,255,0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+
+        .roadmap-status {
+            font-size: 0.62rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        .roadmap-status.done {
+            background: rgba(0,230,118,0.08);
+            color: var(--green);
+        }
+
+        .roadmap-status.progress {
+            background: rgba(255,179,0,0.08);
+            color: var(--orange);
+        }
+
+        .roadmap-status.planned {
+            background: rgba(108,99,255,0.08);
+            color: var(--purple);
+        }
+
+        .roadmap-card h4 {
+            font-size: 0.92rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+
+        .roadmap-card p {
+            font-size: 0.78rem;
+            color: var(--text2);
+            line-height: 1.55;
+        }
+
+        /* ── Support Section ── */
+        .support-section {
+            padding: 60px 24px;
+            max-width: 750px;
+            margin: 0 auto;
+        }
+
+        .support-card {
+            position: relative;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .support-card:hover {
+            border-color: rgba(255,82,82,0.2);
+            box-shadow: 0 12px 50px rgba(255,82,82,0.08);
+        }
+
+        .support-glow {
+            position: absolute;
+            top: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            height: 200px;
+            background: radial-gradient(ellipse, rgba(255,82,82,0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .support-content {
+            position: relative;
+            z-index: 1;
+            padding: 48px 40px;
+            text-align: center;
+        }
+
+        .support-icon {
+            width: 64px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+            background: rgba(255,82,82,0.08);
+            color: var(--red);
+            margin: 0 auto 20px;
+            animation: supportPulse 3s ease-in-out infinite;
+        }
+
+        .support-icon svg {
+            width: 30px;
+            height: 30px;
+        }
+
+        @keyframes supportPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,82,82,0.15); }
+            50% { transform: scale(1.05); box-shadow: 0 0 30px 8px rgba(255,82,82,0.1); }
+        }
+
+        .support-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-bottom: 14px;
+            background: linear-gradient(135deg, var(--red), var(--orange));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .support-text {
+            font-size: 0.92rem;
+            color: var(--text2);
+            line-height: 1.75;
+            max-width: 540px;
+            margin: 0 auto 28px;
+        }
+
+        .support-actions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .support-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 13px 28px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border-radius: 14px;
+            transition: all 0.25s ease;
+            color: white;
+        }
+
+        .coffee-btn {
+            background: #FF5E5B;
+        }
+
+        .coffee-btn:hover {
+            background: #FF4542;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255,94,91,0.3);
+        }
+
+        /* github-btn removed */
+
+        .support-note {
+            margin-top: 20px;
+            font-size: 0.75rem;
+            color: var(--text3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .support-note svg {
+            width: 14px;
+            height: 14px;
+            color: var(--purple);
+        }
+
+        @media (max-width: 768px) {
+            .roadmap-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .roadmap-card {
+                padding: 18px 16px;
+            }
+
+            .roadmap-card h4 {
+                font-size: 0.85rem;
+            }
+
+            .support-section {
+                padding: 40px 16px;
+            }
+
+            .support-content {
+                padding: 32px 24px;
+            }
+
+            .support-title {
+                font-size: 1.3rem;
+            }
+
+            .support-text {
+                font-size: 0.85rem;
+            }
+
+            .support-btn {
+                padding: 12px 22px;
+                font-size: 0.85rem;
+            }
+
+            .support-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .support-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .roadmap-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ── Roadmap hover ── */
+        @media (hover: hover) {
+            .roadmap-card {
+                transition: all 0.25s ease;
+            }
+        }
     </style>
 </head>
 <body>
@@ -844,6 +1093,7 @@
             <a href="#how-it-works" class="nav-link">How It Works</a>
             <a href="#security" class="nav-link">Security</a>
             <a href="#features" class="nav-link">Features</a>
+            <a href="#roadmap" class="nav-link">Roadmap</a>
             <a href="https://discord.gg/7YKCvPzKEQ" target="_blank" class="nav-link">Discord</a>
             <a href="/app" class="nav-cta">Open AetherIDE <i data-lucide="arrow-right" style="width:16px;height:16px;"></i></a>
         </div>
@@ -859,7 +1109,7 @@
 
         <div class="hero-badge">
             <i data-lucide="sparkles"></i>
-            v1.5.2 — New Themes, Smart Errors & More
+            v1.5.2 — Actively Developed · New Features Weekly
         </div>
 
         <h1 class="hero-title">
@@ -899,7 +1149,7 @@
                 <div class="stat-label">Powerful Modes</div>
             </div>
             <div class="stat-item">
-                <div class="stat-value">6</div>
+                <div class="stat-value">6+6</div>
                 <div class="stat-label">Themes & Accents</div>
             </div>
             <div class="stat-item">
@@ -1002,10 +1252,10 @@
             </div>
 
             <div class="security-item">
-                <div class="security-icon"><i data-lucide="code-2"></i></div>
+                <div class="security-icon"><i data-lucide="scan-eye"></i></div>
                 <div>
-                    <h4>Open & Transparent</h4>
-                    <p>Every line of code runs in your browser. You can inspect it, audit it, and verify exactly what happens with your data.</p>
+                    <h4>Fully Auditable</h4>
+                    <p>Everything runs client-side in your browser. No hidden API calls, no telemetry, no background processes. What you see is what runs.</p>
                 </div>
             </div>
         </div>
@@ -1136,6 +1386,86 @@
         </div>
     </section>
 
+    <!-- Roadmap & Vision -->
+    <section class="section" id="roadmap">
+        <div class="fade-up" style="text-align:center;">
+            <div class="section-label"><i data-lucide="rocket"></i> The Future</div>
+            <h2 class="section-title">AetherIDE is Just Getting Started</h2>
+            <p class="section-subtitle" style="margin-left:auto;margin-right:auto;">We're building the most powerful AI code editor — and it's evolving fast. Here's what's coming.</p>
+        </div>
+
+        <div class="roadmap-grid fade-up">
+            <div class="roadmap-card active">
+                <div class="roadmap-status done">✅ Shipped</div>
+                <h4>Multi-Provider AI</h4>
+                <p>OpenRouter, Gemini, OpenAI — 200+ models with one-click switching</p>
+            </div>
+            <div class="roadmap-card active">
+                <div class="roadmap-status done">✅ Shipped</div>
+                <h4>Team Mode</h4>
+                <p>3 AI agents collaborating — Designer, PM, Developer working together</p>
+            </div>
+            <div class="roadmap-card active">
+                <div class="roadmap-status done">✅ Shipped</div>
+                <h4>Live Preview & Console</h4>
+                <p>Real-time preview with console capture, auto-fix, and terminal</p>
+            </div>
+            <div class="roadmap-card">
+                <div class="roadmap-status progress">🔨 In Progress</div>
+                <h4>Git Integration</h4>
+                <p>Push to GitHub directly from AetherIDE. Version control built-in</p>
+            </div>
+            <div class="roadmap-card">
+                <div class="roadmap-status progress">🔨 In Progress</div>
+                <h4>Plugin System</h4>
+                <p>Extend AetherIDE with community-built plugins and custom tools</p>
+            </div>
+            <div class="roadmap-card">
+                <div class="roadmap-status planned">📋 Planned</div>
+                <h4>Real-time Collaboration</h4>
+                <p>Code together with friends — shared workspace, live cursors</p>
+            </div>
+            <div class="roadmap-card">
+                <div class="roadmap-status planned">📋 Planned</div>
+                <h4>AI Code Review</h4>
+                <p>Automated code review, security scanning, and optimization tips</p>
+            </div>
+            <div class="roadmap-card">
+                <div class="roadmap-status planned">📋 Planned</div>
+                <h4>Deploy to Vercel/Netlify</h4>
+                <p>One-click deployment — build and ship your project instantly</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Support -->
+    <section class="support-section fade-up" id="support">
+        <div class="support-card">
+            <div class="support-glow"></div>
+            <div class="support-content">
+                <div class="support-icon">
+                    <i data-lucide="heart"></i>
+                </div>
+                <h2 class="support-title">Support the Project</h2>
+                <p class="support-text">
+                    AetherIDE is free, open, and built with passion. If you love what we're building, 
+                    consider supporting the project. Every contribution helps us ship new features faster, 
+                    keep the project alive, and make AI-powered coding accessible to everyone.
+                </p>
+                <div class="support-actions">
+                    <a href="https://buymeacoffee.com/AetherIDE" target="_blank" rel="noopener" class="support-btn coffee-btn">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20.216 6.415l-.132-.666c-.119-.598-.388-1.163-1.001-1.379-.197-.069-.42-.098-.57-.241-.152-.143-.196-.366-.231-.572-.065-.378-.125-.756-.192-1.133-.057-.325-.102-.69-.25-.987-.195-.4-.597-.634-.996-.788a5.723 5.723 0 00-.626-.194c-1-.263-2.05-.36-3.077-.416a25.834 25.834 0 00-3.7.062c-.915.083-1.88.184-2.75.5-.318.116-.646.256-.888.501-.297.302-.393.77-.177 1.146.154.267.415.456.692.58.36.162.737.284 1.123.366 1.075.238 2.189.331 3.287.37 1.218.05 2.437.01 3.65-.118.299-.033.598-.073.896-.119.352-.054.578-.513.474-.834-.124-.383-.457-.531-.834-.473-.466.074-.96.108-1.382.146-1.177.08-2.358.082-3.536.006a22.228 22.228 0 01-1.157-.107c-.086-.01-.18-.025-.258-.036-.243-.036-.484-.08-.724-.13-.111-.024-.253-.062-.291-.189-.023-.078.005-.159.054-.228a1.1 1.1 0 01.343-.259c.186-.088.393-.158.602-.199.796-.155 1.613-.236 2.426-.264a25.123 25.123 0 013.58.165c.263.04.522.1.778.17.168.046.378.108.443.298.029.084.01.175-.021.252a1.21 1.21 0 01-.095.189c-.058.082-.142.153-.18.249-.049.124-.015.254.023.373l.247.866c.063.22.158.453.355.558.242.13.534.057.758-.1.193-.136.33-.339.46-.535l.172-.268c.063-.098.129-.202.133-.318.004-.119-.06-.234-.105-.344z"/><path d="M8.712 14.403c.024.026.05.05.078.072.286.224.631.342.972.418.362.08.73.119 1.097.12h.003c.37 0 .74-.04 1.1-.12.34-.076.687-.194.972-.418.03-.022.056-.046.08-.072H8.71v.002z"/><path d="M17.21 10.68c-.082-.389-.323-.734-.703-.898-.281-.121-.59-.146-.895-.14-.545.01-1.08.147-1.592.328l.038-.133c.071-.25.14-.503.178-.762.037-.254.038-.523-.064-.767a1.02 1.02 0 00-.462-.497c-.164-.09-.35-.136-.536-.165a5.7 5.7 0 00-.556-.044c-.672-.018-1.345.015-2.014.082-.403.04-.817.1-1.19.265-.258.113-.48.306-.559.583-.058.204-.026.422.035.623.064.214.16.414.272.6.2.338.456.646.742.912.165.153.338.296.525.415.044.028.093.056.1.11.007.058-.048.098-.089.131a3.12 3.12 0 01-.516.294 6.5 6.5 0 01-1.293.454c-.166.042-.336.076-.498.133-.199.07-.38.193-.454.395-.067.183-.026.387.046.562.084.204.208.388.358.544.29.302.652.512 1.03.656.462.176.953.27 1.447.313.557.048 1.119.03 1.674-.034.501-.058.997-.163 1.464-.35.386-.154.756-.371 1.04-.68.148-.162.268-.352.325-.566.052-.193.043-.4-.023-.59a1.58 1.58 0 00-.328-.483 4.23 4.23 0 00-.5-.39c.097-.06.19-.128.276-.204.26-.226.468-.508.599-.826.096-.234.137-.49.093-.74z"/></svg>
+                        Support AetherIDE ❤️
+                    </a>
+                </div>
+                <p class="support-note">
+                    <i data-lucide="info"></i>
+                    AetherIDE will always remain free to use. Your support accelerates development.
+                </p>
+            </div>
+        </div>
+    </section>
+
     <!-- CTA -->
     <section class="cta-section fade-up">
         <div class="section-label"><i data-lucide="rocket"></i> Ready?</div>
@@ -1159,9 +1489,10 @@
             <div class="footer-left">© 2025 AetherIDE. Code at the speed of thought.</div>
             <div class="footer-links">
                 <a href="/app">App</a>
+                <a href="#roadmap">Roadmap</a>
+                <a href="https://buymeacoffee.com/AetherIDE" target="_blank">Support ❤️</a>
                 <a href="https://discord.gg/7YKCvPzKEQ" target="_blank">Discord</a>
                 <a href="https://www.instagram.com/theonly1emo?igsh=MWc1N2J6c282cmppZA==" target="_blank">Instagram</a>
-                <a href="https://github.com" target="_blank">GitHub</a>
             </div>
         </div>
     </footer>
