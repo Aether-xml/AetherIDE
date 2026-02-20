@@ -464,6 +464,11 @@ const Chat = {
             this.newChat();
         }
 
+        // Chat modunu güncelle (ilk mesajda kaydet)
+        if (!this.currentChat.mode) {
+            this.currentChat.mode = App.currentMode;
+        }
+
         // Console context'i mesaja ekle
         let enrichedText = text;
         const hasErrors = Editor.consoleLogs.some(l => l.type === 'error');
@@ -514,6 +519,10 @@ const Chat = {
     addAssistantMessage(content, agentType = 'assistant') {
         if (!this.currentChat) return;
 
+        // Mevcut stream mesajını temizle
+        const streamMsg = document.getElementById('stream-message');
+        if (streamMsg) streamMsg.remove();
+
         this.currentChat.messages.push({
             role: 'assistant',
             content: content,
@@ -531,12 +540,9 @@ const Chat = {
 
         Storage.saveChat(this.currentChat);
 
-        // Typewriter efekti: stream bittikten sonra son mesajı efektli göster
-        // Sadece stream response'larda çalışır (non-stream zaten anında gelir)
-        // Stream sırasında zaten updateStreamMessage gösteriyor, typewriter sadece
-        // non-stream veya stream-sonrası final render için kullanılır
-        if (this._isTypingEnabled() && !this._typewriterWasStreaming && agentType === 'assistant') {
-            // Önceki mesajları normal render et (son mesaj hariç)
+        // Typewriter efekti: sadece ana assistant mesajları için ve Team mode'da değilken
+        const isTeamAgent = ['designer', 'pm', 'developer'].includes(agentType);
+        if (this._isTypingEnabled() && !this._typewriterWasStreaming && agentType === 'assistant' && !isTeamAgent && !Chat.isGenerating) {
             this._renderMessagesExceptLast();
             this._startTypewriter(content);
         } else {
@@ -765,10 +771,14 @@ const Chat = {
         const input = document.getElementById('message-input');
         const indicator = document.getElementById('thinking-indicator');
 
-        // Eski stop handler'ı temizle
+        // Eski handler'ları temizle (her durumda)
         if (this._stopHandler && sendBtn) {
             sendBtn.removeEventListener('click', this._stopHandler);
             this._stopHandler = null;
+        }
+        if (sendBtn) {
+            sendBtn.removeEventListener('click', Chat._sendClickHandler);
+            sendBtn.onclick = null;
         }
 
         if (generating) {
