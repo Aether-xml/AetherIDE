@@ -764,6 +764,14 @@ CRITICAL RULES:
         const blocks = [];
         if (!text) return blocks;
 
+        // Debug: gelen metnin ilk kod bloğu formatını logla
+        const debugMatch = text.match(/```[^\n]{0,100}/);
+        if (debugMatch) {
+            console.log('[extractCodeBlocks] First code fence:', JSON.stringify(debugMatch[0]));
+        } else {
+            console.log('[extractCodeBlocks] No ``` found in text, length:', text.length);
+        }
+
         // Daha kapsamlı regex:
         // - Dil adından sonra : veya boşluk+: ile dosya adı
         // - Dosya adında harf, rakam, nokta, tire, alt çizgi, slash olabilir
@@ -775,16 +783,18 @@ CRITICAL RULES:
         // - Kod: ``` kapanışına kadar
         // - Dosya adı opsiyonel
         // match[2] = :ile gelen dosya adı (güvenilir)
-        // match[3] kaldırıldı — boşlukla gelen metin genelde dosya adı değil, açıklama metni
-        const regex = /```\s*(\w+?)(?:\s*[:]\s*([^\n\r]+?))?\s*[\r\n]+([\s\S]*?)```/g;
+        // match[3] = boşlukla gelen dosya adı — sadece dosya uzantısı içeren pattern'ler yakalanır
+        //            (örn: "styles.css" evet, "Example usage" hayır)
+        const regex = /```\s*(\w+?)(?:\s*[:]\s*([^\n\r]+?)|\s+([\w.\/\-]+\.[\w]{1,10}))?\s*[\r\n]+([\s\S]*?)```/g;
         let match;
         let fileIndex = 0;
         const seenFiles = new Map(); // Aynı dosya birden fazla gelirse son halini al
 
         while ((match = regex.exec(text)) !== null) {
             let language = (match[1] || '').trim().toLowerCase();
-            let filename = (match[2] || '').trim();
-            let code = match[3] || '';
+            // match[2] = :ile gelen, match[3] = boşlukla gelen (sadece dosya uzantısı varsa)
+            let filename = (match[2] || match[3] || '').trim();
+            let code = match[4] || '';
 
             // Sondaki boşlukları temizle ama yapıyı koru
             code = code.replace(/\s+$/, '');
