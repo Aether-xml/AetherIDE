@@ -90,6 +90,18 @@ body {
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
     touch-action: manipulation;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Sadece input/textarea'larda seçimi geri aç */
+input, textarea, .code-display, .console-output, .message-body code, .message-body pre {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
 }
 
 a {
