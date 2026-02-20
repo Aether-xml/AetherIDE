@@ -1,41 +1,15 @@
-const CACHE_NAME = 'aetheride-v1.3.1';
+// ══════════════════════════════════════════════════════════
+// AetherIDE Service Worker v1.5.2
+// Network-first for HTML/JS/CSS, cache for assets only
+// ══════════════════════════════════════════════════════════
+
+const CACHE_VERSION = 'aetheride-v1.5.2';
+
+// Sadece değişmeyen asset'leri cache'le
 const STATIC_ASSETS = [
-    '/',
-    '/index.html',
-    '/editor.html',
-    '/app',
-    '/404.html',
-    '/manifest.json',
-    '/css/main.css',
-    '/css/sidebar.css',
-    '/css/editor.css',
-    '/css/chat.css',
-    '/css/modal.css',
-    '/css/responsive.css',
-    '/js/utils.js',
-    '/js/storage.js',
-    '/js/themes.js',
-    '/js/api.js',
-    '/js/editor.js',
-    '/js/chat.js',
-    '/js/sandbox.js',
-    '/js/settings.js',
-    '/js/zip.js',
-    '/js/filetree.js',
-    '/css/filetree.css',
-    '/js/app.js',
-    '/js/modes/direct.js',
-    '/js/modes/planner.js',
-    '/js/modes/team.js',
     '/assets/icons/icon-192.png',
     '/assets/icons/icon-512.png',
-];
-
-// CDN kaynakları — network-first
-const CDN_PATTERNS = [
-    'fonts.googleapis.com',
-    'fonts.gstatic.com',
-    'unpkg.com',
+    '/manifest.json',
 ];
 
 // API istekleri — asla cache'leme
@@ -45,92 +19,109 @@ const API_PATTERNS = [
     'api.openai.com',
 ];
 
-// ── Install ──
+// Asla cache'lenmemesi gereken dosyalar
+const NO_CACHE_PATTERNS = [
+    '/js/',
+    '/css/',
+    '/index.html',
+    '/editor.html',
+    '/app',
+    '/sw.js',
+];
+
+// ── Install — minimal cache, hemen aktive ol ──
 self.addEventListener('install', (e) => {
+    console.log('[SW] Installing v1.5.2...');
     e.waitUntil(
-        caches.open(CACHE_NAME)
+        caches.open(CACHE_VERSION)
             .then(cache => cache.addAll(STATIC_ASSETS))
-            .then(() => self.skipWaiting())
+            .then(() => {
+                console.log('[SW] Install complete, skipping waiting');
+                return self.skipWaiting();
+            })
     );
 });
 
-// ── Activate — eski cache'leri temizle ──
+// ── Activate — TÜM eski cache'leri sil ──
 self.addEventListener('activate', (e) => {
+    console.log('[SW] Activating v1.5.2...');
     e.waitUntil(
-        caches.keys().then(keys =>
-            Promise.all(
-                keys
-                    .filter(key => key !== CACHE_NAME)
-                    .map(key => caches.delete(key))
-            )
-        ).then(() => self.clients.claim())
+        caches.keys().then(keys => {
+            return Promise.all(
+                keys.map(key => {
+                    if (key !== CACHE_VERSION) {
+                        console.log('[SW] Deleting old cache:', key);
+                        return caches.delete(key);
+                    }
+                })
+            );
+        }).then(() => {
+            console.log('[SW] Claiming all clients');
+            return self.clients.claim();
+        })
     );
 });
 
-// ── Fetch ──
+// ── Fetch — Network-first for everything except static assets ──
 self.addEventListener('fetch', (e) => {
     const url = new URL(e.request.url);
 
-    // API istekleri — network only
+    // Sadece GET isteklerini işle
+    if (e.request.method !== 'GET') return;
+
+    // API istekleri — network only, cache'leme
     if (API_PATTERNS.some(p => url.hostname.includes(p))) {
-        e.respondWith(fetch(e.request));
         return;
     }
 
-    // Root ve /app — her zaman network first (routing için)
-    if (url.pathname === '/' || url.pathname === '/app' || url.pathname === '/app/') {
+    // Chrome extension isteklerini atla
+    if (url.protocol === 'chrome-extension:') return;
+
+    // HTML/JS/CSS dosyaları — HER ZAMAN network-first
+    const isAppFile = NO_CACHE_PATTERNS.some(p => url.pathname.includes(p)) ||
+                      url.pathname === '/' ||
+                      e.request.mode === 'navigate';
+
+    if (isAppFile) {
         e.respondWith(
-            fetch(e.request)
+            fetch(e.request, { cache: 'no-cache' })
                 .then(response => {
-                    const clone = response.clone();
-                    caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
                     return response;
                 })
-                .catch(() => caches.match(e.request))
+                .catch(() => {
+                    // Offline — navigation için fallback
+                    if (e.request.mode === 'navigate') {
+                        return caches.match('/index.html');
+                    }
+                    return new Response('Offline', { status: 503, statusText: 'Offline' });
+                })
         );
         return;
     }
 
-    // CDN kaynakları — network first, fallback cache
-    if (CDN_PATTERNS.some(p => url.hostname.includes(p))) {
-        e.respondWith(
-            fetch(e.request)
-                .then(response => {
-                    const clone = response.clone();
-                    caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-                    return response;
-                })
-                .catch(() => caches.match(e.request))
-        );
-        return;
-    }
-
-    // Statik dosyalar — cache first, fallback network
+    // Statik asset'ler (ikonlar, manifest) — cache-first
     e.respondWith(
         caches.match(e.request)
             .then(cached => {
                 if (cached) return cached;
                 return fetch(e.request).then(response => {
-                    // Sadece başarılı GET isteklerini cache'le
-                    if (response.ok && e.request.method === 'GET') {
+                    if (response.ok) {
                         const clone = response.clone();
-                        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+                        caches.open(CACHE_VERSION).then(cache => cache.put(e.request, clone));
                     }
                     return response;
                 });
             })
             .catch(() => {
-                // Offline fallback — navigation istekleri için
-                if (e.request.mode === 'navigate') {
-                    return caches.match('/index.html');
-                }
+                return new Response('Offline', { status: 503, statusText: 'Offline' });
             })
     );
 });
 
-// ── Background Sync (gelecek için hazırlık) ──
+// ── Message handler — skipWaiting desteği ──
 self.addEventListener('message', (e) => {
-    if (e.data === 'skipWaiting') {
+    if (e.data === 'skipWaiting' || (e.data && e.data.type === 'SKIP_WAITING')) {
+        console.log('[SW] Skip waiting triggered');
         self.skipWaiting();
     }
 });
