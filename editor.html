@@ -302,6 +302,7 @@
                         </div>
 
                         <!-- Input Box -->
+                        <div class="char-counter" id="main-char-counter"></div>
                         <div class="input-wrapper" id="input-wrapper">
                             <button class="input-icon-btn enhance-btn" id="enhance-btn" title="Enhance Prompt">
                                 <i data-lucide="sparkles"></i>
@@ -586,6 +587,7 @@
                                     <div class="settings-group">
                                         <label class="settings-label">System Prompt</label>
                                         <textarea id="sandbox-direct-system-prompt" class="settings-textarea" rows="3" placeholder="You are a helpful AI assistant..." maxlength="10000"></textarea>
+                                        <div class="settings-char-counter" id="sandbox-direct-sp-counter"></div>
                                     </div>
 
                                     <div class="settings-group">
@@ -631,6 +633,7 @@
                                     <div class="settings-group">
                                         <label class="settings-label">System Prompt</label>
                                         <textarea id="sandbox-sbs-system-prompt" class="settings-textarea" rows="3" placeholder="You are a helpful AI assistant..." maxlength="10000"></textarea>
+                                        <div class="settings-char-counter" id="sandbox-sbs-sp-counter"></div>
                                     </div>
 
                                     <div class="settings-group">
@@ -804,6 +807,7 @@
                             System Prompt
                         </label>
                         <textarea id="system-prompt-input" class="settings-textarea" rows="3" placeholder="You are an expert programmer..." maxlength="10000"></textarea>
+                        <div class="settings-char-counter" id="system-prompt-counter"></div>
                     </div>
 
                     <!-- ── Team Mode Models ── -->
@@ -863,6 +867,7 @@
                         <div class="settings-sub-group">
                             <label class="settings-sublabel">Custom Enhancement Prompt (optional)</label>
                             <textarea id="enhancer-prompt-input" class="settings-textarea settings-textarea-sm" rows="2" placeholder="Leave empty for default enhancement" maxlength="5000"></textarea>
+                            <div class="settings-char-counter" id="enhancer-prompt-counter"></div>
                         </div>
                     </div>
 
