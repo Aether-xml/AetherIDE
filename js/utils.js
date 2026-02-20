@@ -476,7 +476,8 @@ CRITICAL RULES:
                 const exists = !!existingFile;
                 const statusLabel = exists ? 'Updated' : 'Created';
                 const statusClass = exists ? 'file-card-updated' : 'file-card-created';
-                return `<div class="file-card ${statusClass}" onclick="Utils.openFileInEditor('${Utils.escapeHtml(fname)}')">
+                const safeFname = fname.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                return `<div class="file-card ${statusClass}" onclick="Utils.openFileInEditor('${safeFname}')">
                             <div class="file-card-icon"><i data-lucide="${iconName}"></i></div>
                             <div class="file-card-info">
                                 <span class="file-card-status">${statusLabel}</span>
@@ -504,7 +505,8 @@ CRITICAL RULES:
                     const exists = !!existingFile;
                     const statusLabel = exists ? 'Updated' : 'Created';
                     const statusClass = exists ? 'file-card-updated' : 'file-card-created';
-                    return `<div class="file-card ${statusClass}" onclick="Utils.openFileInEditor('${autoName}')">
+                    const safeAutoName = autoName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                    return `<div class="file-card ${statusClass}" onclick="Utils.openFileInEditor('${safeAutoName}')">
                                 <div class="file-card-icon"><i data-lucide="${iconName}"></i></div>
                                 <div class="file-card-info">
                                     <span class="file-card-status">${statusLabel}</span>
@@ -564,7 +566,8 @@ CRITICAL RULES:
                 const exists = !!existingFile;
                 const statusLabel = exists ? 'Updated' : 'Created';
                 const statusClass = exists ? 'file-card-updated' : 'file-card-created';
-                return `<div class="file-card ${statusClass}" onclick="Utils.openFileInEditor('${Utils.escapeHtml(displayName)}')">
+                const safeDisplayName = displayName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                return `<div class="file-card ${statusClass}" onclick="Utils.openFileInEditor('${safeDisplayName}')">
                             <div class="file-card-icon"><i data-lucide="${iconName}"></i></div>
                             <div class="file-card-info">
                                 <span class="file-card-status">${statusLabel}</span>
@@ -645,20 +648,52 @@ CRITICAL RULES:
     },
 
     openFileInEditor(filename) {
-        // Normalize: ./ ve / prefix temizle
-        const normalizedTarget = filename.replace(/^\.\//, '').replace(/^\//, '');
+        // HTML entity'lerini geri çöz (escapeHtml'den gelenler)
+        const decoded = filename
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&#x27;/g, "'");
 
+        // Normalize: ./ ve / prefix temizle + sanitize
+        let normalizedTarget = decoded.replace(/^\.\//, '').replace(/^\//, '').trim();
+        if (Utils.sanitizeFilename) {
+            normalizedTarget = Utils.sanitizeFilename(normalizedTarget);
+        }
+
+        // 1. Tam eşleşme
         let fileIndex = Editor.files.findIndex(f => {
             const norm = f.filename.replace(/^\.\//, '').replace(/^\//, '');
             return norm === normalizedTarget;
         });
 
-        // Fuzzy match: sadece dosya adıyla eşleştir (klasör yolu farklı olabilir)
+        // 2. Case-insensitive eşleşme
+        if (fileIndex < 0) {
+            const lowerTarget = normalizedTarget.toLowerCase();
+            fileIndex = Editor.files.findIndex(f => {
+                const norm = f.filename.replace(/^\.\//, '').replace(/^\//, '').toLowerCase();
+                return norm === lowerTarget;
+            });
+        }
+
+        // 3. Fuzzy: sadece dosya adıyla eşleştir (klasör yolu farklı olabilir)
         if (fileIndex < 0) {
             const targetBase = normalizedTarget.includes('/') ? normalizedTarget.split('/').pop() : normalizedTarget;
+            const lowerBase = targetBase.toLowerCase();
             fileIndex = Editor.files.findIndex(f => {
                 const fBase = f.filename.includes('/') ? f.filename.split('/').pop() : f.filename;
-                return fBase === targetBase;
+                return fBase.toLowerCase() === lowerBase;
+            });
+        }
+
+        // 4. Kısmi eşleşme: dosya adı içerme kontrolü
+        if (fileIndex < 0) {
+            const lowerTarget = normalizedTarget.toLowerCase();
+            fileIndex = Editor.files.findIndex(f => {
+                return f.filename.toLowerCase().includes(lowerTarget) ||
+                       lowerTarget.includes(f.filename.toLowerCase());
             });
         }
 
@@ -669,7 +704,9 @@ CRITICAL RULES:
             }
             Utils.toast(`Opened ${Editor.files[fileIndex].filename}`, 'info', 1500);
         } else {
-            Utils.toast(`File "${filename}" not found in editor`, 'warning', 2000);
+            // Debug: hangi dosyalar var göster
+            console.warn(`[AetherIDE] File not found: "${normalizedTarget}". Available files:`, Editor.files.map(f => f.filename));
+            Utils.toast(`File "${decoded}" not found in editor`, 'warning', 2000);
         }
     },
 
