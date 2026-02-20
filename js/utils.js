@@ -226,8 +226,19 @@ const Utils = {
     },
 
     autoResize(textarea) {
+        if (!textarea) return;
+        // Textarea türüne göre max yükseklik belirle
+        let maxH = 140;
+        if (textarea.classList.contains('sandbox-input')) maxH = 120;
+        else if (textarea.classList.contains('settings-textarea')) maxH = 250;
+        else if (textarea.classList.contains('settings-textarea-sm')) maxH = 200;
+
         textarea.style.height = 'auto';
-        textarea.style.height = Math.min(textarea.scrollHeight, 140) + 'px';
+        const newHeight = Math.min(textarea.scrollHeight, maxH);
+        textarea.style.height = newHeight + 'px';
+
+        // Max'a ulaştıysa scroll göster
+        textarea.style.overflowY = textarea.scrollHeight > maxH ? 'auto' : 'hidden';
     },
 
     // Token tahmini (~4 karakter = 1 token)
