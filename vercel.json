@@ -1,43 +1,43 @@
 {
-"routes": [
-{
-"src": "^/app(.)$",
-"dest": "/editor.html"
-},
-{
-"src": "^/sw.js$",
-"dest": "/sw.js",
-"headers": {
-"Cache-Control": "no-cache, no-store, must-revalidate"
-}
-},
-{
-"src": "^/assets/(.)$",
-"headers": {
-"Cache-Control": "public, max-age=31536000, immutable"
-}
-},
-{
-"src": "^/css/(.)$",
-"headers": {
-"Cache-Control": "public, max-age=604800"
-}
-},
-{
-"src": "^/js/(.)$",
-"headers": {
-"Cache-Control": "public, max-age=604800"
-}
-},
-{
-"src": "^/(.*)$",
-"headers": {
-"X-Frame-Options": "DENY",
-"X-Content-Type-Options": "nosniff",
-"X-XSS-Protection": "1; mode=block",
-"Referrer-Policy": "strict-origin-when-cross-origin",
-"Permissions-Policy": "camera=(), microphone=(), geolocation=()"
-}
-}
-]
+    "routes": [
+        {
+            "src": "^/app(.*)$",
+            "dest": "/editor.html"
+        },
+        {
+            "src": "^/sw.js$",
+            "dest": "/sw.js",
+            "headers": {
+                "Cache-Control": "no-cache, no-store, must-revalidate"
+            }
+        },
+        {
+            "src": "^/assets/(.*)$",
+            "headers": {
+                "Cache-Control": "public, max-age=31536000, immutable"
+            }
+        },
+        {
+            "src": "^/css/(.*)$",
+            "headers": {
+                "Cache-Control": "public, max-age=604800"
+            }
+        },
+        {
+            "src": "^/js/(.*)$",
+            "headers": {
+                "Cache-Control": "public, max-age=604800"
+            }
+        },
+        {
+            "src": "^/(.*)$",
+            "headers": {
+                "X-Frame-Options": "DENY",
+                "X-Content-Type-Options": "nosniff",
+                "X-XSS-Protection": "1; mode=block",
+                "Referrer-Policy": "strict-origin-when-cross-origin",
+                "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+            }
+        }
+    ]
 }
