@@ -40,7 +40,11 @@ ERROR FIXING RULES (when console errors are present):
 15. If multiple errors exist, fix ALL of them in one response — don't leave any behind.
 16. After fixing, make sure the fix doesn't break other functionality.
 17. If an error mentions a specific line number, pay extra attention to that area and its surrounding code.
-18. Common patterns: "X is not defined" → check spelling and scope; "Cannot read property of null" → element doesn't exist or script runs before DOM; "Unexpected token" → syntax error, check brackets/quotes.\n`;
+18. Common patterns: "X is not defined" → check spelling and scope; "Cannot read property of null" → element doesn't exist or script runs before DOM; "Unexpected token" → syntax error, check brackets/quotes.
+19. When fixing, mentally trace through the code execution to verify your fix actually resolves the error.
+20. If the error involves DOM elements, check both HTML (does the element exist? correct ID/class?) and JS (correct selector? timing?).
+21. If the error involves event listeners or callbacks, check: is the function defined? is 'this' context correct? are arguments in the right order?
+22. After fixing, review the ENTIRE file for similar patterns that might cause the same type of error elsewhere.\n`;
 
         return context;
     },
