@@ -131,6 +131,12 @@ const Settings = {
             b.classList.toggle('active', b.dataset.provider === providerId);
         });
 
+        // Puter — API key alanını gizle
+        const apiKeyGroup = document.getElementById('api-key-input')?.closest('.settings-group');
+        if (apiKeyGroup) {
+            apiKeyGroup.style.display = providerId === 'puter' ? 'none' : 'block';
+        }
+
         const label = document.getElementById('api-key-label');
         if (label) label.textContent = `${config.name} API Key`;
 
@@ -141,13 +147,23 @@ const Settings = {
         }
 
         const docsLink = document.getElementById('api-key-docs-link');
-        if (docsLink) { docsLink.href = config.docsUrl; docsLink.textContent = 'Get key →'; }
+        if (docsLink) { docsLink.href = config.docsUrl; docsLink.textContent = providerId === 'puter' ? '' : 'Get key →'; }
 
         const status = document.getElementById('api-key-status');
-        if (status) { status.textContent = ''; status.className = 'api-key-status'; }
+        if (status) {
+            if (providerId === 'puter') {
+                const puterReady = typeof puter !== 'undefined' && puter.ai;
+                status.textContent = puterReady ? '✓ Puter AI ready — no key needed' : '⏳ Puter SDK loading...';
+                status.className = 'api-key-status ' + (puterReady ? 'valid' : '');
+                API.updateConnectionStatus(puterReady ? 'online' : 'offline');
+            } else {
+                status.textContent = '';
+                status.className = 'api-key-status';
+            }
+        }
 
         const savedKey = settings.apiKeys?.[providerId] || '';
-        if (savedKey && input) {
+        if (savedKey && input && providerId !== 'puter') {
             input.value = savedKey;
             this.checkApiKey(savedKey, providerId);
         }
@@ -239,8 +255,23 @@ const Settings = {
         const ghStatus = document.getElementById('github-token-status');
         if (ghStatus) ghStatus.innerHTML = '';
 
+        // Puter — API key alanını gizle
+        const apiKeyGroup = document.getElementById('api-key-input')?.closest('.settings-group');
+        if (apiKeyGroup) {
+            apiKeyGroup.style.display = this.currentProvider === 'puter' ? 'none' : 'block';
+        }
+
         const currentKey = settings.apiKeys?.[this.currentProvider] || settings.apiKey || '';
-        if (currentKey) this.checkApiKey(currentKey, this.currentProvider);
+        if (this.currentProvider === 'puter') {
+            const status = document.getElementById('api-key-status');
+            if (status) {
+                const puterReady = typeof puter !== 'undefined' && puter.ai;
+                status.textContent = puterReady ? '✓ Puter AI ready — no key needed' : '⏳ Puter SDK loading...';
+                status.className = 'api-key-status ' + (puterReady ? 'valid' : '');
+            }
+        } else if (currentKey) {
+            this.checkApiKey(currentKey, this.currentProvider);
+        }
     },
 
     async checkApiKey(key, providerId) {
