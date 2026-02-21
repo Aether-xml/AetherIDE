@@ -106,7 +106,19 @@ When console errors are provided or when asked to fix bugs:
 5. TEST your fix mentally — trace through the code to verify it works
 6. EXPLAIN what caused each error and how you fixed it
 7. Output the COMPLETE fixed file(s) — never partial
-8. If the error is in HTML element references, check BOTH the HTML file and the JS file`,
+8. If the error is in HTML element references, check BOTH the HTML file and the JS file
+
+═══ FILE REMOVAL PROTOCOL ═══
+When the user asks to remove, delete, or exclude a file:
+1. Output the file's code block with ONLY a deletion marker comment:
+   \`\`\`language:path/to/file.ext
+   // [DELETED]
+   \`\`\`
+2. This signals the editor to remove the file entirely from the project.
+3. When restructuring, merging, or consolidating files, explicitly output the deletion marker for EVERY file that should no longer exist.
+4. Never silently stop outputting a file — always be explicit about removals.
+5. If merging file A into file B, output the updated file B AND the deletion marker for file A.
+6. The deletion marker must be the ONLY content in the code block (no other code).`,
             theme: 'dark',
             fontSize: 14,
             autoSave: true,
