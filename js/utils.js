@@ -469,9 +469,9 @@ CRITICAL RULES:
                 fname = Utils.sanitizeFilename ? Utils.sanitizeFilename(fname) : fname;
                 const iconName = fname.includes('/') ? 'folder' : Utils.getFileIcon(langLabel);
                 const displayFname = fname.includes('/') ? `<span style="color:var(--text-tertiary);font-size:0.65rem;">${Utils.escapeHtml(fname.substring(0, fname.lastIndexOf('/') + 1))}</span>${Utils.escapeHtml(fname.split('/').pop())}` : Utils.escapeHtml(fname);
-                // Stream sırasında snapshot'a bak, değilse Editor.files'a bak
+                // Dosya daha önce var mıydı? Snapshot varsa ona bak (stream sırasında doğru sonuç verir)
                 let exists = false;
-                if (isStreaming && Chat._preStreamFiles) {
+                if (Chat._preStreamFiles) {
                     exists = Chat._preStreamFiles.has(fname) ||
                              [...Chat._preStreamFiles].some(f => f.split('/').pop() === fname.split('/').pop());
                 } else {
@@ -506,7 +506,7 @@ CRITICAL RULES:
                     const autoName = `output.${Utils.getExtension(langLabel)}`;
                     const iconName = Utils.getFileIcon(langLabel);
                     let exists = false;
-                    if (isStreaming && Chat._preStreamFiles) {
+                    if (Chat._preStreamFiles) {
                         exists = Chat._preStreamFiles.has(autoName) ||
                                  [...Chat._preStreamFiles].some(f => f.split('/').pop() === autoName.split('/').pop());
                     } else {
@@ -579,7 +579,7 @@ CRITICAL RULES:
                 displayName = Utils.sanitizeFilename ? Utils.sanitizeFilename(displayName) : displayName;
                 const iconName = Utils.getFileIcon(langLabel);
                 let exists = false;
-                if (isStreaming && Chat._preStreamFiles) {
+                if (Chat._preStreamFiles) {
                     exists = Chat._preStreamFiles.has(displayName) ||
                              [...Chat._preStreamFiles].some(f => f.split('/').pop() === displayName.split('/').pop());
                 } else {
