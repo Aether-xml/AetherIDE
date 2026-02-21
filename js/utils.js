@@ -463,6 +463,22 @@ CRITICAL RULES:
             const lines = trimmedCode.split('\n').length;
             const chars = trimmedCode.length;
 
+            // [DELETED] marker kontrolü
+            const isDeleteMarker = /^\s*(?:\/\/|\/\*|#|<!--|--|%)\s*\[DELETED\]\s*(?:\*\/|-->)?\s*$/i.test(trimmedCode);
+            if (isDeleteMarker && filename?.trim()) {
+                let fname = filename.trim().replace(/^\.\//, '').replace(/^\//, '');
+                fname = Utils.sanitizeFilename ? Utils.sanitizeFilename(fname) : fname;
+                const iconName = Utils.getFileIcon(langLabel);
+                return `<div class="file-card file-card-deleted">
+                            <div class="file-card-icon"><i data-lucide="trash-2"></i></div>
+                            <div class="file-card-info">
+                                <span class="file-card-status">Removed</span>
+                                <span class="file-card-name">${Utils.escapeHtml(fname)}</span>
+                            </div>
+                            <div class="file-card-action"><i data-lucide="x"></i></div>
+                        </div>`;
+            }
+
             if (filename?.trim()) {
                 let fname = filename.trim().replace(/^\.\//, '').replace(/^\//, '');
                 // Dosya adını Editor.files ile aynı şekilde normalize et
