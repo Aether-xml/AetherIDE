@@ -75,6 +75,41 @@ const Settings = {
             const speedRow = document.getElementById('typing-speed-row');
             if (speedRow) speedRow.style.display = e.target.checked ? 'flex' : 'none';
         });
+
+        // GitHub token visibility toggle
+        document.getElementById('toggle-gh-token-visibility')?.addEventListener('click', () => {
+            const input = document.getElementById('github-token-input');
+            const icon = document.getElementById('gh-token-eye-icon');
+            if (input && icon) {
+                const isPassword = input.type === 'password';
+                input.type = isPassword ? 'text' : 'password';
+                icon.setAttribute('data-lucide', isPassword ? 'eye' : 'eye-off');
+                if (window.lucide) lucide.createIcons({ nodes: [icon.parentElement] });
+            }
+        });
+
+        // GitHub token validate on blur
+        document.getElementById('github-token-input')?.addEventListener('blur', async () => {
+            const input = document.getElementById('github-token-input');
+            const status = document.getElementById('github-token-status');
+            if (!input || !status) return;
+            const token = input.value.trim();
+            if (!token) {
+                status.innerHTML = '';
+                return;
+            }
+            status.innerHTML = '<span style="color:var(--text-tertiary);">Validating...</span>';
+            // Geçici olarak kaydet ki validateToken okuyabilsin
+            const tempSettings = Storage.getSettings();
+            tempSettings.githubToken = token;
+            Storage.saveSettings(tempSettings);
+            const result = await GitHub.validateToken();
+            if (result.valid) {
+                status.innerHTML = `<span style="color:var(--accent-success);">✓ Connected as <strong>${Utils.escapeHtml(result.user)}</strong></span>`;
+            } else {
+                status.innerHTML = `<span style="color:var(--accent-error);">✗ ${Utils.escapeHtml(result.error)}</span>`;
+            }
+        });
     },
 
     switchProvider(providerId) {
@@ -195,6 +230,14 @@ const Settings = {
         document.querySelectorAll('.accent-option').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.accent === (settings.accentColor || 'purple'));
         });
+
+        // GitHub token yükle
+        const ghTokenInput = document.getElementById('github-token-input');
+        if (ghTokenInput) {
+            ghTokenInput.value = settings.githubToken || '';
+        }
+        const ghStatus = document.getElementById('github-token-status');
+        if (ghStatus) ghStatus.innerHTML = '';
 
         const currentKey = settings.apiKeys?.[this.currentProvider] || settings.apiKey || '';
         if (currentKey) this.checkApiKey(currentKey, this.currentProvider);
@@ -463,6 +506,7 @@ const Settings = {
                 enabled: document.getElementById('typing-effect-toggle')?.checked === true,
                 speed: document.getElementById('typing-speed-select')?.value || 'normal',
             },
+            githubToken: document.getElementById('github-token-input')?.value?.trim() || '',
         };
 
         Storage.saveSettings(settings);
@@ -493,6 +537,12 @@ const Settings = {
             App.selectModel(settings.defaultModel);
         }
 
+        // GitHub push butonu görünürlüğü
+        const ghPushBtn = document.getElementById('github-push-btn');
+        if (ghPushBtn) {
+            ghPushBtn.style.display = (settings.githubToken && Editor.files.length > 0) ? 'inline-flex' : 'none';
+        }
+
         this.close();
         Utils.toast('Settings saved!', 'success');
     },
@@ -520,6 +570,14 @@ const Settings = {
         if (typingSpeedRow) typingSpeedRow.style.display = 'none';
         const typingSpeed = document.getElementById('typing-speed-select');
         if (typingSpeed) typingSpeed.value = 'normal';
+
+        // GitHub token sıfırla
+        const ghTokenInput = document.getElementById('github-token-input');
+        if (ghTokenInput) ghTokenInput.value = '';
+        const ghStatus = document.getElementById('github-token-status');
+        if (ghStatus) ghStatus.innerHTML = '';
+        const ghPushBtn = document.getElementById('github-push-btn');
+        if (ghPushBtn) ghPushBtn.style.display = 'none';
 
         Utils.toast('Settings reset to default', 'info');
     },
