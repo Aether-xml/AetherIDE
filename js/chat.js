@@ -88,6 +88,8 @@ const Chat = {
 
         // Stream kart takibini temizle
         this._knownStreamCards.clear();
+        this._activeWritingCards.clear();
+        this._preStreamFiles = null;
 
         // Zaten boş sohbet varsa sadece odaklan
         if (this.currentChat && this.currentChat.messages.length === 0) {
@@ -704,6 +706,13 @@ const Chat = {
         if (!streamMsg) {
             // Yeni stream başlıyor — kart takibini sıfırla
             this._knownStreamCards.clear();
+            this._activeWritingCards.clear();
+
+            // Stream öncesi mevcut dosya listesinin snapshot'ını al
+            // Bu sayede stream sırasında yeni eklenen dosyalar "Created" olarak gösterilir
+            this._preStreamFiles = new Set(
+                Editor.files.map(f => f.filename.replace(/^\.\//, '').replace(/^\//, ''))
+            );
             // Typing indicator'ı kaldır
             const typing = document.getElementById('typing-message');
             if (typing) typing.remove();
@@ -747,66 +756,125 @@ const Chat = {
         this._renderStreamBody(content);
     },
 
+    _activeWritingCards: new Map(), // dosya adı → {wrapper: DOM, card: DOM}
+
     _renderStreamBody(content) {
         const body = document.getElementById('stream-body');
         if (!body) return;
 
         const newHtml = Utils.parseMarkdownWithFileCards(content, true);
 
-        // ── Writing kartlarını DOM'dan çıkar ve koru ──
-        const preservedWriting = new Map();
-        body.querySelectorAll('.file-card.writing').forEach(card => {
+        // ── Parse: HTML'i metin bölgeleri ve kart placeholder'larına ayır ──
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = newHtml;
+
+        // Tüm file-card'ları tanımla ve hangileri writing olduğunu bul
+        const newCards = new Map();
+        tempDiv.querySelectorAll('.file-card').forEach(card => {
             const nameEl = card.querySelector('.file-card-name');
             if (nameEl) {
-                const name = nameEl.textContent.trim();
-                card.remove();
-                preservedWriting.set(name, card);
+                newCards.set(nameEl.textContent.trim(), {
+                    node: card,
+                    isWriting: card.classList.contains('writing')
+                });
             }
         });
 
-        // ── Yeni HTML'i uygula ──
-        body.innerHTML = newHtml;
+        // ── Strateji: body içinde sabit "slot" sistemi kullan ──
+        // 1. Text bölgelerini güncelle (innerHTML)
+        // 2. Writing kartlarını DOM'da koru, sadece yoksa ekle
+        // 3. Tamamlanmış kartları normal render et
 
-        // ── Kartları işle ──
-        body.querySelectorAll('.file-card').forEach(card => {
+        // Mevcut writing kartlarını topla
+        const currentWritingNames = new Set();
+        this._activeWritingCards.forEach((val, name) => currentWritingNames.add(name));
+
+        // Yeni writing kartı var mı, eski bitti mi kontrol et
+        const newWritingNames = new Set();
+        newCards.forEach((val, name) => {
+            if (val.isWriting) newWritingNames.add(name);
+        });
+
+        // ── Body'yi güncelle — ama writing kartlarını koru ──
+
+        // Yöntem: tempDiv'deki writing kartlarını placeholder ile değiştir
+        const placeholderMap = new Map();
+        let placeholderIndex = 0;
+        tempDiv.querySelectorAll('.file-card.writing').forEach(card => {
             const nameEl = card.querySelector('.file-card-name');
             if (!nameEl) return;
             const name = nameEl.textContent.trim();
+            const placeholderId = `__wc_placeholder_${placeholderIndex++}__`;
+            const placeholder = document.createElement('div');
+            placeholder.id = placeholderId;
+            placeholder.style.display = 'contents';
+            card.replaceWith(placeholder);
+            placeholderMap.set(placeholderId, { name, originalNode: card });
+        });
 
-            if (card.classList.contains('writing')) {
-                // Writing kartı — korunan varsa onunla değiştir (animasyon reset önleme)
-                const preserved = preservedWriting.get(name);
-                if (preserved) {
-                    // Status güncellemesi (creating→updating veya tersi)
-                    const newStatus = card.querySelector('.file-card-status');
-                    const oldStatus = preserved.querySelector('.file-card-status');
-                    if (newStatus && oldStatus && newStatus.textContent !== oldStatus.textContent) {
-                        oldStatus.textContent = newStatus.textContent;
-                        preserved.className = card.className;
-                    }
-                    card.replaceWith(preserved);
-                    preservedWriting.delete(name);
-                } else {
-                    // Yeni writing kartı — ikonları init et
-                    this._knownStreamCards.add(name);
-                    card.setAttribute('data-icons-init', '1');
-                    if (window.lucide) lucide.createIcons({ nodes: [card] });
-                }
+        // Tamamlanmış kartlardaki animasyonu kontrol et
+        tempDiv.querySelectorAll('.file-card:not(.writing)').forEach(card => {
+            const nameEl = card.querySelector('.file-card-name');
+            if (!nameEl) return;
+            const name = nameEl.textContent.trim();
+            if (this._knownStreamCards.has(name)) {
+                card.style.animation = 'none';
+                card.style.opacity = '1';
+                card.style.transform = 'none';
             } else {
-                // Tamamlanmış kart — daha önce biliniyorsa giriş animasyonunu engelle
-                if (this._knownStreamCards.has(name)) {
-                    card.style.animation = 'none';
-                } else {
-                    this._knownStreamCards.add(name);
-                }
-                card.setAttribute('data-icons-init', '1');
-                if (window.lucide) lucide.createIcons({ nodes: [card] });
+                this._knownStreamCards.add(name);
             }
         });
 
-        // ── Kart dışı lucide ikonları (code block copy butonları vs) ──
-        const uninitialized = body.querySelectorAll('i[data-lucide]');
-        if (uninitialized.length > 0 && window.lucide) {
+        // innerHTML güncelle — writing kartları placeholder olarak gelecek
+        body.innerHTML = tempDiv.innerHTML;
+
+        // ── Placeholder'ları gerçek writing kartlarıyla değiştir ──
+        placeholderMap.forEach(({ name, originalNode }, placeholderId) => {
+            const placeholder = body.querySelector(`#${placeholderId}`);
+            if (!placeholder) return;
+
+            const existing = this._activeWritingCards.get(name);
+            if (existing && existing.card && existing.card.parentNode !== body) {
+                // Korunan kart var — placeholder'ı onunla değiştir
+                // Status güncelle
+                const newStatus = originalNode.querySelector('.file-card-status');
+                const oldStatus = existing.card.querySelector('.file-card-status');
+                if (newStatus && oldStatus && newStatus.textContent !== oldStatus.textContent) {
+                    oldStatus.textContent = newStatus.textContent;
+                    existing.card.className = originalNode.className;
+                }
+                placeholder.replaceWith(existing.card);
+            } else if (existing && existing.card && existing.card.parentNode) {
+                // Kart zaten DOM'da (farklı pozisyon olabilir) — taşı
+                placeholder.replaceWith(existing.card);
+            } else {
+                // Yeni writing kartı — oluştur ve kaydet
+                const newCard = originalNode.cloneNode(true);
+                newCard.setAttribute('data-icons-init', '1');
+                if (window.lucide) lucide.createIcons({ nodes: [newCard] });
+                this._knownStreamCards.add(name);
+                this._activeWritingCards.set(name, { card: newCard });
+                placeholder.replaceWith(newCard);
+            }
+        });
+
+        // ── Artık writing olmayan kartları temizle ──
+        this._activeWritingCards.forEach((val, name) => {
+            if (!newWritingNames.has(name)) {
+                this._activeWritingCards.delete(name);
+            }
+        });
+
+        // ── Tamamlanmış kartların ikonlarını init et ──
+        body.querySelectorAll('.file-card:not(.writing):not([data-icons-init])').forEach(card => {
+            card.setAttribute('data-icons-init', '1');
+            if (window.lucide) lucide.createIcons({ nodes: [card] });
+        });
+
+        // ── Kart dışı lucide ikonları ──
+        const uninit = body.querySelectorAll('i[data-lucide]');
+        if (uninit.length > 0 && window.lucide) {
             lucide.createIcons({ nodes: [body] });
         }
 
@@ -884,6 +952,8 @@ const Chat = {
             }
             Chat._lastStreamUpdate = 0;
             Chat._knownStreamCards.clear();
+            Chat._activeWritingCards.clear();
+            Chat._preStreamFiles = null;
 
             // Typewriter temizliği
             if (Chat._typewriterActive) {
