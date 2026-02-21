@@ -756,18 +756,11 @@ const App = {
     loadState() {
         const lastMode = Storage.getLastMode();
         if (lastMode) {
-            // Aktif chat varsa chat'in modunu kullan, yoksa son modu kullan
+            // Aktif chat varsa ve mesaj varsa chat'in modunu kullan, yoksa son modu kullan
             const chatMode = Chat.currentChat?.mode;
-            const targetMode = chatMode || lastMode;
-            
-            // setMode'daki chat mode kilidi bypass — loadState özel durum
-            const savedMessages = Chat.currentChat?.messages?.length || 0;
-            if (savedMessages > 0 && chatMode && chatMode !== targetMode) {
-                // Chat'in kendi modunu kullan
-                this.setMode(chatMode);
-            } else {
-                this.setMode(targetMode);
-            }
+            const hasMessages = Chat.currentChat?.messages?.length > 0;
+            const targetMode = (hasMessages && chatMode) ? chatMode : lastMode;
+            this.setMode(targetMode);
         }
 
         // Font size uygula
