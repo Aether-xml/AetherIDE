@@ -274,6 +274,25 @@ const Settings = {
 
     CHANGELOG: [
         {
+            version: 'v1.5.3',
+            date: '2025-07-27',
+            changes: [
+                { type: 'new', text: 'GitHub integration — push projects directly to GitHub repos' },
+                { type: 'new', text: 'GitHub push modal with repo name, commit message, and privacy toggle' },
+                { type: 'new', text: 'GitHub token validation with user profile display' },
+                { type: 'improved', text: 'AI error fixing — enhanced system prompts with detailed debugging protocol' },
+                { type: 'improved', text: 'File card Created/Updated status now accurately reflects file state' },
+                { type: 'improved', text: 'Code block extraction — tolerant regex handles edge cases from all models' },
+                { type: 'improved', text: 'File matching in editor — sanitized filename fallback matching' },
+                { type: 'improved', text: 'Welcome cards now reliably respond to clicks on first load' },
+                { type: 'fixed', text: 'Welcome page cards not working without creating a new chat first' },
+                { type: 'fixed', text: 'File cards showing "Updated" instead of "Created" for new files' },
+                { type: 'fixed', text: 'File card writing animation restarting on every stream update' },
+                { type: 'fixed', text: '"File not found in editor" when clicking file cards (improved name matching)' },
+                { type: 'fixed', text: 'Code blocks not being extracted when AI omits newline after fence' },
+            ],
+        },
+        {
             version: 'v1.5.2',
             date: '2025-07-26',
             changes: [
