@@ -40,6 +40,7 @@ const Storage = {
             apiKey: '',
             apiKeys: {},
             apiProvider: 'openrouter',
+            githubToken: '',
             defaultModel: '',
             systemPrompt: `You are an elite full-stack developer and UI/UX designer powering AetherIDE, an AI-powered code editor. You write production-grade, visually stunning code.
 
