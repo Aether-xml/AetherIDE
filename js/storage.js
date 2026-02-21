@@ -205,3 +205,41 @@ When building web projects, ALWAYS apply these design principles:
         return this.set('user_avatar_color', color);
     },
 };
+
+    // ── Generic key-value storage (Sandbox vb. için) ──
+    get(key, defaultValue = null) {
+        try {
+            const data = localStorage.getItem(this.PREFIX + key);
+            if (data === null) return defaultValue;
+            return JSON.parse(data);
+        } catch (e) {
+            console.warn('[Storage] Failed to get:', key, e);
+            return defaultValue;
+        }
+    },
+
+    set(key, value) {
+        try {
+            localStorage.setItem(this.PREFIX + key, JSON.stringify(value));
+        } catch (e) {
+            console.warn('[Storage] Failed to set:', key, e);
+            // Quota aşımı durumunda eski sandbox verilerini temizle
+            if (e.name === 'QuotaExceededError') {
+                localStorage.removeItem(this.PREFIX + 'sandbox_history');
+                localStorage.removeItem(this.PREFIX + 'sandbox_chat_list');
+                try {
+                    localStorage.setItem(this.PREFIX + key, JSON.stringify(value));
+                } catch (e2) {
+                    console.error('[Storage] Still cannot save after cleanup:', e2);
+                }
+            }
+        }
+    },
+
+    remove(key) {
+        try {
+            localStorage.removeItem(this.PREFIX + key);
+        } catch (e) {
+            console.warn('[Storage] Failed to remove:', key, e);
+        }
+    },
