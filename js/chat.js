@@ -57,13 +57,37 @@ const Chat = {
             this.newChat();
         });
 
-        // Welcome kartları showWelcome() içinde dinamik oluşturulur ve
-        // orada event listener eklenir — burada duplicate binding yapmıyoruz
+        // Statik welcome kartlarına da event ekle (ilk yükleme için)
+        this._bindWelcomeCards();
+    },
+
+    _bindWelcomeCards() {
+        const container = document.getElementById('messages-container');
+        if (!container) return;
+        container.querySelectorAll('.welcome-card').forEach(card => {
+            // Duplicate listener önleme
+            if (card.dataset.bound) return;
+            card.dataset.bound = '1';
+            card.addEventListener('click', () => {
+                const prompt = card.dataset.prompt;
+                const input = document.getElementById('message-input');
+                const sendBtn = document.getElementById('send-btn');
+                if (prompt && input) {
+                    input.value = prompt;
+                    Utils.autoResize(input);
+                    if (sendBtn) sendBtn.disabled = false;
+                    input.focus();
+                }
+            });
+        });
     },
 
     newChat() {
         // Aktif typewriter'ı durdur
         this._stopTypewriter();
+
+        // Stream kart takibini temizle
+        this._knownStreamCards.clear();
 
         // Zaten boş sohbet varsa sadece odaklan
         if (this.currentChat && this.currentChat.messages.length === 0) {
@@ -196,19 +220,7 @@ const Chat = {
         if (window.lucide) lucide.createIcons({ nodes: [container] });
 
         // Welcome kartlarına event ekle
-        container.querySelectorAll('.welcome-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const prompt = card.dataset.prompt;
-                const input = document.getElementById('message-input');
-                const sendBtn = document.getElementById('send-btn');
-                if (prompt && input) {
-                    input.value = prompt;
-                    Utils.autoResize(input);
-                    if (sendBtn) sendBtn.disabled = false;
-                    input.focus();
-                }
-            });
-        });
+        this._bindWelcomeCards();
     },
 
     loadLastChat() {
@@ -270,6 +282,8 @@ const Chat = {
                 return;
             }
         }
+        // Chat yoksa statik welcome kartları görünüyor — event'lerini bağla
+        this._bindWelcomeCards();
         this.renderHistory();
     },
 
@@ -676,6 +690,7 @@ const Chat = {
 
     _lastStreamUpdate: 0,
     _streamUpdatePending: null,
+    _knownStreamCards: new Set(),
 
     updateStreamMessage(content) {
         // Stream aktif — typewriter'ı devre dışı bırak (stream zaten kendi efektini yapıyor)
@@ -687,6 +702,8 @@ const Chat = {
         let streamMsg = document.getElementById('stream-message');
 
         if (!streamMsg) {
+            // Yeni stream başlıyor — kart takibini sıfırla
+            this._knownStreamCards.clear();
             // Typing indicator'ı kaldır
             const typing = document.getElementById('typing-message');
             if (typing) typing.remove();
@@ -736,27 +753,61 @@ const Chat = {
 
         const newHtml = Utils.parseMarkdownWithFileCards(content, true);
 
-        // Mevcut kartların durumunu kaydet (animasyon tekrarını önle)
-        const existingCards = new Set();
-        body.querySelectorAll('.file-card').forEach(card => {
-            const name = card.querySelector('.file-card-name');
-            if (name) existingCards.add(name.textContent.trim());
-        });
-
-        body.innerHTML = newHtml;
-
-        // Daha önce var olan kartların animasyonunu kaldır
-        body.querySelectorAll('.file-card').forEach(card => {
-            const name = card.querySelector('.file-card-name');
-            if (name && existingCards.has(name.textContent.trim())) {
-                card.style.animation = 'none';
+        // ── Writing kartlarını DOM'dan çıkar ve koru ──
+        const preservedWriting = new Map();
+        body.querySelectorAll('.file-card.writing').forEach(card => {
+            const nameEl = card.querySelector('.file-card-name');
+            if (nameEl) {
+                const name = nameEl.textContent.trim();
+                card.remove();
+                preservedWriting.set(name, card);
             }
         });
 
-        const newCards = body.querySelectorAll('.file-card:not([data-icons-init])');
-        if (newCards.length > 0) {
-            newCards.forEach(c => c.setAttribute('data-icons-init', '1'));
-            if (window.lucide) lucide.createIcons({ nodes: Array.from(newCards) });
+        // ── Yeni HTML'i uygula ──
+        body.innerHTML = newHtml;
+
+        // ── Kartları işle ──
+        body.querySelectorAll('.file-card').forEach(card => {
+            const nameEl = card.querySelector('.file-card-name');
+            if (!nameEl) return;
+            const name = nameEl.textContent.trim();
+
+            if (card.classList.contains('writing')) {
+                // Writing kartı — korunan varsa onunla değiştir (animasyon reset önleme)
+                const preserved = preservedWriting.get(name);
+                if (preserved) {
+                    // Status güncellemesi (creating→updating veya tersi)
+                    const newStatus = card.querySelector('.file-card-status');
+                    const oldStatus = preserved.querySelector('.file-card-status');
+                    if (newStatus && oldStatus && newStatus.textContent !== oldStatus.textContent) {
+                        oldStatus.textContent = newStatus.textContent;
+                        preserved.className = card.className;
+                    }
+                    card.replaceWith(preserved);
+                    preservedWriting.delete(name);
+                } else {
+                    // Yeni writing kartı — ikonları init et
+                    this._knownStreamCards.add(name);
+                    card.setAttribute('data-icons-init', '1');
+                    if (window.lucide) lucide.createIcons({ nodes: [card] });
+                }
+            } else {
+                // Tamamlanmış kart — daha önce biliniyorsa giriş animasyonunu engelle
+                if (this._knownStreamCards.has(name)) {
+                    card.style.animation = 'none';
+                } else {
+                    this._knownStreamCards.add(name);
+                }
+                card.setAttribute('data-icons-init', '1');
+                if (window.lucide) lucide.createIcons({ nodes: [card] });
+            }
+        });
+
+        // ── Kart dışı lucide ikonları (code block copy butonları vs) ──
+        const uninitialized = body.querySelectorAll('i[data-lucide]');
+        if (uninitialized.length > 0 && window.lucide) {
+            lucide.createIcons({ nodes: [body] });
         }
 
         this.scrollToBottom(false);
@@ -832,6 +883,7 @@ const Chat = {
                 Chat._streamUpdatePending = null;
             }
             Chat._lastStreamUpdate = 0;
+            Chat._knownStreamCards.clear();
 
             // Typewriter temizliği
             if (Chat._typewriterActive) {
