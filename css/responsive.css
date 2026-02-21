@@ -147,6 +147,134 @@
     .toast { max-width: 100%; font-size: 0.78rem; }
 }
 
+/* ── Sandbox Side by Side — Mobile ── */
+@media (max-width: 768px) {
+    /* SBS panellerini dikey yap */
+    .sandbox-sbs-container {
+        flex-direction: column !important;
+        gap: 0 !important;
+    }
+
+    .sandbox-sbs-panel {
+        width: 100% !important;
+        min-width: unset !important;
+        max-width: 100% !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--border-primary);
+    }
+
+    .sandbox-sbs-panel:last-child {
+        border-bottom: none;
+    }
+
+    /* Her panel eşit yükseklik — ID ile hedefle */
+    #sandbox-sbs-messages-a,
+    #sandbox-sbs-messages-b {
+        max-height: 35vh !important;
+        min-height: 120px;
+    }
+
+    /* SBS divider gizle */
+    .sandbox-sbs-divider {
+        display: none !important;
+    }
+
+    /* Model seçim barı dikey */
+    .sandbox-sbs-models {
+        flex-direction: column !important;
+        gap: 4px !important;
+    }
+
+    .sandbox-sbs-models .sbs-bar {
+        width: 100% !important;
+    }
+
+    /* SBS panel header kompakt */
+    .sandbox-sbs-header {
+        padding: 6px 10px !important;
+        gap: 6px !important;
+        font-size: 0.72rem !important;
+    }
+
+    /* SBS input alanı mobilde daha kompakt */
+    .sandbox-input-area {
+        padding: 6px 8px !important;
+    }
+
+    /* Sandbox modal mobilde tam ekran */
+    #sandbox-modal .modal,
+    .sandbox-modal-size {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Sandbox tab butonları kompakt */
+    .sandbox-tab-btn {
+        font-size: 0.72rem !important;
+        padding: 6px 10px !important;
+        gap: 4px !important;
+    }
+
+    .sandbox-tab-btn svg.lucide {
+        width: 14px !important;
+        height: 14px !important;
+    }
+
+    /* Sandbox mesajları */
+    .sandbox-msg {
+        gap: 8px !important;
+    }
+
+    .sandbox-msg-content {
+        font-size: 0.82rem !important;
+    }
+
+    .sandbox-msg .message-avatar {
+        width: 26px !important;
+        height: 26px !important;
+    }
+
+    /* Timer */
+    .sandbox-timer {
+        font-size: 0.7rem !important;
+    }
+
+    /* Token badge */
+    .sandbox-token-badge {
+        font-size: 0.58rem !important;
+        padding: 1px 4px !important;
+    }
+}
+
+/* Sandbox SBS — Small Mobile extra */
+@media (max-width: 480px) {
+    #sandbox-sbs-messages-a,
+    #sandbox-sbs-messages-b {
+        max-height: 30vh !important;
+        min-height: 100px;
+    }
+
+    .sandbox-sbs-models {
+        gap: 2px !important;
+    }
+
+    .sandbox-sbs-models .sbs-bar {
+        padding: 4px 8px !important;
+    }
+
+    .sandbox-sbs-models .sbs-label {
+        font-size: 0.65rem !important;
+    }
+
+    .sandbox-sbs-models .sandbox-select {
+        font-size: 0.7rem !important;
+    }
+}
+
 /* ── Small Mobile ── */
 @media (max-width: 400px) {
     .sidebar { width: 100vw; max-width: 100vw; }
