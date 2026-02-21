@@ -3,7 +3,7 @@
 // Network-first for HTML/JS/CSS, cache for assets only
 // ══════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'aetheride-v1.5.2';
+const CACHE_VERSION = 'aetheride-v1.5.3';
 
 // Sadece değişmeyen asset'leri cache'le
 const STATIC_ASSETS = [
