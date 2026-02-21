@@ -44,7 +44,16 @@ ERROR FIXING RULES (when console errors are present):
 19. When fixing, mentally trace through the code execution to verify your fix actually resolves the error.
 20. If the error involves DOM elements, check both HTML (does the element exist? correct ID/class?) and JS (correct selector? timing?).
 21. If the error involves event listeners or callbacks, check: is the function defined? is 'this' context correct? are arguments in the right order?
-22. After fixing, review the ENTIRE file for similar patterns that might cause the same type of error elsewhere.\n`;
+22. After fixing, review the ENTIRE file for similar patterns that might cause the same type of error elsewhere.
+
+FILE REMOVAL RULES:
+23. When the user asks to remove/delete a file, output ONLY the deletion marker:
+    \`\`\`language:filename.ext
+    // [DELETED]
+    \`\`\`
+24. When merging files, output the deletion marker for every file that no longer needs to exist.
+25. When restructuring the project, be explicit about which files are removed — never silently drop files.
+26. The deletion marker must be the ONLY content in the code block.\n`;
 
         return context;
     },
