@@ -1017,6 +1017,39 @@
     50% { opacity: 1; }
 }
 
+/* Deleted / Removed */
+.file-card-deleted {
+    background: rgba(255, 82, 82, 0.06);
+    border: 1px solid rgba(255, 82, 82, 0.2);
+    border-left: 3px solid var(--accent-error);
+    cursor: default;
+    opacity: 0.8;
+}
+
+.file-card-deleted:hover {
+    background: rgba(255, 82, 82, 0.1);
+    border-color: rgba(255, 82, 82, 0.3);
+    transform: none;
+}
+
+.file-card-deleted .file-card-icon {
+    color: var(--accent-error);
+}
+
+.file-card-deleted .file-card-status {
+    color: var(--accent-error);
+}
+
+.file-card-deleted .file-card-name {
+    text-decoration: line-through;
+    color: var(--text-tertiary);
+}
+
+.file-card-deleted .file-card-action {
+    color: var(--accent-error);
+    opacity: 0.5;
+}
+
 /* File card info düzeni */
 .file-card-info {
     display: flex;
