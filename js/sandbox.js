@@ -58,12 +58,8 @@ const Sandbox = {
             if (e.target.id === 'sandbox-modal') this.close();
         });
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                const modal = document.getElementById('sandbox-modal');
-                if (modal && modal.style.display !== 'none') this.close();
-            }
-        });
+        // Escape tuşu app.js'teki global handler'dan yönetilir
+        // Burada sadece sandbox-specific kısayollar olabilir
 
         // Tab toggle
         document.querySelectorAll('.sandbox-tab-btn').forEach(btn => {
@@ -249,7 +245,7 @@ const Sandbox = {
 
         Storage.set('sandbox_settings_v2', this.settings);
         Utils.toast('Sandbox settings saved!', 'success', 2000);
-        this.switchTab('direct');
+        // Mevcut tab'de kal — kullanıcı isterse kendisi geçer
     },
 
     resetSettings() {
@@ -428,6 +424,9 @@ const Sandbox = {
             const select = document.getElementById(id);
             if (!select) return;
 
+            // Mevcut seçimi kaydet
+            const currentValue = select.value;
+
             while (select.options.length > 1) select.remove(1);
 
             const categories = { free: '🆓 Free', thinking: '🧠 Thinking', premium: '⭐ Premium', latest: '🔥 Latest', stable: '✅ Stable', flagship: '🏆 Flagship', reasoning: '🧠 Reasoning', legacy: '📦 Legacy', available: '📋 Available' };
@@ -451,7 +450,12 @@ const Sandbox = {
                 select.appendChild(group);
             }
 
-            if (App.currentModel) select.value = App.currentModel;
+            // Önceki seçimi geri yükle, yoksa aktif modeli kullan
+            if (currentValue && select.querySelector(`option[value="${CSS.escape(currentValue)}"]`)) {
+                select.value = currentValue;
+            } else if (App.currentModel) {
+                select.value = App.currentModel;
+            }
         });
 
         // SBS model isimlerini güncelle
@@ -489,21 +493,31 @@ const Sandbox = {
             this.renderSbsMessages();
             if (window.lucide) lucide.createIcons();
 
-            if (!this._betaShown) {
-                this._betaShown = true;
-                Utils.toast('Sandbox is in Beta — some features may be unstable', 'warning', 4000);
-            }
+            // İlk input'a focus ver
+            setTimeout(() => {
+                const input = this.currentTab === 'direct'
+                    ? document.getElementById('sandbox-direct-input')
+                    : document.getElementById('sandbox-sbs-input');
+                if (input) input.focus();
+            }, 100);
         }
     },
 
     close() {
         if (this.isGenerating) {
+            // Sadece sandbox'un isteğini durdur
             API.abort();
             this.isGenerating = false;
+            this._removeTimerEl();
         }
         this.saveHistory();
         const modal = document.getElementById('sandbox-modal');
         if (modal) modal.style.display = 'none';
+
+        // Stream elementlerini temizle
+        document.getElementById('sandbox-direct-stream')?.remove();
+        document.getElementById('sandbox-sbs-stream-a')?.remove();
+        document.getElementById('sandbox-sbs-stream-b')?.remove();
     },
 
     switchTab(tab) {
@@ -516,6 +530,19 @@ const Sandbox = {
         document.getElementById('sandbox-direct-view')?.classList.toggle('active', tab === 'direct');
         document.getElementById('sandbox-sbs-view')?.classList.toggle('active', tab === 'sidebyside');
         document.getElementById('sandbox-settings-view')?.classList.toggle('active', tab === 'settings');
+
+        // Tab değiştiğinde mesajları güncelle
+        if (tab === 'direct') {
+            this.renderDirectMessages();
+            setTimeout(() => {
+                const input = document.getElementById('sandbox-direct-input');
+                if (input) input.focus();
+            }, 50);
+        } else if (tab === 'sidebyside') {
+            this.renderSbsMessages();
+        } else if (tab === 'settings') {
+            this.applySettingsToUI();
+        }
     },
 
     // ══════════════════════════════════════
@@ -531,21 +558,35 @@ const Sandbox = {
         if (!model) { Utils.toast('Select a model first', 'warning'); return; }
         if (!API.hasApiKey()) { Utils.toast('Add your API key in Settings', 'warning'); return; }
 
-        this.directMessages.push({ role: 'user', content: text });
+        // Input limiti kontrolü
+        const MAX_INPUT = 30000;
+        const trimmedText = text.length > MAX_INPUT ? text.substring(0, MAX_INPUT) : text;
+
+        // Mesaj limiti kontrolü
+        if (this.directMessages.length >= 100) {
+            Utils.toast('Chat limit reached (100 messages). Please clear and start fresh.', 'warning');
+            return;
+        }
+
+        this.directMessages.push({ role: 'user', content: trimmedText });
         input.value = '';
         Utils.autoResize(input);
         document.getElementById('sandbox-direct-send').disabled = true;
 
         // İlk mesajsa geçmişe kaydet
         if (this.directMessages.length === 1) {
-            this.saveSandboxChat('direct', text);
+            this.saveSandboxChat('direct', trimmedText);
         }
 
         this.renderDirectMessages();
         this.setGenerating(true, 'direct');
 
+        let fullContent = '';
+
         try {
-            const messages = this.directMessages.map(m => ({ role: m.role, content: m.content }));
+            const messages = this.directMessages
+                .filter(m => m.role === 'user' || m.role === 'assistant')
+                .map(m => ({ role: m.role, content: m.content }));
             const ds = this.settings.direct;
 
             const result = await API.sendMessage(messages, model, {
@@ -555,27 +596,47 @@ const Sandbox = {
                 stream: ds.stream,
             });
 
-            let fullContent = '';
+            if (!result) {
+                this.directMessages.push({ role: 'assistant', content: '*(No response received)*' });
+            } else if (result.aborted) {
+                Utils.toast('Stopped', 'info', 1500);
+            } else if (result && typeof result[Symbol.asyncIterator] === 'function') {
+                try {
+                    for await (const chunk of result) {
+                        if (!chunk) continue;
+                        fullContent += chunk;
+                        this.updateDirectStream(fullContent);
+                    }
+                } catch (streamError) {
+                    if (streamError.name !== 'AbortError') {
+                        console.error('Sandbox direct stream error:', streamError);
+                    }
+                }
 
-            if (result && typeof result[Symbol.asyncIterator] === 'function') {
-                for await (const chunk of result) {
-                    fullContent += chunk;
-                    this.updateDirectStream(fullContent);
+                if (fullContent.trim()) {
+                    const elapsed = ((Date.now() - this._timerStart) / 1000).toFixed(1);
+                    this.directMessages.push({ role: 'assistant', content: fullContent, elapsed });
+                    this.updateSandboxChatData('direct');
                 }
             } else if (result?.content) {
                 fullContent = result.content;
-            } else if (result?.aborted) {
-                Utils.toast('Stopped', 'info', 1500);
-            }
-
-            if (fullContent) {
                 const elapsed = ((Date.now() - this._timerStart) / 1000).toFixed(1);
                 this.directMessages.push({ role: 'assistant', content: fullContent, elapsed });
                 this.updateSandboxChatData('direct');
             }
         } catch (error) {
-            if (error.name !== 'AbortError') {
-                this.directMessages.push({ role: 'assistant', content: `Error: ${error.message}` });
+            if (error.name === 'AbortError') {
+                if (fullContent.trim()) {
+                    const elapsed = ((Date.now() - this._timerStart) / 1000).toFixed(1);
+                    this.directMessages.push({ role: 'assistant', content: fullContent, elapsed });
+                    Utils.toast('Stopped — partial response saved', 'info', 1500);
+                } else {
+                    Utils.toast('Stopped', 'info', 1500);
+                }
+            } else {
+                const errorMsg = error.message || String(error);
+                this.directMessages.push({ role: 'assistant', content: `**Error:** ${errorMsg}` });
+                Utils.toast('Error: ' + errorMsg, 'error');
             }
         } finally {
             this.setGenerating(false, 'direct');
@@ -623,7 +684,9 @@ const Sandbox = {
 
         container.innerHTML = html;
         if (window.lucide) lucide.createIcons({ nodes: [container] });
-        container.scrollTop = container.scrollHeight;
+        requestAnimationFrame(() => {
+            container.scrollTop = container.scrollHeight;
+        });
     },
 
     updateDirectStream(content) {
@@ -666,10 +729,24 @@ const Sandbox = {
         const modelB = document.getElementById('sandbox-sbs-model-b')?.value;
 
         if (!modelA || !modelB) { Utils.toast('Select both models', 'warning'); return; }
-        if (modelA === modelB) { Utils.toast('Select two different models to compare', 'warning'); return; }
         if (!API.hasApiKey()) { Utils.toast('Add your API key in Settings', 'warning'); return; }
 
-        this.sbsMessages.push({ role: 'user', content: text });
+        // Aynı model uyarısı — engelleme, sadece uyar
+        if (modelA === modelB) {
+            Utils.toast('Tip: Select different models for meaningful comparison', 'info', 3000);
+        }
+
+        // Input limiti
+        const MAX_INPUT = 30000;
+        const trimmedText = text.length > MAX_INPUT ? text.substring(0, MAX_INPUT) : text;
+
+        // Mesaj limiti kontrolü
+        if (this.sbsMessages.length >= 50) {
+            Utils.toast('SBS chat limit reached (50 messages). Please clear and start fresh.', 'warning');
+            return;
+        }
+
+        this.sbsMessages.push({ role: 'user', content: trimmedText });
         input.value = '';
         Utils.autoResize(input);
         document.getElementById('sandbox-sbs-send').disabled = true;
@@ -725,15 +802,26 @@ const Sandbox = {
         }
     },
 
-    async fetchSbsResponse(messages, model, systemPrompt, side) {
+    async fetchSbsResponse(messages, model, systemPrompt, side, abortController) {
         const ss = this.settings.sbs;
 
-        const result = await API.sendMessage(messages, model, {
-            systemPrompt,
-            temperature: ss.temperature,
-            maxTokens: ss.maxTokens,
-            stream: ss.stream,
-        });
+        // Özel abort controller kullan
+        const savedController = API.abortController;
+        API.abortController = abortController || new AbortController();
+
+        let result;
+        try {
+            result = await API.sendMessage(messages, model, {
+                systemPrompt,
+                temperature: ss.temperature,
+                maxTokens: ss.maxTokens,
+                stream: ss.stream,
+            });
+        } catch (error) {
+            // Controller'ı geri yükle
+            API.abortController = savedController;
+            throw error;
+        }
 
         let content = '';
         if (result && typeof result[Symbol.asyncIterator] === 'function') {
@@ -855,8 +943,10 @@ const Sandbox = {
             lucide.createIcons({ nodes: [containerA] });
             lucide.createIcons({ nodes: [containerB] });
         }
-        containerA.scrollTop = containerA.scrollHeight;
-        containerB.scrollTop = containerB.scrollHeight;
+        requestAnimationFrame(() => {
+            containerA.scrollTop = containerA.scrollHeight;
+            containerB.scrollTop = containerB.scrollHeight;
+        });
     },
 
     updateSbsStream(side, content) {
@@ -893,6 +983,8 @@ const Sandbox = {
 
     // Geçmiş chat datasını güncelle
     updateSandboxChatData(type) {
+        if (!this.settings.saveHistory) return;
+
         const chats = this.getSandboxChats();
         const id = type === 'direct' ? this.directChatId : this.sbsChatId;
         if (!id) return;
@@ -913,6 +1005,8 @@ const Sandbox = {
         Storage.set('sandbox_chat_list', chats);
     },
 
+    _sandboxStopHandler: null,
+
     setGenerating(generating, mode) {
         this.isGenerating = generating;
 
@@ -921,13 +1015,31 @@ const Sandbox = {
         const btn = document.getElementById(btnId);
         const input = document.getElementById(inputId);
 
+        // Eski stop handler temizle
+        if (this._sandboxStopHandler && btn) {
+            btn.removeEventListener('click', this._sandboxStopHandler);
+            this._sandboxStopHandler = null;
+        }
+
         if (generating) {
             this._timerStart = Date.now();
             this._startTimer(mode);
 
             if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<div class="sandbox-loading"><span></span><span></span><span></span></div>';
+                btn.innerHTML = '<i data-lucide="square" style="width:14px;height:14px;"></i>';
+                btn.disabled = false;
+                btn.classList.add('sandbox-stop-btn');
+
+                // Stop handler
+                this._sandboxStopHandler = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!this.isGenerating) return;
+                    API.abort();
+                    this.setGenerating(false, mode);
+                    Utils.toast('Generation stopped', 'info', 1500);
+                };
+                btn.addEventListener('click', this._sandboxStopHandler);
             }
             if (input) input.disabled = true;
         } else {
@@ -936,6 +1048,7 @@ const Sandbox = {
             if (btn) {
                 btn.innerHTML = '<i data-lucide="arrow-up"></i>';
                 btn.disabled = !input?.value?.trim();
+                btn.classList.remove('sandbox-stop-btn');
             }
             if (input) {
                 input.disabled = false;
@@ -947,7 +1060,7 @@ const Sandbox = {
             document.getElementById('sandbox-sbs-stream-b')?.remove();
         }
 
-        if (window.lucide) lucide.createIcons();
+        if (window.lucide && btn) lucide.createIcons({ nodes: [btn] });
     },
 
     _startTimer(mode) {
