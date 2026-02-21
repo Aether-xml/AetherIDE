@@ -48,6 +48,19 @@ const API = {
             modelsEndpoint: '/models',
             chatEndpoint: '/chat/completions',
         },
+        puter: {
+            id: 'puter',
+            name: 'Puter (Free)',
+            icon: 'globe',
+            baseUrl: null,
+            keyPlaceholder: '',
+            description: 'Free AI — no API key required',
+            docsUrl: 'https://docs.puter.com/tutorials/free-unlimited-ai',
+            headers: () => ({}),
+            modelsEndpoint: null,
+            chatEndpoint: null,
+            noKeyRequired: true,
+        },
     },
 
     // ── Provider-specific Model Listeleri ──
@@ -149,6 +162,28 @@ const API = {
             { id: 'o1-mini', name: 'o1 Mini', price: '$$', category: 'reasoning' },
             { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', price: '$', category: 'legacy' },
         ],
+        puter: [
+            { id: 'gpt-4o', name: 'GPT-4o', price: 'Free', category: 'free' },
+            { id: 'gpt-4o-mini', name: 'GPT-4o Mini', price: 'Free', category: 'free' },
+            { id: 'gpt-4.1', name: 'GPT-4.1', price: 'Free', category: 'free' },
+            { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', price: 'Free', category: 'free' },
+            { id: 'gpt-4.1-nano', name: 'GPT-4.1 Nano', price: 'Free', category: 'free' },
+            { id: 'o4-mini', name: 'o4 Mini', price: 'Free', category: 'free' },
+            { id: 'claude-sonnet-4', name: 'Claude Sonnet 4', price: 'Free', category: 'free' },
+            { id: 'claude-3-7-sonnet', name: 'Claude 3.7 Sonnet', price: 'Free', category: 'free' },
+            { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', price: 'Free', category: 'free' },
+            { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', price: 'Free', category: 'free' },
+            { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', price: 'Free', category: 'free' },
+            { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', price: 'Free', category: 'free' },
+            { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', price: 'Free', category: 'free' },
+            { id: 'deepseek-chat', name: 'DeepSeek V3', price: 'Free', category: 'free' },
+            { id: 'deepseek-reasoner', name: 'DeepSeek R1', price: 'Free', category: 'free' },
+            { id: 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8', name: 'Llama 4 Maverick', price: 'Free', category: 'free' },
+            { id: 'meta-llama/Llama-3.3-70B-Instruct', name: 'Llama 3.3 70B', price: 'Free', category: 'free' },
+            { id: 'Qwen/Qwen3-235B-A22B', name: 'Qwen3 235B', price: 'Free', category: 'free' },
+            { id: 'mistralai/Mistral-Small-24B-Instruct-2501', name: 'Mistral Small 24B', price: 'Free', category: 'free' },
+            { id: 'grok-3-mini', name: 'Grok 3 Mini', price: 'Free', category: 'free' },
+        ],
     },
 
     // Eski uyumluluk
@@ -176,6 +211,8 @@ const API = {
     },
 
     hasApiKey() {
+        // Puter provider'ı API key gerektirmez
+        if (this.getCurrentProvider() === 'puter') return true;
         return this.getApiKey().length > 0;
     },
 
@@ -192,6 +229,17 @@ const API = {
         const pid = providerId || this.getCurrentProvider();
         const provider = this.getProviderConfig(pid);
         if (!provider) return { valid: false, error: 'Unknown provider' };
+
+        // Puter API key gerektirmez
+        if (pid === 'puter') {
+            const puterReady = typeof puter !== 'undefined' && puter.ai;
+            if (puterReady) {
+                this.updateConnectionStatus('online');
+                return { valid: true };
+            }
+            this.updateConnectionStatus('error');
+            return { valid: false, error: 'Puter SDK not loaded. Refresh the page.' };
+        }
 
         try {
             if (pid === 'gemini') {
@@ -248,12 +296,13 @@ const API = {
     async sendMessage(messages, model, options = {}) {
         const apiKey = this.getApiKey();
         const provider = this.getCurrentProvider();
-        if (!apiKey) throw new Error('API key not set. Go to Settings to add your API key.');
+        if (provider !== 'puter' && !apiKey) throw new Error('API key not set. Go to Settings to add your API key.');
         if (!model) throw new Error('No model selected. Please select a model first.');
         if (!messages || messages.length === 0) throw new Error('No messages to send.');
 
         this.abortController = new AbortController();
 
+        if (provider === 'puter') return this._sendPuter(messages, model, options);
         if (provider === 'gemini') return this._sendGemini(messages, model, apiKey, options);
         return this._sendOpenAICompat(messages, model, apiKey, options);
     },
@@ -535,6 +584,128 @@ const API = {
             }
         } finally {
             try { reader.releaseLock(); } catch (e) {}
+        }
+    },
+
+    // ── Puter AI ──
+
+    async _sendPuter(messages, model, options = {}) {
+        if (typeof puter === 'undefined' || !puter.ai) {
+            throw new Error('Puter SDK not loaded. Please refresh the page.');
+        }
+
+        const settings = Storage.getSettings();
+        const systemPrompt = options.systemPrompt || settings.systemPrompt || '';
+        const shouldStream = options.stream !== undefined ? options.stream : (settings.streamResponse !== false);
+
+        // Mesajları Puter formatına çevir
+        const puterMessages = [];
+        if (systemPrompt) {
+            puterMessages.push({ role: 'system', content: systemPrompt });
+        }
+        for (const msg of messages) {
+            puterMessages.push({ role: msg.role, content: msg.content });
+        }
+
+        try {
+            if (shouldStream) {
+                return this._handlePuterStream(puterMessages, model);
+            }
+
+            // Non-stream
+            const response = await puter.ai.chat(puterMessages, {
+                model: model,
+                stream: false,
+            });
+
+            this.updateConnectionStatus('online');
+
+            // Puter yanıt formatı
+            let content = '';
+            if (typeof response === 'string') {
+                content = response;
+            } else if (response?.message?.content) {
+                content = response.message.content;
+            } else if (response?.text) {
+                content = response.text;
+            } else if (response?.content) {
+                content = response.content;
+            }
+
+            if (content.length > 512000) {
+                content = content.substring(0, 512000) + '\n\n⚠️ *Response truncated — exceeded 500KB limit.*';
+            }
+
+            return { content, model, stream: false };
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                return { content: '', aborted: true, stream: false };
+            }
+            this.updateConnectionStatus('error');
+            throw new Error(error.message || 'Puter AI request failed');
+        }
+    },
+
+    async *_handlePuterStream(messages, model) {
+        if (typeof puter === 'undefined' || !puter.ai) {
+            throw new Error('Puter SDK not loaded');
+        }
+
+        let totalSize = 0;
+        const MAX_STREAM_SIZE = 512000;
+
+        try {
+            const response = await puter.ai.chat(messages, {
+                model: model,
+                stream: true,
+            });
+
+            this.updateConnectionStatus('online');
+
+            // Puter stream bir async iterable döner
+            if (response && typeof response[Symbol.asyncIterator] === 'function') {
+                for await (const chunk of response) {
+                    // Abort kontrolü
+                    if (!this.abortController) return;
+
+                    let text = '';
+                    if (typeof chunk === 'string') {
+                        text = chunk;
+                    } else if (chunk?.text) {
+                        text = chunk.text;
+                    } else if (chunk?.message?.content) {
+                        text = chunk.message.content;
+                    } else if (chunk?.delta?.content) {
+                        text = chunk.delta.content;
+                    } else if (chunk?.choices?.[0]?.delta?.content) {
+                        text = chunk.choices[0].delta.content;
+                    }
+
+                    if (text) {
+                        totalSize += text.length;
+                        if (totalSize > MAX_STREAM_SIZE) {
+                            yield '\n\n⚠️ *Response truncated — exceeded 500KB stream limit.*';
+                            return;
+                        }
+                        yield text;
+                    }
+                }
+            } else if (response) {
+                // Stream desteklenmedi — tek seferde döndü
+                let content = '';
+                if (typeof response === 'string') {
+                    content = response;
+                } else if (response?.message?.content) {
+                    content = response.message.content;
+                } else if (response?.text) {
+                    content = response.text;
+                }
+                if (content) yield content;
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            this.updateConnectionStatus('error');
+            throw error;
         }
     },
 
