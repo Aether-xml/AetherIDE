@@ -820,23 +820,12 @@ CRITICAL RULES:
         // match[2] = :ile gelen dosya adı (güvenilir)
         // match[3] = boşlukla gelen dosya adı — sadece dosya uzantısı içeren pattern'ler yakalanır
         //            (örn: "styles.css" evet, "Example usage" hayır)
-        const regex = /```\s*(\w+?)(?:\s*[:]\s*([^\n\r]+?)|\s+([\w.\/\-]+\.[\w]{1,10}))?\s*[\r\n]+([\s\S]*?)```/g;
+        const regex = /```\s*(\w+?)(?:\s*[:]\s*([^\n\r]+?)|\s+([\w.\/\-]+\.[\w]{1,10}))?\s*[\r\n]*([\s\S]*?)```/g;
         let match;
         let fileIndex = 0;
         const seenFiles = new Map();
 
-        // DEBUG: tüm ``` pozisyonlarını logla
-        const allFences = [];
-        let searchPos = 0;
-        while (true) {
-            const idx = text.indexOf('```', searchPos);
-            if (idx === -1) break;
-            const context = text.substring(idx, idx + 60).replace(/\n/g, '\\n');
-            allFences.push({ pos: idx, context });
-            searchPos = idx + 3;
-        }
-        console.log('[extractCodeBlocks] All fence positions:', allFences);
-        console.log('[extractCodeBlocks] Total fences:', allFences.length, '(expected pairs:', allFences.length / 2, ')');
+        // (debug logları kaldırıldı)
 
         while ((match = regex.exec(text)) !== null) {
             let language = (match[1] || '').trim().toLowerCase();
