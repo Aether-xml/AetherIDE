@@ -316,7 +316,15 @@ Write code that would impress a senior engineer during code review.`,
 5. If you only need to change 2 lines in a 200-line file, you must still output all 200 lines.
 6. Files can include folder paths like: \`\`\`javascript:src/utils/helpers.js
 7. Maintain the same coding style and conventions as the existing code.
-8. Preserve all existing functionality unless explicitly asked to remove it.\n`;
+8. Preserve all existing functionality unless explicitly asked to remove it.
+
+FILE REMOVAL RULES:
+9. When the user asks to remove/delete a file, output ONLY the deletion marker:
+    \`\`\`language:filename.ext
+    // [DELETED]
+    \`\`\`
+10. When merging or restructuring files, output the deletion marker for every file that should no longer exist.
+11. Never silently drop files — always be explicit about removals.\n`;
 
         return context;
     },
