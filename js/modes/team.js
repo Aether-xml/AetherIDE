@@ -484,7 +484,8 @@ CRITICAL: Write the COMPLETE plan. Do NOT truncate or cut off. Every section mus
         }
 
         context += '═══ END PROJECT FILES ═══\n\n';
-        context += `RULES: When modifying existing files, output the COMPLETE file. NEVER skip lines or use placeholders.\n`;
+        context += `RULES: When modifying existing files, output the COMPLETE file. NEVER skip lines or use placeholders.
+FILE REMOVAL: To delete a file, output ONLY: \`\`\`language:filename.ext\\n// [DELETED]\\n\`\`\` — this removes it from the project.\n`;
 
         return context;
     },
