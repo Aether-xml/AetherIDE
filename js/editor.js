@@ -110,6 +110,30 @@ const Editor = {
         for (const block of blocks) {
             if (!block.code || block.code.trim().length === 0) continue;
 
+            // ── Dosya silme desteği: [DELETED] marker ──
+            const trimmedCode = block.code.trim();
+            const isDeleteMarker = /^\s*(?:\/\/|\/\*|#|<!--|--|%)\s*\[DELETED\]\s*(?:\*\/|-->)?\s*$/i.test(trimmedCode);
+            if (isDeleteMarker) {
+                const normalizedName = block.filename.replace(/^\.\//, '').replace(/^\//, '');
+                const deleteIndex = this.files.findIndex(f => {
+                    const existingNorm = f.filename.replace(/^\.\//, '').replace(/^\//, '');
+                    return existingNorm === normalizedName || existingNorm.toLowerCase() === normalizedName.toLowerCase();
+                });
+                if (deleteIndex >= 0) {
+                    const deletedName = this.files[deleteIndex].filename;
+                    this.files.splice(deleteIndex, 1);
+                    hasChanges = true;
+                    changedFiles.push(normalizedName);
+                    // Aktif index düzelt
+                    if (this.activeFileIndex >= this.files.length) {
+                        this.activeFileIndex = Math.max(0, this.files.length - 1);
+                    }
+                    console.log(`[Editor] File deleted: ${deletedName}`);
+                    Utils.toast(`🗑️ Removed ${deletedName}`, 'info', 2500);
+                }
+                continue;
+            }
+
             // Dosya boyutu kontrolü (500KB)
             if (block.code.length > this.MAX_FILE_SIZE) {
                 const originalKB = (block.code.length / 1024).toFixed(1);
@@ -217,7 +241,7 @@ const Editor = {
         this.updatePreviewButton();
 
         // File tree açıksa güncelle
-        if (FileTree.visible) {
+        if (typeof FileTree !== 'undefined' && FileTree.visible) {
             FileTree.render();
         }
 
