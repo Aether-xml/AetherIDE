@@ -217,6 +217,13 @@ const App = {
                 return;
             }
 
+            // Escape — modal kapatma
+            if (e.key === 'Escape') {
+                if (isSandboxOpen) { Sandbox.close(); return; }
+                if (isSettingsOpen) { Settings.close(); return; }
+                return;
+            }
+
             // DevTools caydırıcı — F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
             if (
                 e.key === 'F12' ||
@@ -609,6 +616,11 @@ const App = {
         let isResizing = false;
         let savedChatFlex = null;
         let savedCodeFlex = null;
+        let startX = 0;
+        let startChatWidth = 0;
+        let startCodeWidth = 0;
+
+        const MIN_PANEL_PX = 280; // Minimum panel genişliği (piksel)
 
         const doResize = (e) => {
             if (!isResizing) return;
@@ -616,24 +628,58 @@ const App = {
 
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const rect = container.getBoundingClientRect();
-            const percent = ((clientX - rect.left) / rect.width) * 100;
+            const containerWidth = rect.width;
+
+            // Resizer genişliğini çıkar
+            const resizerWidth = resizer.offsetWidth || 6;
+            const usableWidth = containerWidth - resizerWidth;
 
             const isReversed = document.body.classList.contains('layout-vscode') ||
                                document.body.classList.contains('layout-cursor');
 
-            let clamped;
+            // Mouse pozisyonunu container'a göre hesapla
+            let mousePos = clientX - rect.left;
+
+            // Sidebar genişliğini hesaba katma (container zaten sidebar hariç)
+            // Piksel bazlı min/max sınırları
+            const minPx = MIN_PANEL_PX;
+            const maxPx = usableWidth - MIN_PANEL_PX;
+
             if (isReversed) {
-                clamped = Math.max(20, Math.min(80, percent));
-                codePanel.style.flex = `0 0 ${clamped}%`;
-                chatPanel.style.flex = `0 0 ${100 - clamped}%`;
+                // VSCode/Cursor: Code | Resizer | Chat
+                // mousePos = code panel genişliği
+                const codePx = Math.max(minPx, Math.min(maxPx, mousePos));
+                const chatPx = usableWidth - codePx;
+
+                const codePercent = (codePx / containerWidth) * 100;
+                const chatPercent = (chatPx / containerWidth) * 100;
+
+                codePanel.style.flex = `0 0 ${codePercent}%`;
+                codePanel.style.maxWidth = 'none';
+                chatPanel.style.flex = `0 0 ${chatPercent}%`;
+                chatPanel.style.maxWidth = 'none';
             } else {
-                clamped = Math.max(20, Math.min(80, percent));
-                chatPanel.style.flex = `0 0 ${clamped}%`;
-                codePanel.style.flex = `0 0 ${100 - clamped}%`;
+                // Default: Chat | Resizer | Code
+                // mousePos = chat panel genişliği
+                const chatPx = Math.max(minPx, Math.min(maxPx, mousePos));
+                const codePx = usableWidth - chatPx;
+
+                const chatPercent = (chatPx / containerWidth) * 100;
+                const codePercent = (codePx / containerWidth) * 100;
+
+                chatPanel.style.flex = `0 0 ${chatPercent}%`;
+                chatPanel.style.maxWidth = 'none';
+                codePanel.style.flex = `0 0 ${codePercent}%`;
+                codePanel.style.maxWidth = 'none';
             }
 
+            // Iframe ve diğer etkileşimli elementleri devre dışı bırak
             const iframe = document.getElementById('preview-iframe');
             if (iframe) iframe.style.pointerEvents = 'none';
+
+            // Code editor'deki seçimi engelle
+            const codeEditor = document.getElementById('code-editor');
+            if (codeEditor) codeEditor.style.pointerEvents = 'none';
         };
 
         const stopResize = () => {
@@ -646,43 +692,61 @@ const App = {
             const iframe = document.getElementById('preview-iframe');
             if (iframe) iframe.style.pointerEvents = '';
 
+            const codeEditor = document.getElementById('code-editor');
+            if (codeEditor) codeEditor.style.pointerEvents = '';
+
             savedChatFlex = chatPanel.style.flex;
             savedCodeFlex = codePanel.style.flex;
+
+            // Resize sonrası editörü yeniden render et (satır numaraları vb.)
+            if (Editor.currentCode) {
+                requestAnimationFrame(() => Editor.renderCode());
+            }
         };
 
-        resizer.addEventListener('mousedown', (e) => {
+        const startResize = (e) => {
+            // Mobilde çalışmasın
+            if (window.innerWidth <= 768) return;
+
             isResizing = true;
             resizer.classList.add('active');
             document.body.style.cursor = 'col-resize';
             document.body.style.userSelect = 'none';
-            e.preventDefault();
-        });
 
+            startX = e.touches ? e.touches[0].clientX : e.clientX;
+            startChatWidth = chatPanel.offsetWidth;
+            startCodeWidth = codePanel.offsetWidth;
+
+            e.preventDefault();
+        };
+
+        resizer.addEventListener('mousedown', startResize);
         document.addEventListener('mousemove', doResize);
         document.addEventListener('mouseup', stopResize);
 
-        resizer.addEventListener('touchstart', (e) => {
-            isResizing = true;
-            resizer.classList.add('active');
-            e.preventDefault();
-        }, { passive: false });
-
+        resizer.addEventListener('touchstart', startResize, { passive: false });
         document.addEventListener('touchmove', doResize, { passive: false });
         document.addEventListener('touchend', stopResize);
 
+        // Window resize — mobil geçişte temizle, desktop'ta koru
         window.addEventListener('resize', Utils.debounce(() => {
             if (window.innerWidth <= 768) {
                 chatPanel.style.flex = '';
+                chatPanel.style.maxWidth = '';
                 codePanel.style.flex = '';
+                codePanel.style.maxWidth = '';
             } else if (savedChatFlex && savedCodeFlex) {
                 chatPanel.style.flex = savedChatFlex;
                 codePanel.style.flex = savedCodeFlex;
             }
         }, 200));
 
+        // Double click — reset
         resizer.addEventListener('dblclick', () => {
             chatPanel.style.flex = '';
+            chatPanel.style.maxWidth = '';
             codePanel.style.flex = '';
+            codePanel.style.maxWidth = '';
             savedChatFlex = null;
             savedCodeFlex = null;
             Utils.toast('Panels reset to default', 'info', 1500);
