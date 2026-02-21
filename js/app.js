@@ -464,6 +464,9 @@ const App = {
         const lastModel = Storage.getLastModel();
         if (lastModel) {
             this.selectModel(lastModel);
+        } else {
+            // Model seçilmemişse thinking toggle'ı gizle
+            this.updateThinkingToggleVisibility('');
         }
     },
 
@@ -561,9 +564,54 @@ const App = {
         if (searchInput) searchInput.value = '';
 
         this.populateModels();
+        this.updateThinkingToggleVisibility(modelId);
 
         if (API.hasApiKey()) {
             API.updateConnectionStatus('online');
+        }
+    },
+
+    // Thinking toggle'ı sadece destekleyen modellerde göster
+    updateThinkingToggleVisibility(modelId) {
+        const thinkingToggleRow = document.getElementById('thinking-toggle')?.closest('.toggle-option');
+        if (!thinkingToggleRow) return;
+
+        const id = (modelId || '').toLowerCase();
+        const isThinkingModel =
+            id.includes('thinking') ||
+            id.includes('think') ||
+            id.includes('-r1') ||
+            id.includes('r1-') ||
+            id.includes('deepseek-reasoner') ||
+            id.includes('o1-') ||
+            id.includes('o1') === (id.endsWith('o1') || id.includes('o1-')) ||
+            id.includes('o3-') ||
+            id.includes('o4-') ||
+            id.includes('qwq') ||
+            id.includes('qwen3-max-thinking') ||
+            id.includes('reasoning') ||
+            (id.includes('/o1') || id.includes('/o3') || id.includes('/o4'));
+
+        // Daha kesin kontrol
+        const thinkingPatterns = [
+            /thinking/i,
+            /[\/-]r1[\/-]|[\/-]r1$/i,
+            /deepseek-reasoner/i,
+            /\bo[134]-/i,
+            /\bo[134]$/i,
+            /\bqwq\b/i,
+            /reasoning/i,
+        ];
+
+        const isThinking = thinkingPatterns.some(p => p.test(modelId));
+
+        if (isThinking) {
+            thinkingToggleRow.style.display = '';
+        } else {
+            thinkingToggleRow.style.display = 'none';
+            // Thinking kapalıyken toggle'ı da kapat
+            const toggle = document.getElementById('thinking-toggle');
+            if (toggle) toggle.checked = false;
         }
     },
 
