@@ -820,18 +820,39 @@ CRITICAL RULES:
         // match[2] = :ile gelen dosya adı (güvenilir)
         // match[3] = boşlukla gelen dosya adı — sadece dosya uzantısı içeren pattern'ler yakalanır
         //            (örn: "styles.css" evet, "Example usage" hayır)
-        const regex = /```\s*(\w+?)(?:\s*[:]\s*([^\n\r]+?)|\s+([\w.\/\-]+\.[\w]{1,10}))?\s*[\r\n]*([\s\S]*?)```/g;
+        // İki aşamalı regex: önce strict (greedy dil + zorunlu newline), başarısızsa fallback
+        const primaryRegex = /```\s*(\w+)(?:\s*[:]\s*([^\n\r]+?)|\s+([\w.\/\-]+\.[\w]{1,10}))?\s*\n([\s\S]*?)```/g;
+        const fallbackRegex = /```\s*(\w+)(?:\s*[:]\s*([^\n\r]+?))?\s*?\n?([\s\S]*?)```/g;
+
+        // Primary'yi test et
+        const primaryTest = new RegExp(primaryRegex.source, primaryRegex.flags);
+        const hasPrimaryMatch = primaryTest.test(text);
+
+        let activeRegex, useFallback = false;
+        if (hasPrimaryMatch) {
+            activeRegex = new RegExp(primaryRegex.source, primaryRegex.flags);
+        } else {
+            activeRegex = fallbackRegex;
+            useFallback = true;
+            console.log('[extractCodeBlocks] Primary regex failed, using fallback');
+        }
+
         let match;
         let fileIndex = 0;
         const seenFiles = new Map();
 
-        // (debug logları kaldırıldı)
-
-        while ((match = regex.exec(text)) !== null) {
+        while ((match = activeRegex.exec(text)) !== null) {
             let language = (match[1] || '').trim().toLowerCase();
-            // match[2] = :ile gelen, match[3] = boşlukla gelen (sadece dosya uzantısı varsa)
-            let filename = (match[2] || match[3] || '').trim();
-            let code = match[4] || '';
+            let filename, code;
+            if (useFallback) {
+                // Fallback: match[2] = dosya adı, match[3] = kod
+                filename = (match[2] || '').trim();
+                code = match[3] || '';
+            } else {
+                // Primary: match[2] = :ile gelen, match[3] = boşlukla gelen, match[4] = kod
+                filename = (match[2] || match[3] || '').trim();
+                code = match[4] || '';
+            }
 
             // Sondaki boşlukları temizle ama yapıyı koru
             code = code.replace(/\s+$/, '');
