@@ -469,11 +469,18 @@ CRITICAL RULES:
                 fname = Utils.sanitizeFilename ? Utils.sanitizeFilename(fname) : fname;
                 const iconName = fname.includes('/') ? 'folder' : Utils.getFileIcon(langLabel);
                 const displayFname = fname.includes('/') ? `<span style="color:var(--text-tertiary);font-size:0.65rem;">${Utils.escapeHtml(fname.substring(0, fname.lastIndexOf('/') + 1))}</span>${Utils.escapeHtml(fname.split('/').pop())}` : Utils.escapeHtml(fname);
-                const existingFile = Editor.files.find(f => {
-                    const normF = f.filename.replace(/^\.\//, '').replace(/^\//, '');
-                    return normF === fname || normF.split('/').pop() === fname.split('/').pop();
-                });
-                const exists = !!existingFile;
+                // Stream sırasında snapshot'a bak, değilse Editor.files'a bak
+                let exists = false;
+                if (isStreaming && Chat._preStreamFiles) {
+                    exists = Chat._preStreamFiles.has(fname) ||
+                             [...Chat._preStreamFiles].some(f => f.split('/').pop() === fname.split('/').pop());
+                } else {
+                    const existingFile = Editor.files.find(f => {
+                        const normF = f.filename.replace(/^\.\//, '').replace(/^\//, '');
+                        return normF === fname || normF.split('/').pop() === fname.split('/').pop();
+                    });
+                    exists = !!existingFile;
+                }
                 const statusLabel = exists ? 'Updated' : 'Created';
                 const statusClass = exists ? 'file-card-updated' : 'file-card-created';
                 const safeFname = fname.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -498,11 +505,17 @@ CRITICAL RULES:
                 } else {
                     const autoName = `output.${Utils.getExtension(langLabel)}`;
                     const iconName = Utils.getFileIcon(langLabel);
-                    const existingFile = Editor.files.find(f => {
-                        const normF = f.filename.replace(/^\.\//, '').replace(/^\//, '');
-                        return normF === autoName || normF.split('/').pop() === autoName.split('/').pop();
-                    });
-                    const exists = !!existingFile;
+                    let exists = false;
+                    if (isStreaming && Chat._preStreamFiles) {
+                        exists = Chat._preStreamFiles.has(autoName) ||
+                                 [...Chat._preStreamFiles].some(f => f.split('/').pop() === autoName.split('/').pop());
+                    } else {
+                        const existingFile = Editor.files.find(f => {
+                            const normF = f.filename.replace(/^\.\//, '').replace(/^\//, '');
+                            return normF === autoName || normF.split('/').pop() === autoName.split('/').pop();
+                        });
+                        exists = !!existingFile;
+                    }
                     const statusLabel = exists ? 'Updated' : 'Created';
                     const statusClass = exists ? 'file-card-updated' : 'file-card-created';
                     const safeAutoName = autoName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -529,11 +542,17 @@ CRITICAL RULES:
                 displayName = Utils.sanitizeFilename ? Utils.sanitizeFilename(displayName) : displayName;
                 const iconName = Utils.getFileIcon(langLabel);
 
-                const existingFile = Editor.files.find(f => {
-                    const normF = f.filename.replace(/^\.\//, '').replace(/^\//, '');
-                    return normF === displayName || normF.split('/').pop() === displayName.split('/').pop();
-                });
-                const exists = !!existingFile;
+                let exists = false;
+                if (Chat._preStreamFiles) {
+                    exists = Chat._preStreamFiles.has(displayName) ||
+                             [...Chat._preStreamFiles].some(f => f.split('/').pop() === displayName.split('/').pop());
+                } else {
+                    const existingFile = Editor.files.find(f => {
+                        const normF = f.filename.replace(/^\.\//, '').replace(/^\//, '');
+                        return normF === displayName || normF.split('/').pop() === displayName.split('/').pop();
+                    });
+                    exists = !!existingFile;
+                }
                 const writingLabel = exists ? 'Updating...' : 'Creating...';
                 const writingClass = exists ? 'file-card-updating' : 'file-card-creating';
                 return `<div class="file-card writing ${writingClass}" data-file="${Utils.escapeHtml(displayName)}">
@@ -559,11 +578,17 @@ CRITICAL RULES:
                 if (displayName.startsWith('/')) displayName = displayName.slice(1);
                 displayName = Utils.sanitizeFilename ? Utils.sanitizeFilename(displayName) : displayName;
                 const iconName = Utils.getFileIcon(langLabel);
-                const existingFile = Editor.files.find(f => {
-                    const normF = f.filename.replace(/^\.\//, '').replace(/^\//, '');
-                    return normF === displayName || normF.split('/').pop() === displayName.split('/').pop();
-                });
-                const exists = !!existingFile;
+                let exists = false;
+                if (isStreaming && Chat._preStreamFiles) {
+                    exists = Chat._preStreamFiles.has(displayName) ||
+                             [...Chat._preStreamFiles].some(f => f.split('/').pop() === displayName.split('/').pop());
+                } else {
+                    const existingFile = Editor.files.find(f => {
+                        const normF = f.filename.replace(/^\.\//, '').replace(/^\//, '');
+                        return normF === displayName || normF.split('/').pop() === displayName.split('/').pop();
+                    });
+                    exists = !!existingFile;
+                }
                 const statusLabel = exists ? 'Updated' : 'Created';
                 const statusClass = exists ? 'file-card-updated' : 'file-card-created';
                 const safeDisplayName = displayName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -694,6 +719,16 @@ CRITICAL RULES:
             fileIndex = Editor.files.findIndex(f => {
                 return f.filename.toLowerCase().includes(lowerTarget) ||
                        lowerTarget.includes(f.filename.toLowerCase());
+            });
+        }
+
+        // 5. Sanitize sonrası eşleştir (parseMarkdownWithFileCards sanitize uyguluyor)
+        if (fileIndex < 0) {
+            const sanitizedTarget = Utils.sanitizeFilename(normalizedTarget).toLowerCase();
+            fileIndex = Editor.files.findIndex(f => {
+                const sanitizedFile = Utils.sanitizeFilename(f.filename.replace(/^\.\//, '').replace(/^\//, '')).toLowerCase();
+                return sanitizedFile === sanitizedTarget ||
+                       sanitizedFile.split('/').pop() === sanitizedTarget.split('/').pop();
             });
         }
 
