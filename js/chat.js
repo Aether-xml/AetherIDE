@@ -520,6 +520,12 @@ const Chat = {
         this.renderMessages();
         this.forceScrollToBottom();
 
+        // Stream öncesi dosya snapshot'ı — Created/Updated doğru göstermek için
+        // Bu noktada Editor.files henüz güncel mesajın dosyalarını içermiyor
+        this._preStreamFiles = new Set(
+            Editor.files.map(f => f.filename.replace(/^\.\//, '').replace(/^\//, ''))
+        );
+
         try {
             await Modes[App.currentMode].send(this.currentChat, model);
         } catch (error) {
@@ -534,6 +540,9 @@ const Chat = {
 
     addAssistantMessage(content, agentType = 'assistant') {
         if (!this.currentChat) return;
+
+        // Stream bitti — snapshot'ı temizle, artık gerçek Editor.files kullanılsın
+        this._preStreamFiles = null;
 
         // Mevcut stream mesajını temizle
         const streamMsg = document.getElementById('stream-message');
