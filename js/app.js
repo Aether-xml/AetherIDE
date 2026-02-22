@@ -527,7 +527,7 @@ const App = {
                      onclick="App.selectModel('${m.id}')">
                     <span class="select-option-name">
                         ${m.name}
-                        ${m.vision ? '<span class="select-option-vision" title="Supports image input">👁️</span>' : ''}
+                        ${m.vision ? '<span class="select-option-vision" title="Supports image input"><i data-lucide="image" class="vision-icon"></i></span>' : ''}
                     </span>
                     <span class="select-option-price">${m.price || ''}</span>
                 </div>
