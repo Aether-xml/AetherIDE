@@ -69,14 +69,19 @@ FILE REMOVAL RULES:
             systemPrompt += fileContext;
         }
 
-        // Mesajları API formatına çevir
+        // Mesajları API formatına çevir (görseller dahil)
         const messages = [];
         for (const m of chat.messages) {
             if (m.role === 'user' || m.role === 'assistant') {
-                messages.push({
+                const msg = {
                     role: m.role,
                     content: m.content,
-                });
+                };
+                // Görselleri aktar
+                if (m.images && m.images.length > 0) {
+                    msg.images = m.images;
+                }
+                messages.push(msg);
             }
         }
 
