@@ -207,11 +207,15 @@ Write code that would impress a senior engineer during code review.`,
             ? config.planPrompt + '\n\n' + fileContext
             : config.planPrompt;
 
-        // Mesajları filtrele
+        // Mesajları filtrele (görseller dahil)
         const messages = [];
         for (const m of chat.messages) {
             if (m.role === 'user' || m.role === 'assistant') {
-                messages.push({ role: m.role, content: m.content });
+                const msg = { role: m.role, content: m.content };
+                if (m.images && m.images.length > 0) {
+                    msg.images = m.images;
+                }
+                messages.push(msg);
             }
         }
 
@@ -352,7 +356,11 @@ FILE REMOVAL RULES:
         const messages = [];
         for (const m of chat.messages) {
             if (m.role === 'user' || m.role === 'assistant') {
-                messages.push({ role: m.role, content: m.content });
+                const msg = { role: m.role, content: m.content };
+                if (m.images && m.images.length > 0) {
+                    msg.images = m.images;
+                }
+                messages.push(msg);
             }
         }
 
