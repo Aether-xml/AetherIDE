@@ -525,6 +525,40 @@
     padding-left: 8px;
 }
 
+/* Model option layout */
+.select-option {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.select-option-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.select-option-vision {
+    font-size: 0.6rem;
+    line-height: 1;
+    flex-shrink: 0;
+    opacity: 0.6;
+    transition: opacity var(--transition-fast);
+}
+
+.select-option:hover .select-option-vision {
+    opacity: 1;
+}
+
+.select-option.selected .select-option-vision {
+    opacity: 1;
+}
+
 /* ── Delete Chat Button Fix ── */
 .chat-history-item {
     position: relative;
