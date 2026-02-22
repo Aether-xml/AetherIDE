@@ -242,7 +242,9 @@ Reference the exact CSS classes and HTML element IDs from Designer and PM.
         Chat.setGenerating(true);
         this.showTeamAgents(true);
 
-        const userRequest = chat.messages[chat.messages.length - 1]?.content || '';
+        const lastUserMsg = chat.messages[chat.messages.length - 1];
+        const userRequest = lastUserMsg?.content || '';
+        const userImages = lastUserMsg?.images || null;
 
         try {
             Chat.addAssistantMessage(
@@ -263,7 +265,7 @@ Reference the exact CSS classes and HTML element IDs from Designer and PM.
                     this.updateDiscussionStatus(`Round ${round}/${this.discussionRounds} — ${statusLabels[agent]}...`);
 
                     const agentModel = this.getModelForRole(agent);
-                    const response = await this.runDiscussionAgent(agent, userRequest, agentModel, round);
+                    const response = await this.runDiscussionAgent(agent, userRequest, agentModel, round, userImages);
                     this.discussionLog.push({ agent, round, content: response });
                 }
             }
@@ -303,7 +305,7 @@ Reference the exact CSS classes and HTML element IDs from Designer and PM.
     },
 
     // ═══ TARTIŞMA AGENT'I ═══
-    async runDiscussionAgent(agentType, userRequest, model, round) {
+    async runDiscussionAgent(agentType, userRequest, model, round, userImages = null) {
         const previousDiscussion = this.discussionLog
             .map(d => {
                 const icons = { designer: '🎨', pm: '📊', developer: '💻' };
@@ -330,7 +332,12 @@ ${rolePrompt}
 Be specific, give concrete details (exact colors, exact patterns, exact element names).
 Keep response under 250 words but make every word count.`;
 
-        const messages = [{ role: 'user', content: prompt }];
+        const userMsg = { role: 'user', content: prompt };
+        // İlk round'da görselleri ekle (sadece 1. round — tekrar tekrar göndermeye gerek yok)
+        if (round === 1 && userImages && userImages.length > 0) {
+            userMsg.images = userImages;
+        }
+        const messages = [userMsg];
 
         try {
             const result = await API.sendMessage(messages, model, {
@@ -496,7 +503,9 @@ FILE REMOVAL: To delete a file, output ONLY: \`\`\`language:filename.ext\\n// [D
         this.showApprovalActions(false);
         this.showTeamAgents(true);
 
-        const userRequest = chat.messages.find(m => m.role === 'user')?.content || '';
+        const firstUserMsg = chat.messages.find(m => m.role === 'user');
+        const userRequest = firstUserMsg?.content || '';
+        const userImages = firstUserMsg?.images || null;
         const fullDiscussion = this.discussionLog
             .map(d => `[${d.agent.toUpperCase()}]: ${d.content}`)
             .join('\n\n');
@@ -510,7 +519,7 @@ FILE REMOVAL: To delete a file, output ONLY: \`\`\`language:filename.ext\\n// [D
             Chat.addAssistantMessage('🎨 **Designer** is crafting the styles and visual system...', 'designer');
 
             const designerModel = this.getModelForRole('designer');
-            const designCode = await this.runCodingAgent('designer', userRequest, designerModel, fullDiscussion, '', '');
+            const designCode = await this.runCodingAgent('designer', userRequest, designerModel, fullDiscussion, '', '', userImages);
 
             const streamMsg1 = document.getElementById('stream-message');
             if (streamMsg1) streamMsg1.remove();
@@ -533,7 +542,7 @@ FILE REMOVAL: To delete a file, output ONLY: \`\`\`language:filename.ext\\n// [D
             Chat.addAssistantMessage('📊 **PM** is building the HTML structure...', 'pm');
 
             const pmModel = this.getModelForRole('pm');
-            const pmCode = await this.runCodingAgent('pm', userRequest, pmModel, fullDiscussion, cssFiles, '');
+            const pmCode = await this.runCodingAgent('pm', userRequest, pmModel, fullDiscussion, cssFiles, '', userImages);
 
             const streamMsg2 = document.getElementById('stream-message');
             if (streamMsg2) streamMsg2.remove();
@@ -556,7 +565,7 @@ FILE REMOVAL: To delete a file, output ONLY: \`\`\`language:filename.ext\\n// [D
             Chat.addAssistantMessage('💻 **Developer** is implementing the logic and interactions...', 'developer');
 
             const devModel = this.getModelForRole('developer');
-            const devCode = await this.runCodingAgent('developer', userRequest, devModel, fullDiscussion, cssFiles, htmlFiles);
+            const devCode = await this.runCodingAgent('developer', userRequest, devModel, fullDiscussion, cssFiles, htmlFiles, userImages);
 
             const streamMsg3 = document.getElementById('stream-message');
             if (streamMsg3) streamMsg3.remove();
@@ -597,7 +606,7 @@ FILE REMOVAL: To delete a file, output ONLY: \`\`\`language:filename.ext\\n// [D
     },
 
     // ═══ KODLAMA AGENT'I ═══
-    async runCodingAgent(agentType, userRequest, model, discussion, cssContext = '', htmlContext = '') {
+    async runCodingAgent(agentType, userRequest, model, discussion, cssContext = '', htmlContext = '', userImages = null) {
         const basePrompt = Storage.getSettings().systemPrompt;
         const fileContext = this.buildFileContext();
 
@@ -686,7 +695,11 @@ ${roleInstructions[agentType]}
 
 Write your code now. Make it production-ready and impressive.`;
 
-        const messages = [{ role: 'user', content: prompt }];
+        const userMsg = { role: 'user', content: prompt };
+        if (userImages && userImages.length > 0) {
+            userMsg.images = userImages;
+        }
+        const messages = [userMsg];
         const combinedSystemPrompt = this.HIDDEN_SYSTEM_PROMPTS[agentType] + '\n\n' + basePrompt;
 
         let content = '';
