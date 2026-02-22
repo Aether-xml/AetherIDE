@@ -324,9 +324,28 @@ const API = {
 
         const shouldStream = options.stream !== undefined ? options.stream : (settings.streamResponse !== false);
         const systemMessage = { role: 'system', content: options.systemPrompt || settings.systemPrompt };
+
+        // Vision: görselli mesajları OpenAI vision formatına çevir
+        const formattedMessages = messages.map(msg => {
+            if (msg.images && msg.images.length > 0) {
+                const content = [
+                    { type: 'text', text: msg.content },
+                    ...msg.images.map(img => ({
+                        type: 'image_url',
+                        image_url: {
+                            url: img.base64,
+                            detail: 'auto',
+                        },
+                    })),
+                ];
+                return { role: msg.role, content };
+            }
+            return { role: msg.role, content: msg.content };
+        });
+
         const body = {
             model,
-            messages: [systemMessage, ...messages],
+            messages: [systemMessage, ...formattedMessages],
             stream: shouldStream,
             temperature: options.temperature || 0.7,
             max_tokens: options.maxTokens || 4096,
@@ -387,10 +406,28 @@ const API = {
         const systemPrompt = options.systemPrompt || settings.systemPrompt;
         const stream = options.stream !== undefined ? options.stream : (settings.streamResponse !== false);
 
-        const contents = messages.map(msg => ({
-            role: msg.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: msg.content }],
-        }));
+        const contents = messages.map(msg => {
+            const parts = [{ text: msg.content }];
+
+            // Gemini vision: görselleri inlineData olarak ekle
+            if (msg.images && msg.images.length > 0) {
+                for (const img of msg.images) {
+                    // base64 data URL'den raw base64'e çevir
+                    const base64Data = img.base64.replace(/^data:image\/\w+;base64,/, '');
+                    parts.push({
+                        inlineData: {
+                            mimeType: img.type || 'image/png',
+                            data: base64Data,
+                        },
+                    });
+                }
+            }
+
+            return {
+                role: msg.role === 'assistant' ? 'model' : 'user',
+                parts,
+            };
+        });
 
         const body = {
             contents,
@@ -609,13 +646,24 @@ const API = {
         const systemPrompt = options.systemPrompt || settings.systemPrompt || '';
         const shouldStream = options.stream !== undefined ? options.stream : (settings.streamResponse !== false);
 
-        // Mesajları Puter formatına çevir
+        // Mesajları Puter formatına çevir (OpenAI vision uyumlu)
         const puterMessages = [];
         if (systemPrompt) {
             puterMessages.push({ role: 'system', content: systemPrompt });
         }
         for (const msg of messages) {
-            puterMessages.push({ role: msg.role, content: msg.content });
+            if (msg.images && msg.images.length > 0) {
+                const content = [
+                    { type: 'text', text: msg.content },
+                    ...msg.images.map(img => ({
+                        type: 'image_url',
+                        image_url: { url: img.base64 },
+                    })),
+                ];
+                puterMessages.push({ role: msg.role, content });
+            } else {
+                puterMessages.push({ role: msg.role, content: msg.content });
+            }
         }
 
         try {
