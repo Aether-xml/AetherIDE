@@ -544,11 +544,28 @@
 }
 
 .select-option-vision {
-    font-size: 0.6rem;
-    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
-    opacity: 0.6;
+    opacity: 0.45;
     transition: opacity var(--transition-fast);
+    color: var(--text-tertiary);
+}
+
+.select-option-vision .vision-icon {
+    width: 12px;
+    height: 12px;
+}
+
+.select-option:hover .select-option-vision {
+    opacity: 0.85;
+    color: var(--accent-primary);
+}
+
+.select-option.selected .select-option-vision {
+    opacity: 0.9;
+    color: var(--accent-primary);
 }
 
 .select-option:hover .select-option-vision {
