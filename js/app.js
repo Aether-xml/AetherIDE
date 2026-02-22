@@ -525,7 +525,10 @@ const App = {
             html += catModels.map(m => `
                 <div class="select-option ${m.id === this.currentModel ? 'selected' : ''}"
                      onclick="App.selectModel('${m.id}')">
-                    <span>${m.name}</span>
+                    <span class="select-option-name">
+                        ${m.name}
+                        ${m.vision ? '<span class="select-option-vision" title="Supports image input">👁️</span>' : ''}
+                    </span>
                     <span class="select-option-price">${m.price || ''}</span>
                 </div>
             `).join('');
