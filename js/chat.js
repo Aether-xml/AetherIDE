@@ -11,6 +11,13 @@ const Chat = {
     SEND_COOLDOWN: 1000,
     MAX_MESSAGES_PER_CHAT: 200,
 
+    // Image attachment state
+    _attachedImages: [],       // [{file, base64, preview, name}]
+    MAX_IMAGES: 4,
+    MAX_IMAGE_SIZE: 4 * 1024 * 1024,  // 4MB
+    MAX_IMAGE_DIMENSION: 1920,
+    ALLOWED_IMAGE_TYPES: ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'],
+
     // Typewriter state
     _typewriterQueue: '',
     _typewriterRendered: '',
@@ -57,6 +64,44 @@ const Chat = {
             this.newChat();
         });
 
+        // Attach butonu — dosya seçici aç
+        document.getElementById('attach-btn')?.addEventListener('click', () => {
+            this._openImagePicker();
+        });
+
+        // Drag & drop
+        const inputArea = document.getElementById('input-area');
+        if (inputArea) {
+            inputArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                inputArea.classList.add('drag-over');
+            });
+            inputArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                inputArea.classList.remove('drag-over');
+            });
+            inputArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                inputArea.classList.remove('drag-over');
+                const files = Array.from(e.dataTransfer.files).filter(f => this.ALLOWED_IMAGE_TYPES.includes(f.type));
+                if (files.length > 0) this._addImageFiles(files);
+            });
+        }
+
+        // Clipboard paste (Ctrl+V)
+        input?.addEventListener('paste', (e) => {
+            const items = Array.from(e.clipboardData?.items || []);
+            const imageItems = items.filter(item => item.type.startsWith('image/'));
+            if (imageItems.length > 0) {
+                e.preventDefault();
+                const files = imageItems.map(item => item.getAsFile()).filter(Boolean);
+                this._addImageFiles(files);
+            }
+        });
+
         // Statik welcome kartlarına da event ekle (ilk yükleme için)
         this._bindWelcomeCards();
     },
@@ -82,6 +127,177 @@ const Chat = {
         });
     },
 
+    // ═══ Image Attachment System ═══
+
+    _openImagePicker() {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/png,image/jpeg,image/jpg,image/gif,image/webp';
+        fileInput.multiple = true;
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                this._addImageFiles(Array.from(fileInput.files));
+            }
+        });
+        fileInput.click();
+    },
+
+    async _addImageFiles(files) {
+        for (const file of files) {
+            if (this._attachedImages.length >= this.MAX_IMAGES) {
+                Utils.toast(`Maximum ${this.MAX_IMAGES} images allowed`, 'warning');
+                break;
+            }
+
+            if (!this.ALLOWED_IMAGE_TYPES.includes(file.type)) {
+                Utils.toast(`Unsupported format: ${file.type.split('/')[1]}. Use PNG, JPG, GIF, or WebP.`, 'warning');
+                continue;
+            }
+
+            if (file.size > this.MAX_IMAGE_SIZE) {
+                Utils.toast(`${file.name} is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 4MB.`, 'warning');
+                continue;
+            }
+
+            // Duplicate kontrolü
+            const isDupe = this._attachedImages.some(img => img.name === file.name && img.file.size === file.size);
+            if (isDupe) {
+                Utils.toast(`${file.name} already attached`, 'info', 1500);
+                continue;
+            }
+
+            try {
+                const base64 = await this._processImage(file);
+                this._attachedImages.push({
+                    file,
+                    base64,
+                    preview: URL.createObjectURL(file),
+                    name: file.name,
+                    type: file.type,
+                });
+            } catch (err) {
+                console.error('Image processing error:', err);
+                Utils.toast(`Failed to process ${file.name}`, 'error');
+            }
+        }
+
+        this._renderImagePreviews();
+        // Enable send button if images attached
+        const sendBtn = document.getElementById('send-btn');
+        const input = document.getElementById('message-input');
+        if (sendBtn && (this._attachedImages.length > 0 || input?.value?.trim())) {
+            sendBtn.disabled = false;
+        }
+    },
+
+    _processImage(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Resize if too large
+                    let { width, height } = img;
+                    const maxDim = this.MAX_IMAGE_DIMENSION;
+
+                    if (width > maxDim || height > maxDim) {
+                        if (width > height) {
+                            height = Math.round(height * (maxDim / width));
+                            width = maxDim;
+                        } else {
+                            width = Math.round(width * (maxDim / height));
+                            height = maxDim;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Convert to base64 (JPEG for photos, PNG for others)
+                    const isPhoto = file.type === 'image/jpeg' || file.type === 'image/jpg';
+                    const outputType = isPhoto ? 'image/jpeg' : 'image/png';
+                    const quality = isPhoto ? 0.85 : undefined;
+                    const base64 = canvas.toDataURL(outputType, quality);
+                    resolve(base64);
+                };
+                img.onerror = () => reject(new Error('Failed to load image'));
+                img.src = e.target.result;
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+        });
+    },
+
+    _removeImage(index) {
+        if (this._attachedImages[index]) {
+            URL.revokeObjectURL(this._attachedImages[index].preview);
+            this._attachedImages.splice(index, 1);
+            this._renderImagePreviews();
+
+            const sendBtn = document.getElementById('send-btn');
+            const input = document.getElementById('message-input');
+            if (sendBtn) {
+                sendBtn.disabled = !(this._attachedImages.length > 0 || input?.value?.trim());
+            }
+        }
+    },
+
+    _clearImages() {
+        this._attachedImages.forEach(img => URL.revokeObjectURL(img.preview));
+        this._attachedImages = [];
+        this._renderImagePreviews();
+    },
+
+    _renderImagePreviews() {
+        let container = document.getElementById('image-preview-bar');
+        const inputArea = document.getElementById('input-area');
+        const inputWrapper = document.getElementById('input-wrapper');
+
+        if (this._attachedImages.length === 0) {
+            if (container) container.remove();
+            return;
+        }
+
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'image-preview-bar';
+            container.className = 'image-preview-bar';
+            // input-wrapper'ın hemen öncesine ekle
+            if (inputWrapper && inputArea) {
+                inputArea.insertBefore(container, inputWrapper);
+            }
+        }
+
+        let html = '';
+        this._attachedImages.forEach((img, index) => {
+            html += `
+                <div class="image-preview-item">
+                    <img src="${img.preview}" alt="${Utils.escapeHtml(img.name)}" class="image-preview-thumb">
+                    <button class="image-preview-remove" onclick="Chat._removeImage(${index})" title="Remove">
+                        <i data-lucide="x"></i>
+                    </button>
+                    <span class="image-preview-name">${Utils.escapeHtml(Utils.truncate(img.name, 15))}</span>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+        if (window.lucide) lucide.createIcons({ nodes: [container] });
+    },
+
+    _getImagesForAPI() {
+        if (this._attachedImages.length === 0) return null;
+
+        return this._attachedImages.map(img => ({
+            base64: img.base64,
+            type: img.type,
+            name: img.name,
+        }));
+    },
+
     newChat() {
         // Aktif typewriter'ı durdur
         this._stopTypewriter();
@@ -90,6 +306,9 @@ const Chat = {
         this._knownStreamCards.clear();
         this._activeWritingCards.clear();
         this._preStreamFiles = null;
+
+        // Görselleri temizle
+        this._clearImages();
 
         // Zaten boş sohbet varsa sadece odaklan
         if (this.currentChat && this.currentChat.messages.length === 0) {
@@ -437,7 +656,9 @@ const Chat = {
         const sendBtn = document.getElementById('send-btn');
         let text = input?.value?.trim();
 
-        if (!text || this.isGenerating) return;
+        if (this.isGenerating) return;
+        if (!text && this._attachedImages.length === 0) return;
+        if (!text) text = 'What is this image?'; // Sadece görsel varsa varsayılan prompt
 
         // Rate limit kontrolü (1 saniye)
         const now = Date.now();
@@ -498,14 +719,21 @@ const Chat = {
             }
         }
 
+        // Görselleri topla
+        const images = this._getImagesForAPI();
+
         const userMessage = {
             role: 'user',
             content: enrichedText,
             displayContent: text,
             timestamp: new Date().toISOString(),
+            images: images || undefined,
         };
 
         this.currentChat.messages.push(userMessage);
+
+        // Görselleri temizle (gönderildikten sonra)
+        this._clearImages();
 
         if (this.currentChat.messages.filter(m => m.role === 'user').length === 1) {
             this.currentChat.title = Utils.truncate(text, 35);
@@ -661,6 +889,16 @@ const Chat = {
                 bodyContent = Utils.parseMarkdown(displayText);
             }
 
+            // Kullanıcı mesajındaki görselleri göster
+            let imageHtml = '';
+            if (isUser && msg.images && msg.images.length > 0) {
+                imageHtml = '<div class="message-images">';
+                for (const img of msg.images) {
+                    imageHtml += `<img src="${img.base64}" alt="${Utils.escapeHtml(img.name || 'image')}" class="message-image-thumb" onclick="Chat._openImageModal(this.src)">`;
+                }
+                imageHtml += '</div>';
+            }
+
             const avatarStyle = (isUser && userColor !== 'purple') ? ` data-avatar-color="${userColor}"` : '';
             html += `
                 <div class="message">
@@ -672,7 +910,7 @@ const Chat = {
                             <span class="message-author">${avatarNames[agentType] || 'AI'}</span>
                             <span class="message-time">${Utils.formatTime(msg.timestamp)}</span>
                         </div>
-                        <div class="message-body">${bodyContent}</div>
+                        <div class="message-body">${imageHtml}${bodyContent}</div>
                     </div>
                 </div>
             `;
@@ -1031,6 +1269,22 @@ const Chat = {
                 container.scrollTop = container.scrollHeight;
             });
         }
+    },
+
+    _openImageModal(src) {
+        const overlay = document.createElement('div');
+        overlay.className = 'image-modal-overlay';
+        overlay.onclick = () => overlay.remove();
+        overlay.innerHTML = `
+            <div class="image-modal-content" onclick="event.stopPropagation()">
+                <img src="${src}" alt="Full size image" class="image-modal-img">
+                <button class="image-modal-close" onclick="this.closest('.image-modal-overlay').remove()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        if (window.lucide) lucide.createIcons({ nodes: [overlay] });
     },
 
     renderHistory() {
