@@ -27,6 +27,7 @@ const App = {
         Sandbox.init();
 
         this.bindEvents();
+        this.initSwipeGesture();
         this.loadState();
         this.initModelSelector();
         this.initConsoleListener();
@@ -559,7 +560,21 @@ const App = {
         if (valueEl) valueEl.textContent = name;
 
         const modelDisplay = document.getElementById('current-model-display');
-        if (modelDisplay) modelDisplay.textContent = name;
+        if (modelDisplay) {
+            const model = API.POPULAR_MODELS.find(m => m.id === modelId);
+            let badges = '';
+            if (model?.vision) {
+                badges += '<span class="topbar-model-badge vision" title="Vision"><i data-lucide="image"></i></span>';
+            }
+            // Thinking model kontrolü
+            const thinkingPatterns = [/thinking/i, /[\/-]r1[\/-]|[\/-]r1$/i, /deepseek-reasoner/i, /\bo[134]-/i, /\bo[134]$/i, /\bqwq\b/i, /reasoning/i];
+            const isThinking = thinkingPatterns.some(p => p.test(modelId));
+            if (isThinking) {
+                badges += '<span class="topbar-model-badge thinking" title="Thinking"><i data-lucide="brain"></i></span>';
+            }
+            modelDisplay.innerHTML = `<span class="topbar-model-name">${Utils.escapeHtml(name)}</span>${badges}`;
+            if (window.lucide) lucide.createIcons({ nodes: [modelDisplay] });
+        }
 
         document.getElementById('model-select-wrapper')?.classList.remove('open');
 
@@ -653,6 +668,48 @@ const App = {
             chatPanel.classList.remove('panel-enter');
             codePanel.classList.remove('panel-enter');
         }, 300);
+    },
+
+    // Mobil swipe gesture
+    initSwipeGesture() {
+        const container = document.getElementById('split-container');
+        if (!container) return;
+
+        let startX = 0;
+        let startY = 0;
+        let tracking = false;
+        const THRESHOLD = 60;
+        const MAX_Y = 80;
+
+        container.addEventListener('touchstart', (e) => {
+            if (window.innerWidth > 768) return;
+            // Input/textarea üzerindeyse iptal
+            if (e.target.closest('textarea, input, .code-editor, .console-output')) return;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            tracking = true;
+        }, { passive: true });
+
+        container.addEventListener('touchend', (e) => {
+            if (!tracking || window.innerWidth > 768) return;
+            tracking = false;
+
+            const endX = e.changedTouches[0].clientX;
+            const endY = e.changedTouches[0].clientY;
+            const diffX = endX - startX;
+            const diffY = Math.abs(endY - startY);
+
+            // Dikey kaydırma fazlaysa yatay swipe sayma
+            if (diffY > MAX_Y) return;
+
+            if (diffX < -THRESHOLD && this._currentMobilePanel === 'chat') {
+                // Sola kaydır → Code panel
+                this.showMobilePanel('code');
+            } else if (diffX > THRESHOLD && this._currentMobilePanel === 'code') {
+                // Sağa kaydır → Chat panel
+                this.showMobilePanel('chat');
+            }
+        }, { passive: true });
     },
 
     // Panel resizer
