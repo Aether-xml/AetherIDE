@@ -100,14 +100,30 @@ const Editor = {
             console.log('[Editor] No code blocks extracted from response');
             return;
         }
-        console.log('[Editor] Extracted blocks:', blocks.map(b => b.filename));
+
+        // Filter out generic fallback filenames (file1.txt, file2.unknown etc.)
+        const validBlocks = blocks.filter(block => {
+            const genericPattern = /^file\d+\.(txt|unknown|text)$/i;
+            if (genericPattern.test(block.filename)) {
+                console.log(`[Editor] Skipping generic fallback file: ${block.filename}`);
+                return false;
+            }
+            return true;
+        });
+
+        if (validBlocks.length === 0) {
+            console.log('[Editor] All extracted blocks were generic fallbacks, skipping');
+            return;
+        }
+
+        console.log('[Editor] Extracted blocks:', validBlocks.map(b => b.filename));
 
         let hasChanges = false;
         let changedFiles = [];
 
         let fileLimitWarned = false;
 
-        for (const block of blocks) {
+        for (const block of validBlocks) {
             if (!block.code || block.code.trim().length === 0) continue;
 
             // ── Dosya silme desteği: [DELETED] marker ──
