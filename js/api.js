@@ -158,8 +158,8 @@ const API = {
             { id: 'gpt-4o', name: 'GPT-4o', price: '$$$', category: 'flagship', vision: true },
             { id: 'gpt-4o-mini', name: 'GPT-4o Mini', price: '$', category: 'flagship', vision: true },
             { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', price: '$$$', category: 'flagship', vision: true },
-            { id: 'o3-mini', name: 'o3 Mini', price: '$$', category: 'reasoning' },
-            { id: 'o1-mini', name: 'o1 Mini', price: '$$', category: 'reasoning' },
+            { id: 'o3-mini', name: 'o3 Mini', price: '$$', category: 'reasoning', reasoning: true },
+            { id: 'o1-mini', name: 'o1 Mini', price: '$$', category: 'reasoning', reasoning: true },
             { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', price: '$', category: 'legacy' },
         ],
         puter: [
@@ -311,6 +311,7 @@ const API = {
         if (!model) throw new Error('No model selected. Please select a model first.');
         if (!messages || messages.length === 0) throw new Error('No messages to send.');
 
+        console.log(`[API] Sending to ${provider} | model: ${model} | messages: ${messages.length}`);
         this.abortController = new AbortController();
 
         if (provider === 'puter') return this._sendPuter(messages, model, options);
@@ -343,17 +344,32 @@ const API = {
             return { role: msg.role, content: msg.content };
         });
 
+        // Reasoning modeller özel parametreler gerektirir
+        const isReasoningModel = /^(o1|o3|o4)(-mini|-preview)?$/.test(model) ||
+            model.includes('/o1') || model.includes('/o3') || model.includes('/o4');
+
         const body = {
             model,
             messages: [systemMessage, ...formattedMessages],
-            stream: shouldStream,
-            temperature: options.temperature || 0.7,
-            max_tokens: options.maxTokens || 4096,
+            stream: isReasoningModel ? false : shouldStream,
         };
 
-        // Stream için SSE format'ını zorla (bazı modeller bunu gerektirir)
-        if (shouldStream) {
-            body.stream_options = { include_usage: false };
+        // Reasoning modeller temperature ve max_tokens desteklemiyor
+        if (isReasoningModel) {
+            body.max_completion_tokens = options.maxTokens || 16384;
+            // reasoning modeller system role'ü desteklemeyebilir — developer role'üne çevir
+            if (body.messages[0]?.role === 'system') {
+                body.messages[0].role = 'developer';
+            }
+        } else {
+            body.temperature = options.temperature || 0.7;
+            body.max_tokens = options.maxTokens || 4096;
+        }
+
+        // Stream için SSE options — sadece OpenRouter'da ve reasoning olmayan modellerde
+        if (!isReasoningModel && shouldStream && this.getCurrentProvider() === 'openrouter') {
+            // Bazı OpenRouter modelleri stream_options desteklemiyor, bu yüzden eklemeyelim
+            // OpenRouter zaten varsayılan olarak SSE formatında stream eder
         }
 
         try {
@@ -372,10 +388,12 @@ const API = {
 
             this.updateConnectionStatus('online');
 
-            if (shouldStream && response.body) {
-                // Content-Type kontrolü — bazı API'ler stream beklenmedik şekilde text/event-stream dönebilir
+            // Gerçekten stream istenip istenmediğini kontrol et (reasoning modellerde zorla kapatılmış olabilir)
+            const actuallyStreaming = !isReasoningModel && shouldStream;
+
+            if (actuallyStreaming && response.body) {
                 const contentType = response.headers.get('content-type') || '';
-                if (contentType.includes('text/event-stream') || contentType.includes('stream')) {
+                if (contentType.includes('text/event-stream') || contentType.includes('stream') || contentType.includes('octet-stream')) {
                     return this.handleStream(response);
                 }
                 // Body stream olarak gelmiş olabilir
@@ -429,10 +447,17 @@ const API = {
             };
         });
 
+        // Gemini 2.5 modelleri yüksek output token destekler
+        const isGemini25 = model.includes('2.5') || model.includes('2.0');
+        const defaultMaxTokens = isGemini25 ? 65536 : 8192;
+
         const body = {
             contents,
             systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
-            generationConfig: { temperature: options.temperature || 0.7, maxOutputTokens: options.maxTokens || 4096 },
+            generationConfig: {
+                temperature: options.temperature || 0.7,
+                maxOutputTokens: options.maxTokens || defaultMaxTokens,
+            },
         };
 
         const endpoint = stream ? 'streamGenerateContent' : 'generateContent';
