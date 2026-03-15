@@ -94,13 +94,125 @@ const Editor = {
     _lastPreviewUpdate: 0,
     _previewUpdatePending: null,
 
+    // ── Undo/Redo sistemi ──
+    _fileHistory: [],
+    _historyIndex: -1,
+    MAX_HISTORY: 30,
+
+    _saveSnapshot(label) {
+        const snapshot = {
+            files: JSON.parse(JSON.stringify(this.files)),
+            activeFileIndex: this.activeFileIndex,
+            timestamp: Date.now(),
+            label: label || 'Change'
+        };
+
+        // Mevcut index'ten sonraki history'yi temizle (redo branch)
+        if (this._historyIndex < this._fileHistory.length - 1) {
+            this._fileHistory = this._fileHistory.slice(0, this._historyIndex + 1);
+        }
+
+        this._fileHistory.push(snapshot);
+
+        if (this._fileHistory.length > this.MAX_HISTORY) {
+            this._fileHistory.shift();
+        }
+
+        this._historyIndex = this._fileHistory.length - 1;
+        this._updateUndoRedoButtons();
+    },
+
+    undo() {
+        if (this._historyIndex <= 0) {
+            Utils.toast('Nothing to undo', 'info', 1200);
+            return;
+        }
+        this._historyIndex--;
+        const snapshot = this._fileHistory[this._historyIndex];
+        this.files = JSON.parse(JSON.stringify(snapshot.files));
+        this.activeFileIndex = Math.min(snapshot.activeFileIndex, this.files.length - 1);
+        this._renderEditorUI();
+        if (this.previewVisible) this._schedulePreviewUpdate();
+        this._updateUndoRedoButtons();
+        Utils.toast('↩ Undo: ' + snapshot.label, 'info', 1500);
+    },
+
+    redo() {
+        if (this._historyIndex >= this._fileHistory.length - 1) {
+            Utils.toast('Nothing to redo', 'info', 1200);
+            return;
+        }
+        this._historyIndex++;
+        const snapshot = this._fileHistory[this._historyIndex];
+        this.files = JSON.parse(JSON.stringify(snapshot.files));
+        this.activeFileIndex = Math.min(snapshot.activeFileIndex, this.files.length - 1);
+        this._renderEditorUI();
+        if (this.previewVisible) this._schedulePreviewUpdate();
+        this._updateUndoRedoButtons();
+        Utils.toast('↪ Redo: ' + snapshot.label, 'info', 1500);
+    },
+
+    _updateUndoRedoButtons() {
+        const undoBtn = document.getElementById('undo-btn');
+        const redoBtn = document.getElementById('redo-btn');
+        if (undoBtn) {
+            undoBtn.disabled = this._historyIndex <= 0;
+            undoBtn.style.opacity = this._historyIndex <= 0 ? '0.4' : '1';
+        }
+        if (redoBtn) {
+            redoBtn.disabled = this._historyIndex >= this._fileHistory.length - 1;
+            redoBtn.style.opacity = this._historyIndex >= this._fileHistory.length - 1 ? '0.4' : '1';
+        }
+    },
+
     updateCode(aiResponse) {
+        // ── SEARCH/REPLACE diff blokları kontrolü ──
+        if (typeof DiffParser !== 'undefined' && DiffParser.hasDiffBlocks(aiResponse)) {
+            const diffBlocks = DiffParser.parseDiffBlocks(aiResponse);
+            if (diffBlocks.length > 0) {
+                // Undo snapshot kaydet
+                if (this.files.length > 0) {
+                    this._saveSnapshot('AI diff update');
+                }
+
+                const results = DiffParser.applyDiffs(diffBlocks, this.files);
+
+                if (results.applied.length > 0) {
+                    console.log('[Editor] Diff applied:', results.applied.map(a => `${a.filename} (${a.strategy})`));
+                    this._renderEditorUI();
+                    if (this.previewVisible) this._schedulePreviewUpdate();
+                }
+
+                if (results.failed.length > 0) {
+                    console.warn('[Editor] Diff failed:', results.failed);
+                    // Başarısız diff'leri fallback olarak normal extractCodeBlocks ile dene
+                    // Ama sadece SEARCH/REPLACE dışındaki kod bloklarını al
+                }
+
+                // Yanıtta normal kod blokları da olabilir — onları da işle
+                const cleanedResponse = aiResponse.replace(/<<<<<<< SEARCH[\s\S]*?>>>>>>> REPLACE/gi, '');
+                if (cleanedResponse.includes('```')) {
+                    const blocks = Utils.extractCodeBlocks(cleanedResponse);
+                    if (blocks.length > 0) {
+                        this._applyCodeBlocks(blocks);
+                    }
+                }
+
+                return;
+            }
+        }
+
+        // ── Normal kod blokları ──
         const blocks = Utils.extractCodeBlocks(aiResponse);
         if (blocks.length === 0) {
             console.log('[Editor] No code blocks extracted from response');
             return;
         }
 
+        this._applyCodeBlocks(blocks);
+    },
+
+    _applyCodeBlocks(blocks) {
         // Filter out generic fallback filenames (file1.txt, file2.unknown etc.)
         const validBlocks = blocks.filter(block => {
             const genericPattern = /^file\d+\.(txt|unknown|text)$/i;
@@ -117,6 +229,11 @@ const Editor = {
         }
 
         console.log('[Editor] Extracted blocks:', validBlocks.map(b => b.filename));
+
+        // Undo snapshot — değişiklik öncesi kaydet (sadece dosyalar varsa)
+        if (this.files.length > 0) {
+            this._saveSnapshot('AI code update');
+        }
 
         let hasChanges = false;
         let changedFiles = [];
@@ -205,9 +322,7 @@ const Editor = {
         }
         if (this.activeFileIndex < 0) this.activeFileIndex = 0;
 
-        // Editör UI — dosya değişikliği olduysa hemen render et (throttle kaldırıldı)
-        // Throttle sadece preview için kalıyor, UI güncellemesi anında olmalı
-        // yoksa dosya kartları "Created" gösteriyor ama dosya henüz listede yok
+        // Editör UI — dosya değişikliği olduysa hemen render et
         this._lastEditorUpdate = Date.now();
         this._renderEditorUI();
 
@@ -779,7 +894,7 @@ const Editor = {
                 this.consoleRerun();
             },
             'version': () => {
-                this.addConsoleLog('info', 'AetherIDE v1.4.8');
+                this.addConsoleLog('info', 'AetherIDE v1.6.0');
             },
             'errors': () => {
                 const errors = this.consoleLogs.filter(l => l.type === 'error');
@@ -947,7 +1062,21 @@ downloadAll() {
 
         let htmlContent = htmlFile.code;
 
-        // CSS dosyalarını inline et
+        // Proje dosyalarının basename setini oluştur (CDN vs lokal ayırımı için)
+        const localFileBasenames = new Set();
+        this.files.forEach(f => {
+            const basename = f.filename.includes('/') ? f.filename.split('/').pop() : f.filename;
+            localFileBasenames.add(basename.toLowerCase());
+        });
+
+        // Harici kaynak tespiti (CDN linkleri olduğu gibi bırakılmalı)
+        const isExternalUrl = (url) => {
+            if (!url) return false;
+            const u = url.trim().toLowerCase();
+            return u.startsWith('http://') || u.startsWith('https://') || u.startsWith('//');
+        };
+
+        // CSS dosyalarını inline et (sadece lokal olanlar)
         this.files.forEach(f => {
             if (f.language === 'css' || f.filename.endsWith('.css')) {
                 const baseName = f.filename.includes('/') ? f.filename.split('/').pop() : f.filename;
@@ -959,11 +1088,11 @@ downloadAll() {
                 }
                 let linkRegex;
                 try {
+                    // Sadece lokal referansları yakala (http/https ile başlamayanlar)
                     linkRegex = new RegExp(
-                        `<link[^>]*href=["'](?:[^"']*[/])?${escapedBase}["'][^>]*/?>`, 'gi'
+                        `<link[^>]*href=["'](?!https?://|//)(?:[^"']*[/])?${escapedBase}["'][^>]*/?>`, 'gi'
                     );
                 } catch(e) {
-                    // Regex oluşturulamazsa fallback: </head> öncesine ekle
                     if (htmlContent.includes('</head>')) {
                         htmlContent = htmlContent.replace('</head>', `<style>\n${f.code}\n</style>\n</head>`);
                     }
@@ -974,6 +1103,7 @@ downloadAll() {
                 if (replaced !== htmlContent) {
                     htmlContent = replaced;
                 } else {
+                    // Dosya HTML'de referans edilmemiş — head'e ekle
                     if (htmlContent.includes('</head>')) {
                         htmlContent = htmlContent.replace('</head>', `<style>\n${f.code}\n</style>\n</head>`);
                     } else if (htmlContent.includes('<body')) {
@@ -983,7 +1113,7 @@ downloadAll() {
             }
         });
 
-        // JS dosyalarını inline et
+        // JS dosyalarını inline et (sadece lokal olanlar)
         this.files.forEach(f => {
             if (f.language === 'javascript' || f.language === 'js' || f.filename.endsWith('.js')) {
                 const baseName = f.filename.includes('/') ? f.filename.split('/').pop() : f.filename;
@@ -995,8 +1125,9 @@ downloadAll() {
                 }
                 let scriptRegex;
                 try {
+                    // Sadece lokal script referanslarını yakala
                     scriptRegex = new RegExp(
-                        `<script[^>]*src=["'](?:[^"']*[/])?${escapedBase}["'][^>]*>\\s*</script>`, 'gi'
+                        `<script[^>]*src=["'](?!https?://|//)(?:[^"']*[/])?${escapedBase}["'][^>]*>\\s*</script>`, 'gi'
                     );
                 } catch(e) {
                     if (htmlContent.includes('</body>')) {
@@ -1019,6 +1150,9 @@ downloadAll() {
                 }
             }
         });
+
+        // ── Sandbox güvenliği: harici scriptlerin yüklenmesine izin ver ──
+        // srcdoc iframe'de allow-scripts zaten var, CDN'ler çalışır
 
         return htmlContent;
     },
