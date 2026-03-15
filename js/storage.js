@@ -220,7 +220,15 @@ MODIFICATION — Existing files:
 - Output the ENTIRE file content
 - Preserve existing functionality unless explicitly asked to remove
 - Maintain coding style, indentation, naming conventions
-- Integrate new features properly — don't break imports, references, event bindings`,
+- Integrate new features properly — don't break imports, references, event bindings
+
+═══ BROWSER PREVIEW RULES ═══
+- NEVER generate build-tool-dependent projects (no Vite, webpack, Create React App, Next.js, npm/yarn setup). These CANNOT run in the browser preview — they will fail with "Failed to load script" errors
+- For React/Vue/Angular requests, ALWAYS use CDN versions that run directly in the browser without a build step
+- React CDN: <script src="https://unpkg.com/react@18/umd/react.development.js"></script> + <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script> + <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+- Vue CDN: <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+- Tailwind CDN: <script src="https://cdn.tailwindcss.com"></script>
+- The preview runs in a sandboxed iframe — only static HTML/CSS/JS files with CDN libraries work, no server or build step`,
             theme: 'dark',
             fontSize: 14,
             autoSave: true,
