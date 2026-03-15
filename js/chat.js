@@ -359,8 +359,9 @@ const Chat = {
         // Editor dosyalarını ve preview'i temizle
         Editor.files = [];
         Editor.activeFileIndex = 0;
-        Editor.renderTabs();
-        Editor.renderCode();
+        Editor._fileHistory = [];
+        Editor._historyIndex = -1;
+        Editor._renderEditorUI();
 
         // Preview kapat ve iframe temizle
         const previewContainer = document.getElementById('preview-container');
@@ -578,10 +579,9 @@ const Chat = {
             }
         }
 
-        Editor.renderTabs();
-        Editor.renderCode();
-        Editor.updateStatusBar();
-        Editor.updatePreviewButton();
+        Editor._fileHistory = [];
+        Editor._historyIndex = -1;
+        Editor._renderEditorUI();
 
         // Preview kapat
         const previewContainer = document.getElementById('preview-container');
@@ -592,22 +592,6 @@ const Chat = {
 
         const refreshBtn = document.getElementById('refresh-preview-btn');
         if (refreshBtn) refreshBtn.style.display = 'none';
-
-        // Mobil file badge güncelle
-        const tabCode = document.getElementById('tab-code');
-        if (tabCode) {
-            let badge = tabCode.querySelector('.file-count-badge');
-            if (Editor.files.length > 0) {
-                if (!badge) {
-                    badge = document.createElement('span');
-                    badge.className = 'file-count-badge';
-                    tabCode.appendChild(badge);
-                }
-                badge.textContent = Editor.files.length;
-            } else if (badge) {
-                badge.remove();
-            }
-        }
 
         document.getElementById('sidebar')?.classList.remove('open');
         document.getElementById('sidebar-overlay')?.classList.remove('visible');
