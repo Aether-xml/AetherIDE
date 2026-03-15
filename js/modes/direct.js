@@ -7,55 +7,161 @@ const DirectMode = {
     buildFileContext() {
         if (Editor.files.length === 0) return '';
 
-        let context = '\n\n--- CURRENT PROJECT FILES ---\n';
-        context += `Total files: ${Editor.files.length}\n`;
+        // Dosyaları öncelik sırasına göre sırala
+        const prioritized = this._prioritizeFiles(Editor.files);
+        const totalChars = Editor.files.reduce((sum, f) => sum + f.code.length, 0);
 
+        // Token bütçesi: toplam karakter sayısına göre ayarla
+        // ~4 karakter = 1 token, modellerin context limiti genelde 128K token
+        // Context'e max ~200K karakter ayıralım (dosyalar için)
+        const MAX_CONTEXT_CHARS = 200000;
+
+        let context = '\n\n══════ CURRENT PROJECT FILES ══════\n';
+        context += `Project: ${Editor.files.length} files, ${(totalChars / 1024).toFixed(1)}KB total\n`;
+
+        // Dosya listesi özeti (her zaman tam liste göster)
+        context += '\nFile index:\n';
         for (const file of Editor.files) {
             const lines = file.code.split('\n').length;
+            context += `  • ${file.filename} (${file.language}, ${lines} lines)\n`;
+        }
+        context += '\n';
+
+        let usedChars = 0;
+
+        for (const { file, priority } of prioritized) {
+            const lines = file.code.split('\n').length;
             const chars = file.code.length;
-            const preview = chars > 3000
-                ? file.code.substring(0, 3000) + '\n... (truncated, full file has ' + lines + ' lines)'
-                : file.code;
-            context += `\n📄 ${file.filename} (${file.language}, ${lines} lines, ${chars} chars):\n\`\`\`${file.language}:${file.filename}\n${preview}\n\`\`\`\n`;
+
+            // Bütçe kontrolü
+            const remaining = MAX_CONTEXT_CHARS - usedChars;
+
+            if (remaining <= 0) {
+                context += `\n⚠️ ${file.filename} — content omitted (context budget exceeded). Request this file specifically if you need to modify it.\n`;
+                continue;
+            }
+
+            let fileContent;
+
+            if (chars <= remaining) {
+                // Tam dosya sığıyor
+                fileContent = file.code;
+            } else if (remaining > 2000) {
+                // Kısmi: başını ve sonunu göster
+                const halfBudget = Math.floor(remaining / 2) - 100;
+                fileContent = file.code.substring(0, halfBudget)
+                    + `\n\n/* ... ${lines - Math.floor(halfBudget / 40)} lines omitted — request full file if modifying this section ... */\n\n`
+                    + file.code.substring(file.code.length - halfBudget);
+            } else {
+                context += `\n⚠️ ${file.filename} (${lines} lines) — content omitted for context budget. Request this file if needed.\n`;
+                continue;
+            }
+
+            context += `\n📄 ${file.filename} [${file.language}, ${lines} lines, ${priority} priority]:\n\`\`\`${file.language}:${file.filename}\n${fileContent}\n\`\`\`\n`;
+            usedChars += fileContent.length;
         }
 
-        context += '--- END PROJECT FILES ---\n\n';
-        context += `CRITICAL RULES FOR MODIFYING EXISTING FILES:
-1. When updating a file, you MUST output the COMPLETE file content — every single line.
-2. NEVER use placeholders like "// rest of code remains same", "// ...", "/* existing code */", or "// unchanged".
-3. NEVER skip, abbreviate, or summarize any part of the code.
-4. Use the exact format: \`\`\`language:filename.ext
-5. If you only need to change 2 lines in a 200-line file, you must still output all 200 lines.
-6. For new files, use the same format. The system will auto-detect create vs update.
-7. Files can include folder paths like: \`\`\`javascript:src/utils/helpers.js
-8. Maintain the same coding style, indentation, and conventions as the existing code.
-9. Preserve all existing functionality unless explicitly asked to remove it.
-10. When adding features, integrate them properly with existing code — don't break imports, references, or event bindings.
+        context += '══════ END PROJECT FILES ══════\n\n';
 
-ERROR FIXING RULES (when console errors are present):
-11. READ the console errors carefully — they show the exact error message, line info, and stack trace.
-12. Identify the ROOT CAUSE, not just the symptom. Trace the error back to its origin.
-13. Check for: typos in variable/function names, missing DOM elements, incorrect selectors, undefined variables, timing issues (DOM not ready), missing event listeners, incorrect file references.
-14. When fixing, explain briefly WHAT caused the error and HOW you fixed it before the code block.
-15. If multiple errors exist, fix ALL of them in one response — don't leave any behind.
-16. After fixing, make sure the fix doesn't break other functionality.
-17. If an error mentions a specific line number, pay extra attention to that area and its surrounding code.
-18. Common patterns: "X is not defined" → check spelling and scope; "Cannot read property of null" → element doesn't exist or script runs before DOM; "Unexpected token" → syntax error, check brackets/quotes.
-19. When fixing, mentally trace through the code execution to verify your fix actually resolves the error.
-20. If the error involves DOM elements, check both HTML (does the element exist? correct ID/class?) and JS (correct selector? timing?).
-21. If the error involves event listeners or callbacks, check: is the function defined? is 'this' context correct? are arguments in the right order?
-22. After fixing, review the ENTIRE file for similar patterns that might cause the same type of error elsewhere.
-
-FILE REMOVAL RULES:
-23. When the user asks to remove/delete a file, output ONLY the deletion marker:
-    \`\`\`language:filename.ext
-    // [DELETED]
-    \`\`\`
-24. When merging files, output the deletion marker for every file that no longer needs to exist.
-25. When restructuring the project, be explicit about which files are removed — never silently drop files.
-26. The deletion marker must be the ONLY content in the code block.\n`;
+        context += `MODIFICATION RULES:
+1. Output the COMPLETE file when modifying — every single line, no placeholders.
+2. NEVER use "// rest remains same", "// ...", "/* existing code */", or any abbreviation.
+3. Use format: \`\`\`language:filename.ext — the system auto-detects create vs update.
+4. Preserve existing functionality, style, and conventions unless asked to change them.
+5. When adding features, integrate properly — don't break existing imports, references, or event bindings.
+6. When a file's content was omitted above, ask the user to provide it or work with what's visible.
+7. To delete a file, output ONLY: // [DELETED] as the file content.
+8. When merging/restructuring, explicitly delete removed files with the deletion marker.\n`;
 
         return context;
+    },
+
+    /**
+     * Dosyaları AI context'i için önceliklendir
+     * Aktif dosya, HTML, hata ile ilgili dosyalar önce gelir
+     */
+    _prioritizeFiles(files) {
+        const errorRelated = new Set();
+
+        // Console hatalarından ilgili dosyaları bul
+        if (Editor.consoleLogs) {
+            const errors = Editor.consoleLogs.filter(l => l.type === 'error');
+            for (const err of errors) {
+                const related = Editor._findRelatedFile(err.message);
+                if (related) {
+                    // "_findRelatedFile" bazen " (DOM selector issue...)" ekliyor, temizle
+                    const cleanName = related.split(' (')[0];
+                    errorRelated.add(cleanName);
+                }
+            }
+        }
+
+        // Son kullanıcı mesajından bahsedilen dosyaları bul
+        const mentionedFiles = new Set();
+        if (Chat.currentChat?.messages?.length > 0) {
+            const lastUserMsg = [...Chat.currentChat.messages].reverse().find(m => m.role === 'user');
+            if (lastUserMsg) {
+                for (const file of files) {
+                    const basename = file.filename.split('/').pop();
+                    if (lastUserMsg.content.toLowerCase().includes(basename.toLowerCase())) {
+                        mentionedFiles.add(file.filename);
+                    }
+                }
+            }
+        }
+
+        const activeFilename = Editor.currentFile?.filename;
+
+        return files.map(file => {
+            let priority = 'normal';
+            let score = 50; // base score
+
+            // Aktif dosya en yüksek öncelik
+            if (file.filename === activeFilename) {
+                priority = 'high';
+                score = 100;
+            }
+            // Hata ile ilgili dosyalar
+            else if (errorRelated.has(file.filename)) {
+                priority = 'high';
+                score = 95;
+            }
+            // Kullanıcının bahsettiği dosyalar
+            else if (mentionedFiles.has(file.filename)) {
+                priority = 'high';
+                score = 90;
+            }
+            // HTML dosyaları (yapısal öncelik)
+            else if (file.language === 'html' || file.filename.endsWith('.html')) {
+                priority = 'high';
+                score = 80;
+            }
+            // JS dosyaları (mantık önceliği)
+            else if (file.language === 'javascript' || file.filename.endsWith('.js')) {
+                score = 70;
+            }
+            // CSS dosyaları
+            else if (file.language === 'css' || file.filename.endsWith('.css')) {
+                score = 60;
+            }
+            // Config dosyaları düşük öncelik
+            else if (/\.(json|yaml|yml|toml|env|config)$/i.test(file.filename)) {
+                priority = 'low';
+                score = 30;
+            }
+            // Markdown/text düşük
+            else if (/\.(md|txt|log)$/i.test(file.filename)) {
+                priority = 'low';
+                score = 20;
+            }
+
+            // Küçük dosyalar bonus (kolay context)
+            if (file.code.length < 1000) score += 5;
+            // Çok büyük dosyalar penalty
+            if (file.code.length > 10000) score -= 10;
+
+            return { file, priority, score };
+        }).sort((a, b) => b.score - a.score);
     },
 
     async send(chat, model) {
