@@ -147,12 +147,11 @@ const API = {
             { id: 'anthropic/claude-sonnet-4.6', name: 'Claude Sonnet 4.6', price: '$$$', category: 'premium', vision: true },
         ],
         gemini: [
-            { id: 'gemini-2.5-flash-preview-05-20', name: 'Gemini 2.5 Flash', price: '$$', category: 'latest', vision: true },
-            { id: 'gemini-2.5-pro-preview-06-05', name: 'Gemini 2.5 Pro', price: '$$$', category: 'latest', vision: true },
-            { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', price: '$', category: 'stable', vision: true },
-            { id: 'gemini-2.0-flash-lite', name: 'Gemini 2.0 Flash Lite', price: 'Free', category: 'stable', vision: true },
-            { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', price: '$', category: 'stable', vision: true },
-            { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', price: '$$', category: 'stable', vision: true },
+            { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', price: '$$$', category: 'latest', vision: true },
+            { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', price: '$$', category: 'latest', vision: true },
+            { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', price: '$', category: 'latest', vision: true },
+            { id: 'gemini-3.1-flash-lite-preview', name: 'Gemini 3.1 Flash Lite Preview', price: 'Free', category: 'latest', vision: true },
+            { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview', price: 'Free', category: 'latest', vision: true },
         ],
         openai: [
             { id: 'gpt-4o', name: 'GPT-4o', price: '$$$', category: 'flagship', vision: true },
