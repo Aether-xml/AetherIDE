@@ -597,9 +597,15 @@ const Editor = {
         }
         this._consoleLogTimestamps.push(now);
 
+        // Build tool kaynaklı hataları daha açıklayıcı göster
+        let processedMessage = typeof message === 'object' ? JSON.stringify(message, null, 2) : String(message);
+        if (type === 'error' && /failed to load.*\.(tsx?|jsx?|vue|svelte)/i.test(processedMessage)) {
+            processedMessage += '\n💡 Hint: This project requires a build tool (Vite/webpack). Ask AI to convert it to CDN-based HTML.';
+        }
+
         const entry = {
             type,
-            message: typeof message === 'object' ? JSON.stringify(message, null, 2) : String(message),
+            message: processedMessage,
             source,
             timestamp: new Date().toISOString(),
         };
@@ -1151,8 +1157,39 @@ downloadAll() {
             }
         });
 
-        // ── Sandbox güvenliği: harici scriptlerin yüklenmesine izin ver ──
-        // srcdoc iframe'de allow-scripts zaten var, CDN'ler çalışır
+        // ── Build tool bağımlılığı tespiti ──
+        const buildToolPatterns = [
+            /src=["']\/src\//i,
+            /src=["']\.\/src\//i,
+            /"type"\s*:\s*"module"/,
+            /from\s+['"]react['"]/,
+            /from\s+['"]vue['"]/,
+            /import\s+.*\s+from\s+['"]\./,
+            /vite|webpack|rollup|parcel/i,
+        ];
+
+        const hasBuildTool = buildToolPatterns.some(p => p.test(htmlContent));
+
+        if (hasBuildTool) {
+            const warningBanner = `
+<div style="
+    position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
+    background: #1a1a2e; border-bottom: 2px solid #f59e0b;
+    padding: 12px 16px; font-family: monospace; font-size: 13px;
+    color: #f59e0b; display: flex; align-items: flex-start; gap: 10px;
+">
+    <span style="font-size:18px;flex-shrink:0;">⚠️</span>
+    <div>
+        <strong>Build tool detected</strong> — This project uses Vite/webpack/npm which can't run in browser preview.<br>
+        <span style="color:#94a3b8;font-size:11px;">Ask AI to convert it to CDN-based vanilla HTML/CSS/JS instead.</span>
+    </div>
+</div>
+<div style="height:60px;"></div>`;
+            htmlContent = htmlContent.replace('<body>', '<body>' + warningBanner);
+            if (!htmlContent.includes('<body>')) {
+                htmlContent = warningBanner + htmlContent;
+            }
+        }
 
         return htmlContent;
     },
