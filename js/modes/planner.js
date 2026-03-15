@@ -307,36 +307,68 @@ Write code that would impress a senior engineer during code review.`,
     buildFileContext() {
         if (Editor.files.length === 0) return '';
 
-        let context = '\n\n--- CURRENT PROJECT FILES ---\n';
-        context += `Total files: ${Editor.files.length}\n`;
+        const MAX_CONTEXT_CHARS = 200000;
+        const totalChars = Editor.files.reduce((sum, f) => sum + f.code.length, 0);
 
-        for (const file of Editor.files) {
+        // Dosyaları önceliklendir
+        const prioritized = Editor.files.map(file => {
+            let score = 50;
+            const lang = file.language;
+            if (file.filename === Editor.currentFile?.filename) score = 100;
+            else if (lang === 'html' || file.filename.endsWith('.html')) score = 80;
+            else if (lang === 'javascript' || file.filename.endsWith('.js')) score = 70;
+            else if (lang === 'css' || file.filename.endsWith('.css')) score = 60;
+            else if (/\.(json|yaml|yml|config)$/i.test(file.filename)) score = 30;
+            else if (/\.(md|txt)$/i.test(file.filename)) score = 20;
+            if (file.code.length < 1000) score += 5;
+            if (file.code.length > 10000) score -= 10;
+            return { file, score };
+        }).sort((a, b) => b.score - a.score);
+
+        let context = '\n\n══════ CURRENT PROJECT FILES ══════\n';
+        context += `Project: ${Editor.files.length} files, ${(totalChars / 1024).toFixed(1)}KB total\n`;
+        context += '\nFile index:\n';
+        for (const { file } of prioritized) {
+            const lines = file.code.split('\n').length;
+            context += `  • ${file.filename} (${file.language}, ${lines} lines)\n`;
+        }
+        context += '\n';
+
+        let usedChars = 0;
+        for (const { file } of prioritized) {
             const lines = file.code.split('\n').length;
             const chars = file.code.length;
-            const preview = chars > 3000
-                ? file.code.substring(0, 3000) + '\n... (truncated, full file has ' + lines + ' lines)'
-                : file.code;
-            context += `\n📄 ${file.filename} (${file.language}, ${lines} lines, ${chars} chars):\n\`\`\`${file.language}:${file.filename}\n${preview}\n\`\`\`\n`;
+            const remaining = MAX_CONTEXT_CHARS - usedChars;
+
+            if (remaining <= 0) {
+                context += `\n⚠️ ${file.filename} — omitted (context budget exceeded).\n`;
+                continue;
+            }
+
+            let fileContent;
+            if (chars <= remaining) {
+                fileContent = file.code;
+            } else if (remaining > 2000) {
+                const half = Math.floor(remaining / 2) - 100;
+                fileContent = file.code.substring(0, half)
+                    + `\n\n/* ... ${lines} lines total, middle omitted ... */\n\n`
+                    + file.code.substring(file.code.length - half);
+            } else {
+                context += `\n⚠️ ${file.filename} (${lines} lines) — omitted for budget.\n`;
+                continue;
+            }
+
+            context += `\n📄 ${file.filename} (${file.language}, ${lines} lines):\n\`\`\`${file.language}:${file.filename}\n${fileContent}\n\`\`\`\n`;
+            usedChars += fileContent.length;
         }
 
-        context += '--- END PROJECT FILES ---\n\n';
-        context += `CRITICAL RULES FOR MODIFYING EXISTING FILES:
-1. When updating a file, you MUST output the COMPLETE file content — every single line.
-2. NEVER use placeholders like "// rest of code remains same", "// ...", "/* existing code */", or "// unchanged".
-3. NEVER skip, abbreviate, or summarize any part of the code.
-4. Use the exact format: \`\`\`language:filename.ext
-5. If you only need to change 2 lines in a 200-line file, you must still output all 200 lines.
-6. Files can include folder paths like: \`\`\`javascript:src/utils/helpers.js
-7. Maintain the same coding style and conventions as the existing code.
-8. Preserve all existing functionality unless explicitly asked to remove it.
-
-FILE REMOVAL RULES:
-9. When the user asks to remove/delete a file, output ONLY the deletion marker:
-    \`\`\`language:filename.ext
-    // [DELETED]
-    \`\`\`
-10. When merging or restructuring files, output the deletion marker for every file that should no longer exist.
-11. Never silently drop files — always be explicit about removals.\n`;
+        context += '══════ END PROJECT FILES ══════\n\n';
+        context += `MODIFICATION RULES:
+1. Output COMPLETE files when modifying — every single line, no placeholders.
+2. NEVER use "// rest remains same", "// ...", or any abbreviation.
+3. Use format: \`\`\`language:filename.ext
+4. Preserve existing functionality, style, and conventions.
+5. To delete a file, output ONLY: // [DELETED] as the file content.\n`;
 
         return context;
     },
