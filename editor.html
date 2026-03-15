@@ -347,6 +347,12 @@
                             <button class="filetree-toggle-btn" id="filetree-toggle-btn" title="File Explorer">
                                 <i data-lucide="folder-tree"></i>
                             </button>
+                            <button class="code-action-btn" id="undo-btn" title="Undo (Ctrl+Z)" onclick="Editor.undo()" disabled style="opacity:0.4;">
+                                <i data-lucide="undo-2"></i>
+                            </button>
+                            <button class="code-action-btn" id="redo-btn" title="Redo (Ctrl+Shift+Z)" onclick="Editor.redo()" disabled style="opacity:0.4;">
+                                <i data-lucide="redo-2"></i>
+                            </button>
                             <button class="code-action-btn" id="copy-code-btn" title="Copy">
                                 <i data-lucide="copy"></i>
                             </button>
@@ -405,7 +411,7 @@
                     </div>
 
                     <div class="preview-container" id="preview-container" style="display: none;">
-                        <iframe id="preview-iframe" sandbox="allow-scripts allow-same-origin allow-modals allow-forms"></iframe>
+                        <iframe id="preview-iframe" sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups allow-downloads"></iframe>
                     </div>
 
                     <!-- Console Panel -->
@@ -1085,7 +1091,7 @@
                     <div class="settings-about">
                         <img src="assets/icons/icon-192.png" alt="AetherIDE" class="about-logo-img">
                         <div class="about-name">AetherIDE</div>
-                        <div class="about-version">v1.5.3</div>
+                        <div class="about-version">v1.6.0</div>
                         <div class="about-tagline">Build faster with AI-powered coding</div>
                         <div class="about-links">
                             <a href="https://discord.gg/7YKCvPzKEQ" target="_blank" rel="noopener" class="about-link discord-link">
@@ -1133,7 +1139,7 @@
     <!-- Service Worker — Aggressive Update -->
     <script>
     (function() {
-        var APP_VERSION = '1.5.3';
+        var APP_VERSION = '1.6.0';
         var STORED_VERSION = localStorage.getItem('aetheride_app_version');
 
         // Versiyon değiştiyse tüm cache'leri temizle
