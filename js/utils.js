@@ -900,16 +900,21 @@ CRITICAL RULES:
                 filename = filename.trim();
             }
 
-            // Dosya adı yoksa otomatik oluştur
+            // Dosya adı yoksa otomatik oluştur — dile göre mantıklı isim
             if (!filename) {
                 fileIndex++;
                 const ext = Utils.getExtension(language);
 
-                // Eğer tek dosyalık basit bir bloksa, dile göre mantıklı isim ver
                 if (language === 'html') filename = fileIndex === 1 ? 'index.html' : `page${fileIndex}.html`;
                 else if (language === 'css') filename = fileIndex === 1 ? 'styles.css' : `styles${fileIndex}.css`;
-                else if (language === 'javascript') filename = fileIndex === 1 ? 'script.js' : `script${fileIndex}.js`;
+                else if (language === 'javascript') filename = fileIndex === 1 ? 'app.js' : `module${fileIndex}.js`;
+                else if (language === 'typescript') filename = fileIndex === 1 ? 'main.ts' : `module${fileIndex}.ts`;
                 else if (language === 'python') filename = fileIndex === 1 ? 'main.py' : `script${fileIndex}.py`;
+                else if (language === 'json') filename = fileIndex === 1 ? 'data.json' : `config${fileIndex}.json`;
+                else if (language === 'bash' || language === 'sh') filename = fileIndex === 1 ? 'run.sh' : `script${fileIndex}.sh`;
+                else if (language === 'sql') filename = fileIndex === 1 ? 'schema.sql' : `query${fileIndex}.sql`;
+                else if (language === 'yaml' || language === 'yml') filename = fileIndex === 1 ? 'config.yml' : `config${fileIndex}.yml`;
+                else if (language === 'markdown') filename = fileIndex === 1 ? 'README.md' : `doc${fileIndex}.md`;
                 else filename = `file${fileIndex}.${ext}`;
             }
 
