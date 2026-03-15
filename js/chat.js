@@ -406,6 +406,53 @@ const Chat = {
         return chat;
     },
 
+    async _generateChatTitle(userMessage, chatId) {
+        try {
+            const model = App.currentModel;
+            if (!model || !API.hasApiKey()) return;
+
+            const result = await API.sendMessage(
+                [{ role: 'user', content: `Generate a short, descriptive title (max 5 words, no quotes, no punctuation) for a chat that starts with this message:\n\n"${userMessage.substring(0, 200)}"` }],
+                model,
+                {
+                    systemPrompt: 'You are a title generator. Return ONLY the title, nothing else. Max 5 words. No quotes. No punctuation at the end.',
+                    maxTokens: 20,
+                    temperature: 0.7,
+                    stream: false,
+                }
+            );
+
+            let title = '';
+            if (result?.content) {
+                title = result.content.trim();
+            } else if (result && typeof result[Symbol.asyncIterator] === 'function') {
+                for await (const chunk of result) title += chunk;
+                title = title.trim();
+            }
+
+            // Temizle
+            title = title
+                .replace(/^["'`]+|["'`]+$/g, '')
+                .replace(/\.$/, '')
+                .trim();
+
+            if (title && title.length > 0 && title.length <= 60) {
+                // Chat hâlâ aktifse güncelle
+                const chat = Storage.getChat(chatId);
+                if (chat) {
+                    chat.title = title;
+                    Storage.saveChat(chat);
+                    if (this.currentChat?.id === chatId) {
+                        this.currentChat.title = title;
+                    }
+                    this.renderHistory();
+                }
+            }
+        } catch (e) {
+            // Sessizce başarısız ol — orijinal truncate title kalır
+        }
+    },
+
     showWelcome() {
         const container = document.getElementById('messages-container');
         if (!container) return;
@@ -461,6 +508,15 @@ const Chat = {
                         if (msg.role === 'assistant' && msg.content) {
                             const blocks = Utils.extractCodeBlocks(msg.content);
                             for (const block of blocks) {
+                                // Generic/output.xxx filtresi
+                                const genericPattern = /^(file\d+\.(txt|unknown|text)|output\.(html|css|js|ts|json|py|txt|unknown))$/i;
+                                if (genericPattern.test(block.filename)) continue;
+                                // Dosya ağacı filtresi
+                                const isFileTree = (
+                                    (block.language === 'plaintext' || block.language === 'text' || block.language === '') &&
+                                    /[│├└─]/.test(block.code)
+                                );
+                                if (isFileTree) continue;
                                 // Dosya boyutu limiti
                                 if (block.code && block.code.length > Editor.MAX_FILE_SIZE) {
                                     block.code = block.code.substring(0, Editor.MAX_FILE_SIZE);
@@ -469,7 +525,6 @@ const Chat = {
                                 if (existingIndex >= 0) {
                                     Editor.files[existingIndex] = block;
                                 } else {
-                                    // Dosya sayısı limiti
                                     if (Editor.files.length >= Editor.MAX_FILES) continue;
                                     Editor.files.push(block);
                                 }
@@ -478,10 +533,7 @@ const Chat = {
                     }
                 }
 
-                Editor.renderTabs();
-                Editor.renderCode();
-                Editor.updateStatusBar();
-                Editor.updatePreviewButton();
+                Editor._renderEditorUI();
 
                 // Mobil file badge güncelle
                 const tabCode = document.getElementById('tab-code');
@@ -512,6 +564,12 @@ const Chat = {
     loadChat(chatId) {
         const chat = Storage.getChat(chatId);
         if (!chat) return;
+
+        // Stream state'i temizle
+        this._preStreamFiles = null;
+        this._knownStreamCards.clear();
+        this._activeWritingCards.clear();
+        this._stopTypewriter();
 
         this.currentChat = chat;
         Storage.setActiveChatId(chatId);
@@ -598,6 +656,11 @@ const Chat = {
     },
 
     deleteChatById(chatId) {
+        // Onay dialogu
+        const chat = Storage.getChat(chatId);
+        const title = chat?.title || 'this chat';
+        if (!confirm(`Delete "${title}"?\nThis cannot be undone.`)) return;
+
         Storage.deleteChat(chatId);
 
         if (this.currentChat?.id === chatId) {
@@ -678,6 +741,13 @@ const Chat = {
         const model = App.currentModel;
         if (!model) {
             Utils.toast('Please select a model first', 'warning');
+            // Model selector'ı otomatik aç
+            const wrapper = document.getElementById('model-select-wrapper');
+            if (wrapper) {
+                wrapper.classList.add('open');
+                App.populateModels();
+                document.getElementById('model-search')?.focus();
+            }
             return;
         }
 
@@ -720,7 +790,10 @@ const Chat = {
         this._clearImages();
 
         if (this.currentChat.messages.filter(m => m.role === 'user').length === 1) {
+            // Önce truncate ile hızlı title ver, sonra AI ile iyileştir
             this.currentChat.title = Utils.truncate(text, 35);
+            // Arka planda AI title üret
+            this._generateChatTitle(text, this.currentChat.id);
         }
 
         if (input) {
