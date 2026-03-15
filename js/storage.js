@@ -212,9 +212,13 @@ REMOVAL — When asked to delete/remove a file:
 - Never silently drop files — always be explicit
 
 CREATION — New files:
-- Use descriptive filenames (not file1.js, temp.html)
+- ALWAYS include a filename in EVERY code block — never output a bare code block without a filename
+- Use descriptive filenames (not file1.js, temp.html, output.js)
 - Follow project naming conventions
 - Include folder paths when logical: src/components/Button.js
+- Wrong: \`\`\`javascript (no filename) → Right: \`\`\`javascript:app.js
+- Wrong: \`\`\`typescript (no filename) → Right: \`\`\`typescript:src/main.ts
+- Wrong: \`\`\`json (no filename) → Right: \`\`\`json:package.json
 
 MODIFICATION — Existing files:
 - Output the ENTIRE file content
