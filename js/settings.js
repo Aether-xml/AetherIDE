@@ -127,6 +127,16 @@ const Settings = {
 
         this.currentProvider = providerId;
 
+        // Provider değişince aktif modeli sıfırla
+        // (önceki provider'ın modeli yeni provider'da geçersiz)
+        App.currentModel = '';
+        Storage.setLastModel('');
+        const valueEl = document.querySelector('#model-select-btn .select-value');
+        if (valueEl) valueEl.textContent = 'Select Model';
+        const modelDisplay = document.getElementById('current-model-display');
+        if (modelDisplay) modelDisplay.innerHTML = '<span class="topbar-model-name" style="color:var(--text-tertiary);">No model</span>';
+        App.updateThinkingToggleVisibility('');
+
         document.querySelectorAll('.provider-option').forEach(b => {
             b.classList.toggle('active', b.dataset.provider === providerId);
         });
