@@ -478,21 +478,64 @@ CRITICAL: Write the COMPLETE plan. Do NOT truncate or cut off. Every section mus
     buildFileContext() {
         if (Editor.files.length === 0) return '';
 
-        let context = '\n\n═══ CURRENT PROJECT FILES ═══\n';
-        context += `Total files: ${Editor.files.length}\n`;
+        const MAX_CONTEXT_CHARS = 150000; // Team mode'da biraz daha kısıtlı (3 agent aynı context'i kullanıyor)
+        const totalChars = Editor.files.reduce((sum, f) => sum + f.code.length, 0);
 
-        for (const file of Editor.files) {
+        // Dosyaları önceliklendir
+        const prioritized = Editor.files.map(file => {
+            let score = 50;
+            const lang = file.language;
+            if (file.filename === Editor.currentFile?.filename) score = 100;
+            else if (lang === 'html' || file.filename.endsWith('.html')) score = 80;
+            else if (lang === 'css' || file.filename.endsWith('.css')) score = 75;
+            else if (lang === 'javascript' || file.filename.endsWith('.js')) score = 70;
+            else if (/\.(json|yaml|yml|config)$/i.test(file.filename)) score = 30;
+            else if (/\.(md|txt)$/i.test(file.filename)) score = 20;
+            if (file.code.length < 1000) score += 5;
+            if (file.code.length > 10000) score -= 10;
+            return { file, score };
+        }).sort((a, b) => b.score - a.score);
+
+        let context = '\n\n═══ CURRENT PROJECT FILES ═══\n';
+        context += `Project: ${Editor.files.length} files, ${(totalChars / 1024).toFixed(1)}KB total\n`;
+        context += '\nFile index:\n';
+        for (const { file } of prioritized) {
+            const lines = file.code.split('\n').length;
+            context += `  • ${file.filename} (${file.language}, ${lines} lines)\n`;
+        }
+        context += '\n';
+
+        let usedChars = 0;
+        for (const { file } of prioritized) {
             const lines = file.code.split('\n').length;
             const chars = file.code.length;
-            const preview = chars > 3000
-                ? file.code.substring(0, 3000) + '\n... (truncated, full file has ' + lines + ' lines)'
-                : file.code;
-            context += `\n📄 ${file.filename} (${file.language}, ${lines} lines):\n\`\`\`${file.language}:${file.filename}\n${preview}\n\`\`\`\n`;
+            const remaining = MAX_CONTEXT_CHARS - usedChars;
+
+            if (remaining <= 0) {
+                context += `\n⚠️ ${file.filename} — omitted (context budget exceeded).\n`;
+                continue;
+            }
+
+            let fileContent;
+            if (chars <= remaining) {
+                fileContent = file.code;
+            } else if (remaining > 2000) {
+                const half = Math.floor(remaining / 2) - 100;
+                fileContent = file.code.substring(0, half)
+                    + `\n\n/* ... ${lines} lines total, middle omitted ... */\n\n`
+                    + file.code.substring(file.code.length - half);
+            } else {
+                context += `\n⚠️ ${file.filename} (${lines} lines) — omitted for budget.\n`;
+                continue;
+            }
+
+            context += `\n📄 ${file.filename} (${file.language}, ${lines} lines):\n\`\`\`${file.language}:${file.filename}\n${fileContent}\n\`\`\`\n`;
+            usedChars += fileContent.length;
         }
 
         context += '═══ END PROJECT FILES ═══\n\n';
-        context += `RULES: When modifying existing files, output the COMPLETE file. NEVER skip lines or use placeholders.
-FILE REMOVAL: To delete a file, output ONLY: \`\`\`language:filename.ext\\n// [DELETED]\\n\`\`\` — this removes it from the project.\n`;
+        context += `RULES: Output COMPLETE files when modifying — no placeholders, no shortcuts.
+FILE REMOVAL: To delete a file, output ONLY: // [DELETED] as the file content.\n`;
 
         return context;
     },
