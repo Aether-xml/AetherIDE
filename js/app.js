@@ -16,7 +16,7 @@ const App = {
     isEnhancing: false,
 
     init() {
-        console.log('⚡ AetherIDE v1.4.3 initializing...');
+        console.log('⚡ AetherIDE v1.6.0 initializing...');
 
         ThemeManager.init();
         LayoutManager.init();
@@ -211,6 +211,29 @@ const App = {
                 return;
             }
 
+            // Ctrl+Z — Undo (app seviyesi, input/textarea dışında)
+            if (e.ctrlKey && !e.shiftKey && e.key === 'z') {
+                // Input/textarea içindeyse browser'ın kendi undo'suna bırak
+                const active = document.activeElement;
+                const isTextInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+                if (!isTextInput && !isSandboxOpen && !isSettingsOpen) {
+                    e.preventDefault();
+                    Editor.undo();
+                    return;
+                }
+            }
+
+            // Ctrl+Shift+Z veya Ctrl+Y — Redo
+            if ((e.ctrlKey && e.shiftKey && e.key === 'Z') || (e.ctrlKey && e.key === 'y')) {
+                const active = document.activeElement;
+                const isTextInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+                if (!isTextInput && !isSandboxOpen && !isSettingsOpen) {
+                    e.preventDefault();
+                    Editor.redo();
+                    return;
+                }
+            }
+
             // Ctrl+/ — Kısayol listesi
             if (e.ctrlKey && e.key === '/') {
                 e.preventDefault();
@@ -250,6 +273,8 @@ const App = {
         const shortcuts = [
             'Ctrl+Enter — Send message',
             'Ctrl+N — New chat',
+            'Ctrl+Z — Undo code changes',
+            'Ctrl+Shift+Z — Redo code changes',
             'Ctrl+, — Settings',
             'Ctrl+L — Focus input',
             'Ctrl+B — Toggle sidebar (mobile)',
