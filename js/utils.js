@@ -1012,3 +1012,238 @@ ${err.raw}
 </details>`;
     },
 };
+
+// ═══════════════════════════════════════════════════════════
+// AetherIDE — Diff-Based Partial Update System v1.0
+// AI'nin SEARCH/REPLACE formatında kısmi güncelleme yapmasını
+// sağlar. Token tasarrufu + daha hızlı, daha az hatalı yanıt.
+// ═══════════════════════════════════════════════════════════
+const DiffParser = {
+
+    /**
+     * AI yanıtında SEARCH/REPLACE bloğu var mı?
+     * Format:
+     * <<<<<<< SEARCH filename.ext
+     * eski kod satırları
+     * =======
+     * yeni kod satırları
+     * >>>>>>> REPLACE
+     */
+    hasDiffBlocks(text) {
+        return /<<<<<<< SEARCH/i.test(text);
+    },
+
+    /**
+     * SEARCH/REPLACE bloklarını parse et
+     * @returns {Array<{filename, search, replace}>}
+     */
+    parseDiffBlocks(text) {
+        const blocks = [];
+        const regex = /<<<<<<< SEARCH[ \t]+([^\n]+)\n([\s\S]*?)\n=======\n([\s\S]*?)\n>>>>>>> REPLACE/gi;
+        let match;
+
+        while ((match = regex.exec(text)) !== null) {
+            const rawFilename = match[1].trim();
+            const filename = Utils.sanitizeFilename(rawFilename);
+            blocks.push({
+                filename,
+                search: match[2],
+                replace: match[3],
+            });
+        }
+
+        return blocks;
+    },
+
+    /**
+     * Diff bloklarını Editor.files üzerinde uygula (in-place)
+     * @returns {{ applied: Array, failed: Array }}
+     */
+    applyDiffs(diffBlocks, files) {
+        const results = { applied: [], failed: [] };
+
+        for (const block of diffBlocks) {
+            const fileIndex = this._findFileIndex(block.filename, files);
+
+            if (fileIndex === -1) {
+                results.failed.push({
+                    filename: block.filename,
+                    reason: 'File not found in project',
+                });
+                continue;
+            }
+
+            const file = files[fileIndex];
+            const original = file.code;
+
+            // Strateji 1: Exact string match
+            if (original.includes(block.search)) {
+                file.code = original.replace(block.search, block.replace);
+                results.applied.push({ filename: file.filename, strategy: 'exact' });
+                continue;
+            }
+
+            // Strateji 2: Whitespace-normalized line match
+            const trimResult = this._trimmedLineReplace(original, block.search, block.replace);
+            if (trimResult !== null) {
+                file.code = trimResult;
+                results.applied.push({ filename: file.filename, strategy: 'trimmed' });
+                continue;
+            }
+
+            // Strateji 3: Fuzzy anchor-based match
+            const fuzzyResult = this._fuzzyAnchorReplace(original, block.search, block.replace);
+            if (fuzzyResult !== null) {
+                file.code = fuzzyResult;
+                results.applied.push({ filename: file.filename, strategy: 'fuzzy' });
+                continue;
+            }
+
+            results.failed.push({
+                filename: file.filename,
+                reason: 'Search block not found in file content',
+            });
+        }
+
+        return results;
+    },
+
+    // ── Yardımcı: Dosya Arama ──
+
+    _findFileIndex(filename, files) {
+        const norm = (s) => s.replace(/^\.\/|^\//g, '').toLowerCase();
+        const target = norm(filename);
+
+        // 1. Exact normalized match
+        let idx = files.findIndex(f => norm(f.filename) === target);
+        if (idx !== -1) return idx;
+
+        // 2. Basename match (klasör yolu farklı olabilir)
+        const targetBase = target.split('/').pop();
+        idx = files.findIndex(f => norm(f.filename).split('/').pop() === targetBase);
+        if (idx !== -1) return idx;
+
+        // 3. Partial include
+        idx = files.findIndex(f =>
+            norm(f.filename).includes(target) || target.includes(norm(f.filename))
+        );
+        if (idx !== -1) return idx;
+
+        return -1;
+    },
+
+    // ── Yardımcı: Replace Stratejileri ──
+
+    /**
+     * Satırları trim ederek karşılaştır, orijinal indentation'ı koru
+     */
+    _trimmedLineReplace(code, search, replace) {
+        const codeLines = code.split('\n');
+        const searchLines = search.split('\n').filter(l => l.trim().length > 0);
+
+        if (searchLines.length === 0) return null;
+
+        for (let i = 0; i <= codeLines.length - searchLines.length; i++) {
+            let si = 0;
+            let matchStart = i;
+            let matchEnd = i;
+            let allMatch = true;
+
+            for (let ci = i; ci < codeLines.length && si < searchLines.length; ci++) {
+                if (codeLines[ci].trim() === '') continue; // boş satırları atla
+                if (codeLines[ci].trim() === searchLines[si].trim()) {
+                    si++;
+                    matchEnd = ci;
+                } else {
+                    allMatch = false;
+                    break;
+                }
+            }
+
+            if (allMatch && si === searchLines.length) {
+                const indent = codeLines[matchStart].match(/^(\s*)/)[1];
+                const replaceLines = replace.split('\n').map((line, lineIdx) => {
+                    if (lineIdx === 0 && line.trim().length > 0) {
+                        return indent + line.trimStart();
+                    }
+                    return line;
+                });
+
+                return [
+                    ...codeLines.slice(0, matchStart),
+                    ...replaceLines,
+                    ...codeLines.slice(matchEnd + 1),
+                ].join('\n');
+            }
+        }
+
+        return null;
+    },
+
+    /**
+     * İlk 2 satırı anchor olarak kullanarak fuzzy eşleştirme
+     */
+    _fuzzyAnchorReplace(code, search, replace) {
+        const searchLines = search
+            .split('\n')
+            .map(l => l.trim())
+            .filter(l => l.length > 0);
+
+        // En az 2 anlamlı satır lazım
+        if (searchLines.length < 2) return null;
+
+        const codeLines = code.split('\n');
+        const anchor1 = searchLines[0];
+        const anchor2 = searchLines[1];
+
+        for (let i = 0; i < codeLines.length - 1; i++) {
+            if (codeLines[i].trim() !== anchor1) continue;
+
+            // İkinci anchor yakında mı? (max 3 satır, boşluklar hariç)
+            let foundSecond = false;
+            for (let j = i + 1; j < Math.min(i + 4, codeLines.length); j++) {
+                if (codeLines[j].trim() === '') continue;
+                if (codeLines[j].trim() === anchor2) {
+                    foundSecond = true;
+                    break;
+                }
+                break; // farklı satır — anchor yok
+            }
+            if (!foundSecond) continue;
+
+            // Tüm search satırlarını sırayla eşle
+            let si = 0;
+            let lastMatchLine = i;
+            let allMatch = true;
+
+            for (let ci = i; ci < codeLines.length && si < searchLines.length; ci++) {
+                if (codeLines[ci].trim() === '') continue;
+                if (codeLines[ci].trim() === searchLines[si]) {
+                    si++;
+                    lastMatchLine = ci;
+                } else {
+                    allMatch = false;
+                    break;
+                }
+            }
+
+            if (allMatch && si === searchLines.length) {
+                const indent = codeLines[i].match(/^(\s*)/)[1];
+                const replaceLines = replace.split('\n').map((line, lineIdx) => {
+                    if (lineIdx === 0 && line.trim().length > 0) {
+                        return indent + line.trimStart();
+                    }
+                    return line;
+                });
+
+                return [
+                    ...codeLines.slice(0, i),
+                    ...replaceLines,
+                    ...codeLines.slice(lastMatchLine + 1),
+                ].join('\n');
+            }
+        }
+
+        return null;
+    },
+};
