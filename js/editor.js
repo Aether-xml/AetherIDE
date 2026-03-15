@@ -215,7 +215,8 @@ const Editor = {
     _applyCodeBlocks(blocks) {
         // Filter out generic fallback filenames (file1.txt, file2.unknown etc.)
         const validBlocks = blocks.filter(block => {
-            const genericPattern = /^file\d+\.(txt|unknown|text)$/i;
+            // Tamamen generic/anlamsız dosya adlarını filtrele
+            const genericPattern = /^(file\d+\.(txt|unknown|text)|output\.(html|css|js|ts|json|py|txt|unknown))$/i;
             if (genericPattern.test(block.filename)) {
                 console.log(`[Editor] Skipping generic fallback file: ${block.filename}`);
                 return false;
