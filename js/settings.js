@@ -305,6 +305,18 @@ const Settings = {
 
     CHANGELOG: [
         {
+            version: 'v1.6.0',
+            date: '2025',
+            changes: [
+                '🧠 System prompt completely rewritten — AI now produces production-grade, responsive, animated apps',
+                '⚡ Smart context management — files prioritized by relevance (active file, error-related, HTML first)',
+                '↩ Undo/Redo system — Ctrl+Z / Ctrl+Shift+Z to revert AI code changes (30 step history)',
+                '🔧 Diff-based partial updates — AI can now update specific sections without rewriting entire files',
+                '🌐 CDN/Framework preview support — Tailwind, React, Vue, Three.js now work in live preview',
+                '📦 Context budget system — large projects no longer exceed token limits',
+            ],
+        },
+        {
             version: 'v1.5.3',
             date: '2025-07-27',
             changes: [
