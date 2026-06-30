@@ -825,10 +825,11 @@
     text-align: left;
 }
 
-.provider-option svg.lucide {
+.provider-option svg.lucide,
+.provider-option .provider-logo-img {
     width: 20px;
     height: 20px;
-    color: var(--text-tertiary);
+    object-fit: contain;
     flex-shrink: 0;
 }
 
