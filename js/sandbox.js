@@ -427,7 +427,10 @@ const Sandbox = {
             // Mevcut seçimi kaydet
             const currentValue = select.value;
 
-            while (select.options.length > 1) select.remove(1);
+            // İlk option elementini koruyarak tüm içeriği (eski optgroup'lar dahil) temizle
+            const firstOption = select.options[0];
+            select.innerHTML = '';
+            if (firstOption) select.appendChild(firstOption);
 
             const categories = { free: '🆓 Free', thinking: '🧠 Thinking', premium: '⭐ Premium', latest: '🔥 Latest', stable: '✅ Stable', flagship: '🏆 Flagship', reasoning: '🧠 Reasoning', legacy: '📦 Legacy', available: '📋 Available' };
             const grouped = {};
