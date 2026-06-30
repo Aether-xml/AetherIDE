@@ -133,11 +133,12 @@ const FileTree = {
             const itemCount = this._countItems(folder);
             const paddingLeft = 12 + (depth * 16);
 
+            const escapedPath = Utils.escapeHtml(folder.path).replace(/'/g, "\\'");
             html += `<div class="filetree-folder ${isExpanded ? 'expanded' : ''}" 
                          data-path="${Utils.escapeHtml(folder.path)}"
                          style="padding-left:${paddingLeft}px;"
-                         onclick="FileTree.toggleFolder('${Utils.escapeHtml(folder.path)}')"
-                         oncontextmenu="FileTree.showFolderContext(event, '${Utils.escapeHtml(folder.path)}')">
+                         onclick="FileTree.toggleFolder('${escapedPath}')"
+                         oncontextmenu="FileTree.showFolderContext(event, '${escapedPath}')">
                         <i data-lucide="${isExpanded ? 'chevron-down' : 'chevron-right'}" class="filetree-arrow"></i>
                         <i data-lucide="${isExpanded ? 'folder-open' : 'folder'}" class="filetree-folder-icon"></i>
                         <span class="filetree-name">${Utils.escapeHtml(folder.name)}</span>
