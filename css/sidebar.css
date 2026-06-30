@@ -89,11 +89,11 @@
 }
 
 .section-label {
-    font-size: 0.6rem;
-    font-weight: 700;
+    font-size: 0.72rem;
+    font-weight: 600;
     color: var(--text-tertiary);
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
+    letter-spacing: -0.1px;
+    text-transform: none;
     margin-bottom: 8px;
     padding: 0 4px;
     display: flex;
