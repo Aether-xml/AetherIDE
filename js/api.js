@@ -67,8 +67,6 @@ const API = {
     PROVIDER_MODELS: {
         openrouter: [
             // 🆓 Free Models
-            { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash (Free)', price: 'Free', category: 'free', vision: true },
-            { id: 'google/gemini-2.5-pro-exp-03-25', name: 'Gemini 2.5 Pro Exp (Free)', price: 'Free', category: 'free', vision: true },
             { id: 'deepseek/deepseek-r1-0528:free', name: 'DeepSeek R1 0528 (Free)', price: 'Free', category: 'free' },
             { id: 'deepseek/deepseek-r1:free', name: 'DeepSeek R1 (Free)', price: 'Free', category: 'free' },
             { id: 'deepseek/deepseek-chat-v3-0324:free', name: 'DeepSeek V3 0324 (Free)', price: 'Free', category: 'free' },
@@ -127,6 +125,9 @@ const API = {
             { id: 'qwen/qwen3-235b-a22b-thinking-2507', name: 'Qwen3 235B Thinking', price: '$$', category: 'thinking' },
 
             // ⭐ Premium Models
+            { id: 'google/gemini-3.5-flash', name: 'Gemini 3.5 Flash', price: '$$', category: 'premium', vision: true },
+            { id: 'google/gemini-3.1-pro', name: 'Gemini 3.1 Pro', price: '$$$', category: 'premium', vision: true },
+            { id: 'google/gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', price: '$', category: 'premium', vision: true },
             { id: 'google/gemini-2.5-flash', name: 'Gemini 2.5 Flash', price: '$$', category: 'premium', vision: true },
             { id: 'google/gemini-2.5-pro-preview', name: 'Gemini 2.5 Pro', price: '$$$', category: 'premium', vision: true },
             { id: 'anthropic/claude-sonnet-4', name: 'Claude Sonnet 4', price: '$$$', category: 'premium', vision: true },
@@ -147,11 +148,12 @@ const API = {
             { id: 'anthropic/claude-sonnet-4.6', name: 'Claude Sonnet 4.6', price: '$$$', category: 'premium', vision: true },
         ],
         gemini: [
+            { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', price: '$$', category: 'latest', vision: true },
+            { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro', price: '$$$', category: 'latest', vision: true },
+            { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', price: '$', category: 'latest', vision: true },
             { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', price: '$$$', category: 'latest', vision: true },
             { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', price: '$$', category: 'latest', vision: true },
             { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', price: '$', category: 'latest', vision: true },
-            { id: 'gemini-3.1-flash-lite-preview', name: 'Gemini 3.1 Flash Lite Preview', price: 'Free', category: 'latest', vision: true },
-            { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview', price: 'Free', category: 'latest', vision: true },
         ],
         openai: [
             { id: 'gpt-4o', name: 'GPT-4o', price: '$$$', category: 'flagship', vision: true },
@@ -172,9 +174,11 @@ const API = {
             { id: 'claude-3-7-sonnet', name: 'Claude 3.7 Sonnet', price: 'Free', category: 'free', vision: true },
             { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', price: 'Free', category: 'free', vision: true },
             { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', price: 'Free', category: 'free', vision: true },
+            { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', price: 'Free', category: 'free', vision: true },
+            { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro', price: 'Free', category: 'free', vision: true },
+            { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', price: 'Free', category: 'free', vision: true },
             { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', price: 'Free', category: 'free', vision: true },
             { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', price: 'Free', category: 'free', vision: true },
-            { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', price: 'Free', category: 'free', vision: true },
             { id: 'deepseek-chat', name: 'DeepSeek V3', price: 'Free', category: 'free' },
             { id: 'deepseek-reasoner', name: 'DeepSeek R1', price: 'Free', category: 'free' },
             { id: 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8', name: 'Llama 4 Maverick', price: 'Free', category: 'free' },
@@ -182,8 +186,6 @@ const API = {
             { id: 'Qwen/Qwen3-235B-A22B', name: 'Qwen3 235B', price: 'Free', category: 'free' },
             { id: 'mistralai/Mistral-Small-24B-Instruct-2501', name: 'Mistral Small 24B', price: 'Free', category: 'free' },
             { id: 'grok-3-mini', name: 'Grok 3 Mini', price: 'Free', category: 'free' },
-            { id: 'google/gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', price: 'Free', category: 'free', vision: true },
-            { id: 'google/gemini-3-flash-preview', name: 'Gemini 3 Flash', price: 'Free', category: 'free', vision: true },
             { id: 'anthropic/claude-sonnet-4-6', name: 'Claude Sonnet 4.6', price: 'Free', category: 'free', vision: true },
             { id: 'anthropic/claude-opus-4-6', name: 'Claude Opus 4.6', price: 'Free', category: 'free', vision: true },
             { id: 'openai/gpt-5.2', name: 'GPT-5.2', price: 'Free', category: 'free' },
