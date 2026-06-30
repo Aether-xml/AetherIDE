@@ -411,7 +411,8 @@
                     </div>
 
                     <div class="preview-container" id="preview-container" style="display: none;">
-                        <iframe id="preview-iframe" sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups allow-downloads"></iframe>
+                        <!-- Güvenlik Kritik: 'allow-same-origin' özniteliği kaldırıldı. Bu sayede önizleme içindeki kodların (AI tarafından üretilen veya harici kütüphanelerden gelen) parent pencerenin localStorage alanına erişerek API anahtarlarınızı çalması tamamen engellenmiştir. Konsol takibi 'postMessage' ile çalıştığı için aynı köken (origin) iznine ihtiyaç duymaz. -->
+                        <iframe id="preview-iframe" sandbox="allow-scripts allow-modals allow-forms allow-popups allow-downloads"></iframe>
                     </div>
 
                     <!-- Console Panel -->
