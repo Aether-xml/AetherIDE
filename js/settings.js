@@ -512,8 +512,10 @@ const Settings = {
         const models = API.PROVIDER_MODELS[this.currentProvider] || API.PROVIDER_MODELS.openrouter;
         const settings = Storage.getSettings();
 
-        // Mevcut seçenekleri temizle (ilk option hariç)
-        while (select.options.length > 1) select.remove(1);
+        // İlk option elementini koruyarak tüm içeriği (eski optgroup'lar dahil) temizle
+        const firstOption = select.options[0];
+        select.innerHTML = '';
+        if (firstOption) select.appendChild(firstOption);
 
         // Kategoriye göre grupla
         const categories = {};
