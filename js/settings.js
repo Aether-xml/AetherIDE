@@ -535,7 +535,9 @@ const Settings = {
             catModels.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m.id;
-                opt.textContent = `${m.name} ${m.price ? '(' + m.price + ')' : ''}`;
+                // Eğer model adında zaten fiyat bilgisi (örn. "(Free)") geçiyorsa mükerrer eklemeyi engelle
+                const hasPriceInName = m.price && m.name.includes(`(${m.price})`);
+                opt.textContent = hasPriceInName ? m.name : `${m.name} ${m.price ? '(' + m.price + ')' : ''}`;
                 group.appendChild(opt);
             });
             select.appendChild(group);
