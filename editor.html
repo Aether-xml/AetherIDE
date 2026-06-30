@@ -36,7 +36,7 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
 
     <!-- Puter.js SDK (Free AI provider) -->
-    <script src="https://js.puter.com/v2/" defer></script>
+    <script src="https://js.puter.com/v2/" onload="if(window.Settings && Settings.currentProvider === 'puter') Settings.loadSettings(); if(window.API && API.getCurrentProvider() === 'puter') API.updateConnectionStatus('online');"></script>
 
     <!-- Styles -->
     <link rel="stylesheet" href="css/main.css">
@@ -760,7 +760,7 @@
                         <p class="settings-desc">Choose your API provider. Each provider needs its own API key.</p>
                         <div class="provider-options" id="provider-options">
                             <button class="provider-option active" data-provider="openrouter">
-                                <i data-lucide="cloud"></i>
+                                <img src="assets/icons/openrouter.png" alt="OpenRouter" class="provider-logo-img">
                                 <div class="provider-info">
                                     <span class="provider-name">OpenRouter</span>
                                     <span class="provider-desc">200+ models, one key</span>
