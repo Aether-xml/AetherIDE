@@ -1213,6 +1213,9 @@ const Chat = {
                 sendBtn.innerHTML = '<i data-lucide="square"></i>';
                 sendBtn.disabled = false;
 
+                // Eski send handler'ı güvence için kaldır (event çakışmasını engelle)
+                sendBtn.removeEventListener('click', Chat._sendClickHandler);
+
                 // Yeni stop handler oluştur
                 this._stopHandler = (e) => {
                     e.preventDefault();
