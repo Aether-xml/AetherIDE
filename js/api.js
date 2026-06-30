@@ -272,7 +272,6 @@ const API = {
         if (!model) throw new Error('No model selected. Please select a model first.');
         if (!messages || messages.length === 0) throw new Error('No messages to send.');
 
-        console.log(`[API] Sending to ${provider} | model: ${model} | messages: ${messages.length}`);
         this.abortController = new AbortController();
 
         if (provider === 'puter') return this._sendPuter(messages, model, options);
@@ -364,10 +363,10 @@ const API = {
             const data = await response.json();
             let content = data.choices?.[0]?.message?.content || '';
 
-            // Non-stream yanıt boyut limiti (500KB)
-            if (content.length > 512000) {
-                console.warn(`[AetherIDE] Response content truncated from ${(content.length / 1024).toFixed(1)}KB to 500KB`);
-                content = content.substring(0, 512000) + '\n\n⚠️ *Response truncated — exceeded 500KB limit.*';
+            // Non-stream yanıt boyut limiti (2MB)
+            if (content.length > 2048000) {
+                console.warn(`[AetherIDE] Response content truncated from ${(content.length / 1024).toFixed(1)}KB to 2MB`);
+                content = content.substring(0, 2048000) + '\n\n⚠️ *Response truncated — exceeded 2MB limit.*';
             }
 
             return { content, model: data.model, usage: data.usage, stream: false };
@@ -445,10 +444,10 @@ const API = {
             const data = await response.json();
             let content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-            // Non-stream yanıt boyut limiti (500KB)
-            if (content.length > 512000) {
-                console.warn(`[AetherIDE] Gemini response content truncated from ${(content.length / 1024).toFixed(1)}KB to 500KB`);
-                content = content.substring(0, 512000) + '\n\n⚠️ *Response truncated — exceeded 500KB limit.*';
+            // Non-stream yanıt boyut limiti (2MB)
+            if (content.length > 2048000) {
+                console.warn(`[AetherIDE] Gemini response content truncated from ${(content.length / 1024).toFixed(1)}KB to 2MB`);
+                content = content.substring(0, 2048000) + '\n\n⚠️ *Response truncated — exceeded 2MB limit.*';
             }
 
             return { content, model, stream: false };
@@ -463,7 +462,7 @@ const API = {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
-        const MAX_STREAM_SIZE = 512000; // 500KB
+        const MAX_STREAM_SIZE = 2048000; // 2MB
         let totalStreamSize = 0;
 
         try {
@@ -474,8 +473,8 @@ const API = {
                 // Stream boyut limiti kontrolü
                 totalStreamSize += value.length;
                 if (totalStreamSize > MAX_STREAM_SIZE) {
-                    console.warn('[AetherIDE] Gemini stream response truncated at 500KB');
-                    yield '\n\n⚠️ *Response truncated — exceeded 500KB stream limit.*';
+                    console.warn('[AetherIDE] Gemini stream response truncated at 2MB');
+                    yield '\n\n⚠️ *Response truncated — exceeded 2MB stream limit.*';
                     try { reader.cancel(); } catch(e) {}
                     return;
                 }
@@ -530,7 +529,7 @@ const API = {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
-        const MAX_STREAM_SIZE = 512000; // 500KB
+        const MAX_STREAM_SIZE = 2048000; // 2MB
         let totalStreamSize = 0;
 
         try {
@@ -543,8 +542,8 @@ const API = {
                 // Stream boyut limiti kontrolü
                 totalStreamSize += value.length;
                 if (totalStreamSize > MAX_STREAM_SIZE) {
-                    console.warn('[AetherIDE] Stream response truncated at 500KB');
-                    yield '\n\n⚠️ *Response truncated — exceeded 500KB stream limit.*';
+                    console.warn('[AetherIDE] Stream response truncated at 2MB');
+                    yield '\n\n⚠️ *Response truncated — exceeded 2MB stream limit.*';
                     try { reader.cancel(); } catch(e) {}
                     return;
                 }
@@ -677,8 +676,8 @@ const API = {
                 content = response.content;
             }
 
-            if (content.length > 512000) {
-                content = content.substring(0, 512000) + '\n\n⚠️ *Response truncated — exceeded 500KB limit.*';
+            if (content.length > 2048000) {
+                content = content.substring(0, 2048000) + '\n\n⚠️ *Response truncated — exceeded 2MB limit.*';
             }
 
             return { content, model, stream: false };
@@ -697,7 +696,7 @@ const API = {
         }
 
         let totalSize = 0;
-        const MAX_STREAM_SIZE = 512000;
+        const MAX_STREAM_SIZE = 2048000; // 2MB
 
         try {
             const response = await puter.ai.chat(messages, {
