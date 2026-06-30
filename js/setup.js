@@ -162,7 +162,7 @@ const SetupWizard = {
                         <div class="setup-section-title">API Provider</div>
                         <div class="setup-providers">
                             <button class="setup-provider-btn active" data-provider="openrouter">
-                                <img src="assets/icons/openrouter.png" alt="OpenRouter" class="setup-provider-logo-img">
+                                <img src="/assets/icons/openrouter.png" alt="OpenRouter" class="setup-provider-logo-img">
                                 <div>
                                     <div class="setup-provider-name">OpenRouter</div>
                                     <div class="setup-provider-hint">200+ models</div>
