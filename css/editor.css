@@ -140,7 +140,7 @@
     }
 }
 
-/* ── Undo / Redo Butonları ── */
+/* Undo / Redo Butonları ── */
 #undo-btn,
 #redo-btn {
     transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
@@ -162,13 +162,4 @@
 #undo-btn:not(:disabled):active,
 #redo-btn:not(:disabled):active {
     transform: scale(0.92);
-}
-
-/* Undo/Redo tooltip benzeri title gösterimi için */
-#undo-btn::after {
-    content: 'Ctrl+Z';
-}
-
-#redo-btn::after {
-    content: 'Ctrl+Shift+Z';
 }
