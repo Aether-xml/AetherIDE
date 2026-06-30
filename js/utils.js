@@ -859,14 +859,6 @@ CRITICAL RULES:
         const blocks = [];
         if (!text) return blocks;
 
-        // Debug: gelen metnin ilk kod bloğu formatını logla
-        const debugMatch = text.match(/```[^\n]{0,100}/);
-        if (debugMatch) {
-            console.log('[extractCodeBlocks] First code fence:', JSON.stringify(debugMatch[0]));
-        } else {
-            console.log('[extractCodeBlocks] No ``` found in text, length:', text.length);
-        }
-
         // Daha kapsamlı regex:
         // - Dil adından sonra : veya boşluk+: ile dosya adı
         // - Dosya adında harf, rakam, nokta, tire, alt çizgi, slash olabilir
