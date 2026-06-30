@@ -793,6 +793,31 @@
     flex-shrink: 0;
 }
 
+.support-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #FF5252;
+    color: white;
+    border-radius: var(--radius-md);
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.support-link:hover {
+    background: #FF6E6E;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 82, 82, 0.35);
+}
+
+.support-link svg,
+.support-link i {
+    flex-shrink: 0;
+}
+
 .about-links {
     display: flex;
     align-items: center;
