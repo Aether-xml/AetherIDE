@@ -178,7 +178,6 @@ const Editor = {
                 const results = DiffParser.applyDiffs(diffBlocks, this.files);
 
                 if (results.applied.length > 0) {
-                    console.log('[Editor] Diff applied:', results.applied.map(a => `${a.filename} (${a.strategy})`));
                     this._renderEditorUI();
                     if (this.previewVisible) this._schedulePreviewUpdate();
                 }
@@ -225,11 +224,8 @@ const Editor = {
         });
 
         if (validBlocks.length === 0) {
-            console.log('[Editor] All extracted blocks were generic fallbacks, skipping');
             return;
         }
-
-        console.log('[Editor] Extracted blocks:', validBlocks.map(b => b.filename));
 
         // Undo snapshot — değişiklik öncesi kaydet (sadece dosyalar varsa)
         if (this.files.length > 0) {
