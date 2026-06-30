@@ -11,6 +11,12 @@ const Storage = {
             localStorage.setItem(this.PREFIX + key, JSON.stringify(value));
             return true;
         } catch (e) {
+            if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22) {
+                // Tarayıcı localStorage limiti (5MB) dolduğunda uygulamanın çökmesini engelle ve kullanıcıya bilgi ver
+                if (window.Utils) {
+                    Utils.toast('💾 Browser storage is full! Please delete some old chats or files to free up space.', 'error', 5000);
+                }
+            }
             console.warn('Storage set error:', e);
             return false;
         }
