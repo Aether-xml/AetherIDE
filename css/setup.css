@@ -495,10 +495,12 @@
     text-align: center;
 }
 
-.setup-provider-btn svg.lucide {
+.setup-provider-btn svg.lucide,
+.setup-provider-btn .setup-provider-logo-img {
     width: 18px;
     height: 18px;
-    color: var(--text-tertiary);
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
 .setup-provider-btn:hover {
