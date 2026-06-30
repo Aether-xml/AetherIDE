@@ -318,12 +318,12 @@ const Settings = {
             version: 'v1.6.0',
             date: '2025',
             changes: [
-                '🧠 System prompt completely rewritten — AI now produces production-grade, responsive, animated apps',
-                '⚡ Smart context management — files prioritized by relevance (active file, error-related, HTML first)',
-                '↩ Undo/Redo system — Ctrl+Z / Ctrl+Shift+Z to revert AI code changes (30 step history)',
-                '🔧 Diff-based partial updates — AI can now update specific sections without rewriting entire files',
-                '🌐 CDN/Framework preview support — Tailwind, React, Vue, Three.js now work in live preview',
-                '📦 Context budget system — large projects no longer exceed token limits',
+                { type: 'new', text: 'System prompt completely rewritten — AI now produces production-grade, responsive, animated apps' },
+                { type: 'improved', text: 'Smart context management — files prioritized by relevance (active file, error-related, HTML first)' },
+                { type: 'new', text: 'Undo/Redo system — Ctrl+Z / Ctrl+Shift+Z to revert AI code changes (30 step history)' },
+                { type: 'improved', text: 'Diff-based partial updates — AI can now update specific sections without rewriting entire files' },
+                { type: 'improved', text: 'CDN/Framework preview support — Tailwind, React, Vue, Three.js now work in live preview' },
+                { type: 'improved', text: 'Context budget system — large projects no longer exceed token limits' },
             ],
         },
         {
