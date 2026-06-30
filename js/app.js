@@ -16,8 +16,6 @@ const App = {
     isEnhancing: false,
 
     init() {
-        console.log('⚡ AetherIDE v1.6.0 initializing...');
-
         ThemeManager.init();
         LayoutManager.init();
         Settings.init();
@@ -43,8 +41,6 @@ const App = {
         if (API.hasApiKey()) {
             API.updateConnectionStatus('online');
         }
-
-        console.log('⚡ AetherIDE ready!');
 
         // Show setup wizard for first-time users
         SetupWizard.show();
